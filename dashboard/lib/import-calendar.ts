@@ -168,7 +168,79 @@ function parseSheet(
   return count;
 }
 
-export function importCalendar(): { brands: number; posts: number } {
+/**
+ * Scan brand folders for existing post images and link them to DB records.
+ * Files follow the pattern vX_NN_slug.png where NN = post_number.
+ * For each post, finds the latest version file (highest vX, then latest letter suffix).
+ */
+function scanExistingFiles(): number {
+  const db = getDb();
+  const brands = db.prepare("SELECT id, folder_path, posts_subfolder FROM brands").all() as Array<{
+    id: string;
+    folder_path: string;
+    posts_subfolder: string;
+  }>;
+
+  let linked = 0;
+
+  for (const brand of brands) {
+    const postsDir = path.join(PROJECT_ROOT, brand.folder_path, brand.posts_subfolder);
+    if (!fs.existsSync(postsDir)) continue;
+
+    // Find all versioned post files: vX_NN_*.png / .jpg / .jpeg
+    const files = globSync(
+      path.join(postsDir, "v*_*.*").replace(/\\/g, "/")
+    ).map((f) => path.basename(f));
+
+    // Group files by post number
+    const byPostNumber = new Map<number, string[]>();
+    for (const file of files) {
+      // Match pattern: v{batch}_{postNumber}{optional_letter_suffix}_{slug}.{ext}
+      const match = file.match(/^v(\d+)_(\d+)[a-z]*_/);
+      if (!match) continue;
+      const postNum = parseInt(match[2], 10);
+      if (!byPostNumber.has(postNum)) byPostNumber.set(postNum, []);
+      byPostNumber.get(postNum)!.push(file);
+    }
+
+    // For each post number, pick the latest version (highest batch, then latest suffix)
+    const updateStmt = db.prepare(
+      `UPDATE posts SET file_path = ?, version = ?, updated_at = ?
+       WHERE brand_id = ? AND post_number = ? AND (file_path IS NULL OR file_path = '')`
+    );
+
+    for (const [postNum, postFiles] of byPostNumber) {
+      // Sort: highest batch first, then alphabetically (letter suffixes sort naturally)
+      postFiles.sort((a, b) => {
+        const aMatch = a.match(/^v(\d+)_(\d+)([a-z]*)_/);
+        const bMatch = b.match(/^v(\d+)_(\d+)([a-z]*)_/);
+        if (!aMatch || !bMatch) return 0;
+        const batchDiff = parseInt(bMatch[1]) - parseInt(aMatch[1]);
+        if (batchDiff !== 0) return batchDiff;
+        // Same batch — compare letter suffix (f > c > b > empty)
+        return bMatch[3].localeCompare(aMatch[3]);
+      });
+
+      const latestFile = postFiles[0];
+      const versionMatch = latestFile.match(/^(v\d+_\d+[a-z]*)/);
+      const version = versionMatch ? versionMatch[1] : null;
+      const relativePath = `${brand.posts_subfolder}/${latestFile}`;
+
+      const result = updateStmt.run(
+        relativePath,
+        version,
+        new Date().toISOString(),
+        brand.id,
+        postNum
+      );
+      if (result.changes > 0) linked++;
+    }
+  }
+
+  return linked;
+}
+
+export function importCalendar(): { brands: number; posts: number; filesLinked: number } {
   const filePath = findCalendarFile();
   const workbook = XLSX.readFile(filePath);
 
@@ -188,5 +260,8 @@ export function importCalendar(): { brands: number; posts: number } {
     postCount += parseSheet(sheet, brand.slug);
   }
 
-  return { brands: brandCount, posts: postCount };
+  // Scan disk for existing post images and link to DB records
+  const filesLinked = scanExistingFiles();
+
+  return { brands: brandCount, posts: postCount, filesLinked };
 }
