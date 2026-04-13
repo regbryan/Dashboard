@@ -242,7 +242,10 @@ function scanExistingFiles(): number {
 
 export function importCalendar(): { brands: number; posts: number; filesLinked: number } {
   const filePath = findCalendarFile();
-  const workbook = XLSX.readFile(filePath);
+  // Use fs.readFileSync + XLSX.read() instead of XLSX.readFile() because
+  // Turbopack's server environment can interfere with xlsx's internal file access.
+  const buffer = fs.readFileSync(filePath);
+  const workbook = XLSX.read(buffer, { type: "buffer" });
 
   let brandCount = 0;
   let postCount = 0;
