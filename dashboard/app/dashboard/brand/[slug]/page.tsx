@@ -19,6 +19,7 @@ interface Post {
   content_pillar: string;
   concept: string;
   status: string;
+  file_path: string | null;
 }
 
 export default async function BrandDetailPage({
@@ -29,7 +30,7 @@ export default async function BrandDetailPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const { slug } = await params;
-  const { status: filterStatus } = await searchParams;
+  const { status: filterStatus, filter } = await (searchParams as Promise<{ status?: string; filter?: string }>);
 
   const db = getDb();
 
@@ -58,7 +59,7 @@ export default async function BrandDetailPage({
 
   const posts = db
     .prepare(
-      "SELECT id, post_number, date, day, post_type, content_pillar, concept, status FROM posts WHERE brand_id = ? ORDER BY post_number"
+      "SELECT id, post_number, date, day, post_type, content_pillar, concept, status, file_path FROM posts WHERE brand_id = ? ORDER BY post_number"
     )
     .all(slug) as Post[];
 
@@ -78,10 +79,16 @@ export default async function BrandDetailPage({
     statusCounts[post.status] = (statusCounts[post.status] || 0) + 1;
   }
 
-  // Filter posts if a status filter is active
-  const filteredPosts = filterStatus
-    ? posts.filter((p) => p.status === filterStatus)
-    : posts;
+  // Count posts needing generation (no image on disk)
+  const needsGeneration = posts.filter((p) => !p.file_path).length;
+
+  // Filter posts
+  let filteredPosts = posts;
+  if (filter === "needs_generation") {
+    filteredPosts = posts.filter((p) => !p.file_path);
+  } else if (filterStatus) {
+    filteredPosts = posts.filter((p) => p.status === filterStatus);
+  }
 
   const accentColor = brand.color_primary || "#3b82f6";
 
@@ -118,13 +125,25 @@ export default async function BrandDetailPage({
         <Link
           href={`/dashboard/brand/${slug}`}
           className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            !filterStatus
+            !filterStatus && !filter
               ? "bg-gray-900 text-white"
               : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
           }`}
         >
           All ({posts.length})
         </Link>
+        {needsGeneration > 0 && (
+          <Link
+            href={`/dashboard/brand/${slug}?filter=needs_generation`}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              filter === "needs_generation"
+                ? "bg-amber-600 text-white"
+                : "bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100"
+            }`}
+          >
+            Needs Generation ({needsGeneration})
+          </Link>
+        )}
         {Object.entries(statusCounts).map(([status, count]) => (
           <Link
             key={status}
