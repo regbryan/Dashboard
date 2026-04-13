@@ -16,7 +16,8 @@ export default function DashboardPage() {
         SUM(CASE WHEN p.status = 'changes_requested' THEN 1 ELSE 0 END) as changes_requested,
         SUM(CASE WHEN p.status = 'approved' THEN 1 ELSE 0 END) as approved,
         SUM(CASE WHEN p.status = 'scheduled' THEN 1 ELSE 0 END) as scheduled,
-        SUM(CASE WHEN p.status = 'posted' THEN 1 ELSE 0 END) as posted
+        SUM(CASE WHEN p.status = 'posted' THEN 1 ELSE 0 END) as posted,
+        SUM(CASE WHEN p.file_path IS NOT NULL AND p.file_path != '' THEN 1 ELSE 0 END) as has_image
       FROM brands b
       LEFT JOIN posts p ON p.brand_id = b.id
       GROUP BY b.id
@@ -36,6 +37,7 @@ export default function DashboardPage() {
     approved: number;
     scheduled: number;
     posted: number;
+    has_image: number;
   }>;
 
   // Build date range for subtitle
@@ -73,6 +75,7 @@ export default function DashboardPage() {
                 approved: b.approved,
                 scheduled: b.scheduled,
                 posted: b.posted,
+                has_image: b.has_image,
               },
             }}
           />
