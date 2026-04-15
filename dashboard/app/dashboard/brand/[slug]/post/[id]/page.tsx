@@ -1,39 +1,12 @@
-import { getDb } from "@/lib/db";
-import { getVersionHistory } from "@/lib/versions";
+import { supabase } from "@/lib/supabase";
+import { getImageUrl } from "@/lib/image-url";
 import StatusBadge from "@/components/StatusBadge";
 import ApprovalHistory from "@/components/ApprovalHistory";
+import ClientReviewLink from "@/components/ClientReviewLink";
 import Link from "next/link";
 import PostActions from "./PostActions";
-import VersionTabs from "./VersionTabs";
 
-interface Post {
-  id: number;
-  brand_id: string;
-  post_number: number;
-  date: string | null;
-  day: string | null;
-  post_type: string | null;
-  content_pillar: string | null;
-  concept: string | null;
-  caption: string | null;
-  status: string;
-  file_path: string | null;
-  archetype: string | null;
-}
-
-interface Brand {
-  id: string;
-  name: string;
-  folder_path: string;
-  logo_path: string | null;
-}
-
-interface Approval {
-  id: string;
-  status: string;
-  comment: string | null;
-  created_at: string;
-}
+export const dynamic = "force-dynamic";
 
 export default async function PostDetailPage({
   params,
@@ -41,16 +14,13 @@ export default async function PostDetailPage({
   params: Promise<{ slug: string; id: string }>;
 }) {
   const { slug, id } = await params;
-  const db = getDb();
 
-  const post = db
-    .prepare(
-      `SELECT p.*, b.name as brand_name, b.folder_path, b.logo_path
-       FROM posts p
-       JOIN brands b ON b.id = p.brand_id
-       WHERE p.id = ? AND p.brand_id = ?`
-    )
-    .get(id, slug) as (Post & { brand_name: string; folder_path: string; logo_path: string | null }) | undefined;
+  const { data: post } = await supabase
+    .from("posts")
+    .select("*, brands(name, folder_path, logo_path)")
+    .eq("id", id)
+    .eq("brand_id", slug)
+    .single();
 
   if (!post) {
     return (
@@ -71,39 +41,38 @@ export default async function PostDetailPage({
     );
   }
 
-  const approvals = db
-    .prepare("SELECT id, status, comment, created_at FROM approvals WHERE post_id = ? ORDER BY created_at ASC")
-    .all(post.id) as Approval[];
+  const { data: approvals } = await supabase
+    .from("approvals")
+    .select("id, status, comment, created_at")
+    .eq("post_id", post.id)
+    .order("created_at");
 
-  const versions = post.file_path
-    ? getVersionHistory(post.folder_path, post.file_path)
-    : [];
+  const brandData = post.brands as { name: string; folder_path: string; logo_path: string | null } | null;
+  const imageUrl = getImageUrl(post.brand_id, post.file_path);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
         <nav className="mb-6 text-sm text-gray-500">
           <Link href="/dashboard" className="hover:underline">
             Dashboard
           </Link>
           {" / "}
           <Link href={`/dashboard/brand/${slug}`} className="hover:underline">
-            {post.brand_name}
+            {brandData?.name || slug}
           </Link>
           {" / "}
           <span className="text-gray-900">Post #{post.post_number}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left column — Image & Versions */}
           <div>
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              {post.file_path ? (
-                <VersionTabs
-                  postId={post.id}
-                  versions={versions}
-                  currentFilePath={post.file_path}
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={post.concept || "Post image"}
+                  className="w-full aspect-[4/5] object-cover"
                 />
               ) : (
                 <div className="aspect-[4/5] bg-gray-100 flex items-center justify-center text-gray-400">
@@ -113,9 +82,7 @@ export default async function PostDetailPage({
             </div>
           </div>
 
-          {/* Right column — Metadata & Actions */}
           <div className="space-y-6">
-            {/* Post header */}
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center gap-3 text-sm text-gray-500 mb-2">
                 <span>#{post.post_number}</span>
@@ -140,17 +107,29 @@ export default async function PostDetailPage({
               <StatusBadge status={post.status} />
             </div>
 
-            {/* Caption */}
             {post.caption && (
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">Caption</h2>
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">Copy</h2>
                 <div className="max-h-48 overflow-y-auto text-sm text-gray-800 whitespace-pre-wrap">
                   {post.caption}
                 </div>
               </div>
             )}
 
-            {/* Labels */}
+            {post.hashtags && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">Hashtags</h2>
+                <p className="text-sm text-gray-800">{post.hashtags}</p>
+              </div>
+            )}
+
+            {post.cta && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">CTA</h2>
+                <p className="text-sm text-gray-800">{post.cta}</p>
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Details</h2>
               <div className="flex flex-wrap gap-2">
@@ -172,23 +151,28 @@ export default async function PostDetailPage({
               </div>
             </div>
 
-            {/* Actions */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Actions</h2>
               <PostActions
                 postId={post.id}
                 currentStatus={post.status}
-                hasLogo={!!post.logo_path}
+                hasLogo={!!brandData?.logo_path}
               />
             </div>
 
-            {/* Approval History */}
-            {approvals.length > 0 && (
+            <ClientReviewLink
+              path={`/client/${slug}/post/${post.id}`}
+              label="Share this post with client"
+              emailSubject={`${brandData?.name || "Your brand"} — Post #${post.post_number} ready for review`}
+              emailBody={`Hi,\n\nPost #${post.post_number} (${post.concept || "Untitled"}) is ready for your review. Tap the link below to approve or request changes:\n\n`}
+            />
+
+            {(approvals || []).length > 0 && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3">
                   Approval History
                 </h2>
-                <ApprovalHistory approvals={approvals} />
+                <ApprovalHistory approvals={approvals || []} />
               </div>
             )}
           </div>
