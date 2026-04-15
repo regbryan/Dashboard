@@ -17,7 +17,7 @@ export default async function BrandDetailPage({
 
   const { data: brand } = await supabase
     .from("brands")
-    .select("id, name, handle, color_primary, cadence, compliance")
+    .select("id, name, handle, color_primary, cadence, compliance, platform")
     .eq("id", slug)
     .single();
 
@@ -165,6 +165,7 @@ export default async function BrandDetailPage({
                 status: post.status,
               }}
               brandSlug={slug}
+              platform={brand.platform}
             />
           ))}
         </div>

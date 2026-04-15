@@ -1,26 +1,10 @@
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
+import { getImageUrl } from "@/lib/image-url";
 import ApprovalHistory from "@/components/ApprovalHistory";
+import PostImageViewer from "@/components/PostImageViewer";
 import ApprovalForm from "./ApprovalForm";
 
-interface Post {
-  id: number;
-  brand_id: string;
-  post_number: number;
-  date: string | null;
-  day: string | null;
-  post_type: string | null;
-  content_pillar: string | null;
-  concept: string | null;
-  caption: string | null;
-  status: string;
-}
-
-interface Approval {
-  id: string;
-  status: string;
-  comment: string | null;
-  created_at: string;
-}
+export const dynamic = "force-dynamic";
 
 export default async function ClientPostReviewPage({
   params,
@@ -28,15 +12,13 @@ export default async function ClientPostReviewPage({
   params: Promise<{ brand: string; id: string }>;
 }) {
   const { brand, id } = await params;
-  const db = getDb();
 
-  const post = db
-    .prepare(
-      `SELECT id, brand_id, post_number, date, day, post_type, content_pillar, concept, caption, status
-       FROM posts
-       WHERE id = ? AND brand_id = ?`
-    )
-    .get(id, brand) as Post | undefined;
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id, brand_id, post_number, date, day, post_type, content_pillar, concept, caption, hashtags, cta, status, file_path, brands(platform)")
+    .eq("id", id)
+    .eq("brand_id", brand)
+    .single();
 
   if (!post) {
     return (
@@ -51,30 +33,30 @@ export default async function ClientPostReviewPage({
     );
   }
 
-  const approvals = db
-    .prepare(
-      "SELECT id, status, comment, created_at FROM approvals WHERE post_id = ? ORDER BY created_at ASC"
-    )
-    .all(post.id) as Approval[];
+  const { data: approvals } = await supabase
+    .from("approvals")
+    .select("id, status, comment, created_at")
+    .eq("post_id", post.id)
+    .order("created_at");
+
+  const imageUrl = getImageUrl(post.brand_id, post.file_path);
+  const brandPlatform = (post.brands as { platform: string | null } | null)?.platform;
+  const thumbAspect: "portrait" | "landscape" =
+    brandPlatform === "linkedin" ? "landscape" : "portrait";
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left column — Image */}
           <div>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <img
-                src={`/api/posts/${post.id}/image`}
-                alt={post.concept || "Post image"}
-                className="w-full aspect-[4/5] object-cover"
-              />
-            </div>
+            <PostImageViewer
+              imageUrl={imageUrl}
+              alt={post.concept || "Post image"}
+              thumbAspect={thumbAspect}
+            />
           </div>
 
-          {/* Right column — Details & Approval */}
           <div className="space-y-6">
-            {/* Post header */}
             <div>
               <p className="text-sm text-gray-500">
                 #{post.post_number} · Scheduled for {post.date || "TBD"}
@@ -84,25 +66,39 @@ export default async function ClientPostReviewPage({
               </h1>
             </div>
 
-            {/* Caption */}
             {post.caption && (
-              <div className="max-h-64 overflow-y-auto text-sm text-gray-800 whitespace-pre-wrap bg-white rounded-lg shadow p-4">
-                {post.caption}
+              <div className="bg-white rounded-lg shadow p-4">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">Copy</h2>
+                <div className="max-h-64 overflow-y-auto text-sm text-gray-800 whitespace-pre-wrap">
+                  {post.caption}
+                </div>
               </div>
             )}
 
-            {/* Approval Form */}
+            {post.hashtags && (
+              <div className="bg-white rounded-lg shadow p-4">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">Hashtags</h2>
+                <p className="text-sm text-gray-800">{post.hashtags}</p>
+              </div>
+            )}
+
+            {post.cta && (
+              <div className="bg-white rounded-lg shadow p-4">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">CTA</h2>
+                <p className="text-sm text-gray-800">{post.cta}</p>
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow p-6">
               <ApprovalForm postId={post.id} status={post.status} />
             </div>
 
-            {/* Approval History */}
-            {approvals.length > 0 && (
+            {(approvals || []).length > 0 && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3">
                   Approval History
                 </h2>
-                <ApprovalHistory approvals={approvals} />
+                <ApprovalHistory approvals={approvals || []} />
               </div>
             )}
           </div>

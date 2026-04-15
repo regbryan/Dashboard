@@ -16,18 +16,21 @@ interface Post {
 export default function PostCard({
   post,
   brandSlug,
+  platform,
 }: {
   post: Post;
   brandSlug: string;
+  platform?: string | null;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
+  const aspectClass = platform === "linkedin" ? "aspect-[1.91/1]" : "aspect-[4/5]";
 
   return (
     <Link
       href={`/dashboard/brand/${brandSlug}/post/${post.id}`}
       className="block rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
     >
-      <div className="aspect-[4/5] relative bg-gray-100">
+      <div className={`${aspectClass} relative bg-gray-100`}>
         {!imgFailed ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img

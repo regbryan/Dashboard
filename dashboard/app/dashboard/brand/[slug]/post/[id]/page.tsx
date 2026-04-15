@@ -3,6 +3,7 @@ import { getImageUrl } from "@/lib/image-url";
 import StatusBadge from "@/components/StatusBadge";
 import ApprovalHistory from "@/components/ApprovalHistory";
 import ClientReviewLink from "@/components/ClientReviewLink";
+import PostImageViewer from "@/components/PostImageViewer";
 import Link from "next/link";
 import PostActions from "./PostActions";
 
@@ -17,7 +18,7 @@ export default async function PostDetailPage({
 
   const { data: post } = await supabase
     .from("posts")
-    .select("*, brands(name, folder_path, logo_path)")
+    .select("*, brands(name, folder_path, logo_path, platform)")
     .eq("id", id)
     .eq("brand_id", slug)
     .single();
@@ -47,8 +48,10 @@ export default async function PostDetailPage({
     .eq("post_id", post.id)
     .order("created_at");
 
-  const brandData = post.brands as { name: string; folder_path: string; logo_path: string | null } | null;
+  const brandData = post.brands as { name: string; folder_path: string; logo_path: string | null; platform: string | null } | null;
   const imageUrl = getImageUrl(post.brand_id, post.file_path);
+  const thumbAspect: "portrait" | "landscape" =
+    brandData?.platform === "linkedin" ? "landscape" : "portrait";
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -67,19 +70,11 @@ export default async function PostDetailPage({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt={post.concept || "Post image"}
-                  className="w-full aspect-[4/5] object-cover"
-                />
-              ) : (
-                <div className="aspect-[4/5] bg-gray-100 flex items-center justify-center text-gray-400">
-                  No image generated
-                </div>
-              )}
-            </div>
+            <PostImageViewer
+              imageUrl={imageUrl}
+              alt={post.concept || "Post image"}
+              thumbAspect={thumbAspect}
+            />
           </div>
 
           <div className="space-y-6">
