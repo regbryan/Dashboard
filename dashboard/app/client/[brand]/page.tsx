@@ -1,21 +1,8 @@
-import Link from "next/link";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
+import { getImageUrl } from "@/lib/image-url";
+import ClientPostCard from "@/components/ClientPostCard";
 
-interface Brand {
-  id: string;
-  name: string;
-}
-
-interface Post {
-  id: number;
-  post_number: number;
-  date: string | null;
-  day: string | null;
-  post_type: string | null;
-  content_pillar: string | null;
-  concept: string | null;
-  status: string;
-}
+export const dynamic = "force-dynamic";
 
 export default async function ClientCalendarPage({
   params,
@@ -23,11 +10,12 @@ export default async function ClientCalendarPage({
   params: Promise<{ brand: string }>;
 }) {
   const { brand } = await params;
-  const db = getDb();
 
-  const brandRow = db
-    .prepare("SELECT id, name FROM brands WHERE id = ?")
-    .get(brand) as Brand | undefined;
+  const { data: brandRow } = await supabase
+    .from("brands")
+    .select("id, name, color_primary, platform")
+    .eq("id", brand)
+    .single();
 
   if (!brandRow) {
     return (
@@ -42,104 +30,74 @@ export default async function ClientCalendarPage({
     );
   }
 
-  const posts = db
-    .prepare(
-      "SELECT id, post_number, date, day, post_type, content_pillar, concept, status FROM posts WHERE brand_id = ? ORDER BY date ASC"
-    )
-    .all(brand) as Post[];
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("id, post_number, date, concept, status, file_path, brand_id")
+    .eq("brand_id", brand)
+    .order("post_number");
 
-  const reviewCount = posts.filter((p) => p.status === "in_review").length;
+  const allPosts = posts || [];
+  const reviewCount = allPosts.filter(
+    (p) => p.status === "in_review" || p.status === "changes_requested"
+  ).length;
+  const approvedCount = allPosts.filter((p) => p.status === "approved").length;
 
-  const dates = posts.map((p) => p.date).filter(Boolean).sort() as string[];
+  const dates = allPosts.map((p) => p.date).filter(Boolean).sort() as string[];
   const dateRange =
     dates.length > 0
       ? `${dates[0]} — ${dates[dates.length - 1]}`
       : "No dates scheduled";
 
+  const accentColor = brandRow.color_primary || "#3b82f6";
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Brand Header */}
-        <div className="mb-6">
+      <div className="max-w-6xl mx-auto">
+        <div
+          className="bg-white rounded-lg shadow-sm p-6 mb-6 border-t-4"
+          style={{ borderTopColor: accentColor }}
+        >
           <h1 className="text-2xl font-bold text-gray-900">
             {brandRow.name} — Content Calendar
           </h1>
-          <p className="text-sm text-gray-500 mt-1">{dateRange}</p>
+          <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+            <span>{allPosts.length} posts</span>
+            <span>{dateRange}</span>
+            {approvedCount > 0 && (
+              <span className="text-green-700">
+                {approvedCount} approved
+              </span>
+            )}
+          </div>
+          {reviewCount > 0 && (
+            <div className="mt-3 inline-block px-3 py-1.5 rounded-full text-sm font-medium bg-amber-50 text-amber-800 border border-amber-200">
+              {reviewCount} {reviewCount === 1 ? "post needs" : "posts need"} your review
+            </div>
+          )}
+          <p className="mt-4 text-sm text-gray-500">
+            Tap any post to see the full design and approve or request changes.
+          </p>
         </div>
 
-        {/* Review Badge */}
-        {reviewCount > 0 && (
-          <div className="mb-6 inline-block px-3 py-1.5 rounded-full text-sm font-medium bg-red-50 text-red-700 border border-red-200">
-            {reviewCount} needs your review
-          </div>
-        )}
-
-        {/* Post List */}
-        {posts.length === 0 ? (
+        {allPosts.length === 0 ? (
           <p className="text-gray-500 text-center py-12">
             No posts scheduled yet.
           </p>
         ) : (
-          <div className="space-y-2">
-            {posts.map((post) => {
-              const isReview = post.status === "in_review";
-              const isNotReady =
-                post.status === "not_started" || post.status === "generating";
-
-              return (
-                <div
-                  key={post.id}
-                  className={`flex items-center gap-4 px-4 py-3 rounded-lg bg-white border border-gray-100 ${
-                    isReview ? "bg-blue-50 border-blue-200" : ""
-                  } ${isNotReady ? "opacity-50" : ""}`}
-                >
-                  {/* Thumbnail */}
-                  <div className="flex-shrink-0 w-12 h-[60px] rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                    {post.status !== "not_started" ? (
-                      <img
-                        src={`/api/posts/${post.id}/image`}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-300 text-lg">—</span>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
-                      {post.concept || "Untitled"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {[post.date, post.day, post.post_type, post.content_pillar]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex-shrink-0 text-sm">
-                    {post.status === "approved" && (
-                      <span className="text-green-600 font-medium">
-                        approved ✓
-                      </span>
-                    )}
-                    {post.status === "in_review" && (
-                      <Link
-                        href={`/client/${brand}/post/${post.id}`}
-                        className="text-blue-600 font-medium hover:underline"
-                      >
-                        review →
-                      </Link>
-                    )}
-                    {post.status !== "approved" && post.status !== "in_review" && (
-                      <span className="text-gray-400">in progress</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allPosts.map((post) => (
+              <ClientPostCard
+                key={post.id}
+                brand={brand}
+                postId={post.id}
+                postNumber={post.post_number}
+                concept={post.concept}
+                date={post.date}
+                status={post.status}
+                imageUrl={getImageUrl(post.brand_id, post.file_path)}
+                platform={brandRow.platform}
+              />
+            ))}
           </div>
         )}
       </div>
