@@ -40,7 +40,13 @@ export default async function ClientPostReviewPage({
     .order("created_at");
 
   const imageUrl = getImageUrl(post.brand_id, post.file_path);
-  const brandPlatform = (post.brands as { platform: string | null } | null)?.platform;
+  const brandsRel = post.brands as unknown as
+    | { platform: string | null }
+    | { platform: string | null }[]
+    | null;
+  const brandPlatform = Array.isArray(brandsRel)
+    ? brandsRel[0]?.platform
+    : brandsRel?.platform;
   const thumbAspect: "portrait" | "landscape" =
     brandPlatform === "linkedin" ? "landscape" : "portrait";
 
