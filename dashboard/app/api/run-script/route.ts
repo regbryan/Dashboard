@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { runScript } from "@/lib/scripts";
+import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 
 export async function POST(request: NextRequest) {
   if (
@@ -10,6 +11,14 @@ export async function POST(request: NextRequest) {
       { error: "Script execution is only available in local development" },
       { status: 501 }
     );
+  }
+
+  try {
+    await requireAdmin();
+  } catch (err) {
+    const res = handleAuthError(err);
+    if (res) return res;
+    throw err;
   }
 
   let body: {

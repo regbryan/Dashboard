@@ -4,6 +4,7 @@ import path from "node:path";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { parseRenderedMp4Path } from "@/lib/hyperframes";
 import { PROJECT_ROOT } from "@/lib/paths";
+import { requireAdmin, AuthError } from "@/lib/api-auth";
 
 export async function GET(
   _request: NextRequest,
@@ -14,6 +15,15 @@ export async function GET(
     process.env.ENABLE_LOCAL_SCRIPTS !== "1"
   ) {
     return new Response("Not available in production", { status: 501 });
+  }
+
+  try {
+    await requireAdmin();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return new Response(err.body.error, { status: err.status });
+    }
+    throw err;
   }
 
   const { id } = await params;

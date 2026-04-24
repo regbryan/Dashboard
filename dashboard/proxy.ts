@@ -44,8 +44,11 @@ export async function proxy(request: NextRequest) {
 
   if (isPublic) return supabaseResponse;
 
-  // Not signed in → redirect to /login
+  // Not signed in
   if (!user) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);

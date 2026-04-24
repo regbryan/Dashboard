@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { parseRenderedMp4Path } from "@/lib/hyperframes";
+import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 
 export async function GET(
   _request: NextRequest,
@@ -14,6 +15,14 @@ export async function GET(
       { error: "Script execution is only available in local development" },
       { status: 501 }
     );
+  }
+
+  try {
+    await requireAdmin();
+  } catch (err) {
+    const res = handleAuthError(err);
+    if (res) return res;
+    throw err;
   }
 
   const { id } = await params;
