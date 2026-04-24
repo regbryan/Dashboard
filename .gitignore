@@ -4,3 +4,5 @@ node_modules/
 *.pem
 dashboard/dashboard.db
 .superpowers/
+.renders/
+hyperframes-test/renders/
