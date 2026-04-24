@@ -16,10 +16,10 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-function borderColor(status: string): string {
-  if (status === "approved") return "border-green-500";
-  if (status === "changes_requested") return "border-red-500";
-  return "border-gray-300";
+function accentColor(status: string): string {
+  if (status === "approved") return "#7de29c";
+  if (status === "changes_requested") return "#fbb27a";
+  return "#6f6f7e";
 }
 
 export default function ApprovalHistory({
@@ -34,22 +34,35 @@ export default function ApprovalHistory({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col" style={{ gap: "14px" }}>
       {sorted.map((entry) => (
         <div
           key={entry.id}
-          className={`border-l-4 ${borderColor(entry.status)} pl-3 py-1`}
+          style={{
+            paddingLeft: "14px",
+            borderLeft: `2px solid ${accentColor(entry.status)}`,
+          }}
         >
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm">
+          <div className="flex items-center" style={{ gap: "10px" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: accentColor(entry.status),
+              }}
+            >
               {entry.status.replace(/_/g, " ")}
             </span>
-            <span className="text-xs text-gray-500">
+            <span style={{ fontSize: "11px", color: "#6f6f7e" }}>
               {formatTimestamp(entry.created_at)}
             </span>
           </div>
           {entry.comment && (
-            <p className="text-sm text-gray-700 mt-1">{entry.comment}</p>
+            <p style={{ fontSize: "13px", color: "#bfbfcc", marginTop: "4px", lineHeight: 1.55 }}>
+              {entry.comment}
+            </p>
           )}
         </div>
       ))}

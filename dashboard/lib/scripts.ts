@@ -1,57 +1,62 @@
-import { spawn } from "child_process";
-import { getDb } from "@/lib/db";
-import { PROJECT_ROOT } from "@/lib/paths";
+import { supabaseAdmin } from "./supabase-admin";
+import { startHyperFramesRender, type HyperFramesVars } from "./hyperframes";
 
-export function runScript(options: {
+export interface RunScriptOptions {
   scriptName: string;
-  args?: string[];
-  brandId?: string;
-  postId?: number;
-}): number {
-  const { scriptName, args = [], brandId, postId } = options;
-  const db = getDb();
-  const now = new Date().toISOString();
+  brandId?: string | null;
+  postId?: number | null;
+  vars?: HyperFramesVars;
+}
 
-  // Insert script_runs record with status "running"
-  const result = db
-    .prepare(
-      "INSERT INTO script_runs (script_name, brand_id, post_id, started_at, status) VALUES (?, ?, ?, ?, ?)"
-    )
-    .run(scriptName, brandId || null, postId || null, now, "running");
+/**
+ * Dev-only script dispatcher. Production API routes should refuse to call this.
+ * Inserts a script_runs row, kicks off the work in the background, and returns runId.
+ */
+export async function runScript(opts: RunScriptOptions): Promise<number> {
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_LOCAL_SCRIPTS !== "1") {
+    throw new Error("Script execution is only available in local development");
+  }
 
-  const runId = Number(result.lastInsertRowid);
+  const { scriptName, brandId = null, postId = null, vars } = opts;
+  const admin = supabaseAdmin();
 
-  // Spawn the Python process
-  const child = spawn("python", args, {
-    cwd: PROJECT_ROOT,
-    shell: true,
-  });
+  const { data, error } = await admin
+    .from("script_runs")
+    .insert({
+      script_name: scriptName,
+      brand_id: brandId,
+      post_id: postId,
+      started_at: new Date().toISOString(),
+      status: "running",
+    })
+    .select("id")
+    .single();
 
-  let output = "";
+  if (error || !data) {
+    throw new Error(`Could not create script_runs row: ${error?.message}`);
+  }
+  const runId = Number((data as { id: number }).id);
 
-  child.stdout.on("data", (data: Buffer) => {
-    output += data.toString();
-  });
-
-  child.stderr.on("data", (data: Buffer) => {
-    output += data.toString();
-  });
-
-  child.on("close", (code: number | null) => {
-    const completedAt = new Date().toISOString();
-    const finalStatus = code === 0 ? "success" : "error";
-
-    db.prepare(
-      "UPDATE script_runs SET status = ?, output = ?, completed_at = ? WHERE id = ?"
-    ).run(finalStatus, output, completedAt, runId);
-  });
-
-  child.on("error", (err: Error) => {
-    const completedAt = new Date().toISOString();
-    db.prepare(
-      "UPDATE script_runs SET status = ?, output = ?, completed_at = ? WHERE id = ?"
-    ).run("error", `Spawn error: ${err.message}`, completedAt, runId);
-  });
+  // Dispatch per script name. All handlers run async; failures are captured
+  // into script_runs.output so the client can poll.
+  switch (scriptName) {
+    case "hyperframes_render": {
+      if (!postId) throw new Error("hyperframes_render requires postId");
+      // Intentional fire-and-forget: the renderer updates script_runs when done.
+      void startHyperFramesRender(runId, { postId, overrides: vars });
+      break;
+    }
+    default:
+      await admin
+        .from("script_runs")
+        .update({
+          status: "error",
+          output: `Unknown script: ${scriptName}`,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
+      throw new Error(`Unknown script: ${scriptName}`);
+  }
 
   return runId;
 }

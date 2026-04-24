@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ShinyButton } from "@/components/ShinyButton";
 
 interface ApprovalFormProps {
   postId: number;
@@ -16,15 +17,34 @@ export default function ApprovalForm({ postId, status }: ApprovalFormProps) {
 
   if (status === "approved") {
     return (
-      <div className="rounded-md bg-green-50 border border-green-200 p-4 text-green-800 text-sm font-medium">
-        This post has been approved
+      <div
+        style={{
+          padding: "16px 18px",
+          borderRadius: "12px",
+          background: "rgba(125,226,156,0.1)",
+          border: "1px solid rgba(125,226,156,0.3)",
+          color: "#a7f3c4",
+          fontSize: "14px",
+          fontWeight: 500,
+        }}
+      >
+        ✓ This post has been approved
       </div>
     );
   }
 
   if (status !== "in_review") {
     return (
-      <div className="rounded-md bg-gray-50 border border-gray-200 p-4 text-gray-500 text-sm">
+      <div
+        style={{
+          padding: "16px 18px",
+          borderRadius: "12px",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          color: "#9999a6",
+          fontSize: "14px",
+        }}
+      >
         This post is not ready for review yet
       </div>
     );
@@ -45,13 +65,11 @@ export default function ApprovalForm({ postId, status }: ApprovalFormProps) {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to submit");
-      }
+      if (!res.ok) throw new Error("Failed to submit");
 
       setMessage(
         newStatus === "approved"
-          ? "Post approved successfully!"
+          ? "Post approved successfully."
           : "Changes requested successfully."
       );
       setComment("");
@@ -64,34 +82,36 @@ export default function ApprovalForm({ postId, status }: ApprovalFormProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-3">
-        <button
-          onClick={() => handleSubmit("approved")}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md bg-green-600 text-white font-bold text-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
-        >
-          ✓ Approve
-        </button>
-        <button
-          onClick={() => handleSubmit("changes_requested")}
-          disabled={submitting}
-          className="px-4 py-2 rounded-md border-2 border-red-500 text-red-600 font-medium text-sm hover:bg-red-50 disabled:opacity-50 transition-colors"
-        >
-          Request Changes
-        </button>
-      </div>
+    <div className="flex flex-col" style={{ gap: "16px" }}>
+      <h2 className="eyebrow">Your decision</h2>
 
       <textarea
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Leave a note (optional)"
+        placeholder="Leave a note for our team (optional)"
         rows={3}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="sp-input"
+        style={{ resize: "vertical", minHeight: "90px" }}
       />
 
+      <div className="flex flex-wrap" style={{ gap: "12px" }}>
+        <ShinyButton
+          onClick={() => handleSubmit("approved")}
+          disabled={submitting}
+        >
+          ✓ Approve
+        </ShinyButton>
+        <ShinyButton
+          variant="secondary"
+          onClick={() => handleSubmit("changes_requested")}
+          disabled={submitting}
+        >
+          Request Changes
+        </ShinyButton>
+      </div>
+
       {message && (
-        <p className="text-sm text-gray-700 font-medium">{message}</p>
+        <p style={{ fontSize: "13px", color: "#c084fc", fontWeight: 500 }}>{message}</p>
       )}
     </div>
   );

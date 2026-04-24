@@ -19,10 +19,12 @@ export default async function ClientCalendarPage({
 
   if (!brandRow) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" style={{ padding: "40px 24px" }}>
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Brand not found</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="display-heading" style={{ fontSize: "clamp(36px, 5vw, 48px)" }}>
+            Brand <span className="accent">not found</span>
+          </h1>
+          <p style={{ marginTop: "12px", color: "#9999a6", fontSize: "14px" }}>
             No brand exists with the identifier &ldquo;{brand}&rdquo;.
           </p>
         </div>
@@ -48,43 +50,88 @@ export default async function ClientCalendarPage({
       ? `${dates[0]} — ${dates[dates.length - 1]}`
       : "No dates scheduled";
 
-  const accentColor = brandRow.color_primary || "#3b82f6";
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div
-          className="bg-white rounded-lg shadow-sm p-6 mb-6 border-t-4"
-          style={{ borderTopColor: accentColor }}
-        >
-          <h1 className="text-2xl font-bold text-gray-900">
-            {brandRow.name} — Content Calendar
+    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "48px clamp(20px, 4vw, 56px)" }}>
+      <div className="mx-auto" style={{ maxWidth: "1200px" }}>
+        {/* Header */}
+        <div style={{ marginBottom: "40px" }}>
+          <span className="eyebrow" style={{ color: "#c084fc" }}>
+            {brandRow.platform || "Content"} · Calendar
+          </span>
+          <h1
+            className="display-heading"
+            style={{ fontSize: "clamp(44px, 6vw, 72px)", marginTop: "10px" }}
+          >
+            {brandRow.name.split(" ")[0]}{" "}
+            <span className="accent">{brandRow.name.split(" ").slice(1).join(" ") || "Review"}</span>
           </h1>
-          <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
-            <span>{allPosts.length} posts</span>
+
+          <div
+            className="flex flex-wrap items-center"
+            style={{ gap: "20px", marginTop: "20px", fontSize: "13px", color: "#9999a6" }}
+          >
+            <span>
+              <strong style={{ color: "white", fontWeight: 600 }}>{allPosts.length}</strong> posts
+            </span>
+            <span style={{ color: "#4a4a55" }}>•</span>
             <span>{dateRange}</span>
             {approvedCount > 0 && (
-              <span className="text-green-700">
-                {approvedCount} approved
-              </span>
+              <>
+                <span style={{ color: "#4a4a55" }}>•</span>
+                <span style={{ color: "#7de29c" }}>
+                  <strong style={{ fontWeight: 600 }}>{approvedCount}</strong> approved
+                </span>
+              </>
             )}
           </div>
+
           {reviewCount > 0 && (
-            <div className="mt-3 inline-block px-3 py-1.5 rounded-full text-sm font-medium bg-amber-50 text-amber-800 border border-amber-200">
-              {reviewCount} {reviewCount === 1 ? "post needs" : "posts need"} your review
+            <div
+              style={{
+                display: "inline-block",
+                marginTop: "18px",
+                padding: "8px 16px",
+                borderRadius: "999px",
+                fontSize: "12px",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                background: "rgba(192,132,252,0.12)",
+                color: "#e9d5ff",
+                border: "1px solid rgba(192,132,252,0.3)",
+              }}
+            >
+              {reviewCount} {reviewCount === 1 ? "POST NEEDS" : "POSTS NEED"} YOUR REVIEW
             </div>
           )}
-          <p className="mt-4 text-sm text-gray-500">
+
+          <p
+            style={{
+              marginTop: "20px",
+              fontSize: "13px",
+              color: "#7a7a88",
+              lineHeight: 1.6,
+            }}
+          >
             Tap any post to see the full design and approve or request changes.
           </p>
         </div>
 
+        {/* Grid */}
         {allPosts.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">
+          <div
+            className="text-center"
+            style={{
+              padding: "80px 24px",
+              background: "#0f0f1a",
+              border: "1px solid #1a1a2e",
+              borderRadius: "16px",
+              color: "#7a7a88",
+            }}
+          >
             No posts scheduled yet.
-          </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "20px" }}>
             {allPosts.map((post) => (
               <ClientPostCard
                 key={post.id}

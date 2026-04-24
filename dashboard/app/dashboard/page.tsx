@@ -1,88 +1,178 @@
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import BrandCard from "@/components/BrandCard";
 import QuickActions from "@/components/QuickActions";
 
-export default function DashboardPage() {
-  const db = getDb();
+export const dynamic = "force-dynamic";
 
-  const brands = db
-    .prepare(
-      `SELECT
-        b.*,
-        COUNT(p.id) as total,
-        SUM(CASE WHEN p.status = 'not_started' THEN 1 ELSE 0 END) as not_started,
-        SUM(CASE WHEN p.status = 'generating' THEN 1 ELSE 0 END) as generating,
-        SUM(CASE WHEN p.status = 'in_review' THEN 1 ELSE 0 END) as in_review,
-        SUM(CASE WHEN p.status = 'changes_requested' THEN 1 ELSE 0 END) as changes_requested,
-        SUM(CASE WHEN p.status = 'approved' THEN 1 ELSE 0 END) as approved,
-        SUM(CASE WHEN p.status = 'scheduled' THEN 1 ELSE 0 END) as scheduled,
-        SUM(CASE WHEN p.status = 'posted' THEN 1 ELSE 0 END) as posted,
-        SUM(CASE WHEN p.file_path IS NOT NULL AND p.file_path != '' THEN 1 ELSE 0 END) as has_image
-      FROM brands b
-      LEFT JOIN posts p ON p.brand_id = b.id
-      GROUP BY b.id
-      ORDER BY b.name`
-    )
-    .all() as Array<{
-    id: string;
-    name: string;
-    color_primary: string;
-    handle: string;
-    cadence: string;
-    total: number;
-    not_started: number;
-    generating: number;
-    in_review: number;
-    changes_requested: number;
-    approved: number;
-    scheduled: number;
-    posted: number;
-    has_image: number;
-  }>;
+interface BrandStats {
+  total: number;
+  not_started: number;
+  generating: number;
+  in_review: number;
+  changes_requested: number;
+  approved: number;
+  scheduled: number;
+  posted: number;
+  has_image: number;
+}
 
-  // Build date range for subtitle
+const emptyStats = (): BrandStats => ({
+  total: 0,
+  not_started: 0,
+  generating: 0,
+  in_review: 0,
+  changes_requested: 0,
+  approved: 0,
+  scheduled: 0,
+  posted: 0,
+  has_image: 0,
+});
+
+export default async function DashboardPage() {
+  const { data: brands } = await supabase
+    .from("brands")
+    .select("*")
+    .order("name");
+
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("brand_id, status, file_path");
+
+  const statsMap: Record<string, BrandStats> = {};
+  for (const post of posts || []) {
+    if (!statsMap[post.brand_id]) statsMap[post.brand_id] = emptyStats();
+    const s = statsMap[post.brand_id];
+    s.total++;
+    if (post.status in s) {
+      (s as unknown as Record<string, number>)[post.status]++;
+    }
+    if (post.file_path) s.has_image++;
+  }
+
   const now = new Date();
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+  startOfWeek.setDate(now.getDate() - now.getDay() + 1);
   const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
 
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const dateRange = `${fmt(startOfWeek)} – ${fmt(endOfWeek)}, ${endOfWeek.getFullYear()}`;
 
+  const totalBrands = (brands || []).length;
+  const totalPosts = (posts || []).length;
+  const totalInReview = Object.values(statsMap).reduce(
+    (sum, s) => sum + s.in_review + s.changes_requested,
+    0
+  );
+  const totalApproved = Object.values(statsMap).reduce(
+    (sum, s) => sum + s.approved + s.scheduled + s.posted,
+    0
+  );
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">Content Dashboard</h1>
-      <p className="text-gray-500 mt-1 mb-6">{dateRange}</p>
+    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "48px clamp(20px, 4vw, 56px) 64px" }}>
+      <div className="mx-auto" style={{ maxWidth: "1280px" }}>
+        {/* Header */}
+        <div style={{ marginBottom: "40px" }}>
+          <span className="eyebrow" style={{ color: "#c084fc" }}>
+            Admin · {dateRange}
+          </span>
+          <h1
+            className="display-heading"
+            style={{ fontSize: "clamp(44px, 6vw, 72px)", marginTop: "10px" }}
+          >
+            Content <span className="accent">Overview</span>
+          </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {brands.map((b) => (
-          <BrandCard
-            key={b.id}
-            brand={{
-              id: b.id,
-              name: b.name,
-              colorPrimary: b.color_primary,
-              handle: b.handle,
-              cadence: b.cadence,
-              stats: {
-                total: b.total,
-                not_started: b.not_started,
-                generating: b.generating,
-                in_review: b.in_review,
-                changes_requested: b.changes_requested,
-                approved: b.approved,
-                scheduled: b.scheduled,
-                posted: b.posted,
-                has_image: b.has_image,
-              },
-            }}
-          />
-        ))}
+          {/* Stats row */}
+          <div
+            className="grid grid-cols-2 md:grid-cols-4"
+            style={{ gap: "16px", marginTop: "32px" }}
+          >
+            <StatTile label="Brands" value={totalBrands} />
+            <StatTile label="Total Posts" value={totalPosts} />
+            <StatTile
+              label="Needs Review"
+              value={totalInReview}
+              accent={totalInReview > 0 ? "#c084fc" : undefined}
+            />
+            <StatTile
+              label="Approved"
+              value={totalApproved}
+              accent={totalApproved > 0 ? "#7de29c" : undefined}
+            />
+          </div>
+        </div>
+
+        {/* Brand grid */}
+        <div style={{ marginBottom: "40px" }}>
+          <h2 className="eyebrow" style={{ marginBottom: "16px" }}>Brands</h2>
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+            style={{ gap: "20px" }}
+          >
+            {(brands || []).map((b) => {
+              const s = statsMap[b.id] || emptyStats();
+              return (
+                <BrandCard
+                  key={b.id}
+                  brand={{
+                    id: b.id,
+                    name: b.name,
+                    colorPrimary: b.color_primary,
+                    handle: b.handle,
+                    cadence: b.cadence,
+                    stats: s,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        <QuickActions />
       </div>
+    </div>
+  );
+}
 
-      <QuickActions />
+function StatTile({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: string;
+}) {
+  return (
+    <div
+      className="surface-card"
+      style={{ padding: "20px 22px", borderRadius: "16px" }}
+    >
+      <p
+        style={{
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#6f6f7e",
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          marginTop: "8px",
+          fontFamily: "var(--font-anton), 'Anton', sans-serif",
+          fontSize: "44px",
+          lineHeight: 1,
+          color: accent || "white",
+        }}
+      >
+        {value}
+      </p>
     </div>
   );
 }

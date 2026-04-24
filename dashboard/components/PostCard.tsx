@@ -23,35 +23,71 @@ export default function PostCard({
   platform?: string | null;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const aspectClass = platform === "linkedin" ? "aspect-[1.91/1]" : "aspect-[4/5]";
+  const aspectRatio = platform === "linkedin" ? "1.91 / 1" : "4 / 5";
 
   return (
     <Link
       href={`/dashboard/brand/${brandSlug}/post/${post.id}`}
-      className="block rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+      className="surface-card overflow-hidden flex flex-col"
+      style={{
+        borderRadius: "16px",
+        textDecoration: "none",
+        color: "inherit",
+      }}
     >
-      <div className={`${aspectClass} relative bg-gray-100`}>
+      <div style={{ aspectRatio, position: "relative", background: "#0a0a14" }}>
         {!imgFailed ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={`/api/posts/${post.id}/image`}
             alt={post.concept}
-            className="w-full h-full object-cover"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
             onError={() => setImgFailed(true)}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#4a4a55",
+              fontSize: "12px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
             No image
           </div>
         )}
       </div>
 
-      <div className="p-3">
-        <p className="font-medium truncate">{post.concept}</p>
-        <p className="text-xs text-gray-500 mt-1">
-          {post.date} &middot; {post.post_type} &middot; {post.content_pillar}
+      <div style={{ padding: "14px 16px" }}>
+        <p
+          style={{
+            color: "white",
+            fontSize: "14px",
+            fontWeight: 500,
+            lineHeight: 1.4,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {post.concept}
         </p>
-        <div className="mt-2">
+        <p
+          style={{
+            marginTop: "4px",
+            fontSize: "11px",
+            color: "#6f6f7e",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {post.date} · {post.post_type} · {post.content_pillar}
+        </p>
+        <div style={{ marginTop: "10px" }}>
           <StatusBadge status={post.status} />
         </div>
       </div>

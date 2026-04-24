@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ShinyButton } from "./ShinyButton";
 
 export default function QuickActions() {
   const [status, setStatus] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export default function QuickActions() {
       } else {
         setStatus(`Error: ${data.error ?? "Import failed"}`);
       }
-    } catch (e) {
+    } catch {
       setStatus("Error: Network request failed");
     } finally {
       setLoading(null);
@@ -39,46 +40,51 @@ export default function QuickActions() {
         const data = await res.json();
         setStatus(`Error: ${data.error ?? "Script failed"}`);
       }
-    } catch (e) {
+    } catch {
       setStatus("Error: Network request failed");
     } finally {
       setLoading(null);
     }
   }
 
-  const buttonClass =
-    "rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 transition-colors disabled:opacity-50";
+  const isBusy = loading !== null;
+  const isError = status?.startsWith("Error");
 
   return (
-    <div className="mt-8">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-        Quick Actions
-      </h2>
-      <div className="flex flex-wrap gap-3">
-        <button
-          className={buttonClass}
-          onClick={handleImport}
-          disabled={loading !== null}
-        >
-          {loading === "import" ? "Running..." : "Import Calendar"}
-        </button>
-        <button
-          className={buttonClass}
+    <div style={{ marginTop: "40px" }}>
+      <h2 className="eyebrow" style={{ marginBottom: "16px" }}>Quick Actions</h2>
+
+      <div className="flex flex-wrap" style={{ gap: "12px" }}>
+        <ShinyButton onClick={handleImport} disabled={isBusy}>
+          {loading === "import" ? "Running…" : "Import Calendar"}
+        </ShinyButton>
+        <ShinyButton
+          variant="secondary"
           onClick={() => handleScript("extract_captions", "Extract All Captions")}
-          disabled={loading !== null}
+          disabled={isBusy}
         >
-          {loading === "extract_captions" ? "Running..." : "Extract All Captions"}
-        </button>
-        <button
-          className={buttonClass}
+          {loading === "extract_captions" ? "Running…" : "Extract All Captions"}
+        </ShinyButton>
+        <ShinyButton
+          variant="secondary"
           onClick={() => handleScript("run_all_overlays", "Run All Overlays")}
-          disabled={loading !== null}
+          disabled={isBusy}
         >
-          {loading === "run_all_overlays" ? "Running..." : "Run All Overlays"}
-        </button>
+          {loading === "run_all_overlays" ? "Running…" : "Run All Overlays"}
+        </ShinyButton>
       </div>
+
       {status && (
-        <p className="mt-3 text-sm text-gray-700">{status}</p>
+        <p
+          style={{
+            marginTop: "14px",
+            fontSize: "13px",
+            color: isError ? "#ff8a8a" : "#a7f3c4",
+            fontWeight: 500,
+          }}
+        >
+          {status}
+        </p>
       )}
     </div>
   );

@@ -1,26 +1,156 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-main: #07070e;
+  --bg-alt: #090912;
+  --bg-card: #0f0f1a;
+  --border-color: #1a1a2e;
+  --purple: #8b5cff;
+  --purple-light: #c084fc;
+  --blue: #3b81ff;
+  --text-medium: #bfbfcc;
+  --text-muted: #9999a6;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-main);
+  --color-foreground: #ffffff;
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-anton);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-main);
+  color: white;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #07070e;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a1a2e;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5cff;
+}
+
+/* Editorial display heading — matches the marketing site */
+.display-heading {
+  font-family: var(--font-anton), "Anton", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+  font-weight: 400;
+  color: white;
+  margin: 0;
+}
+
+.display-heading .accent {
+  -webkit-text-stroke: 1.5px #c084fc;
+  color: transparent;
+}
+
+.eyebrow {
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #9999a6;
+}
+
+/* ShinyButton — dark pill with purple border + glow */
+.sp-shiny {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 22px;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  color: white;
+  background: linear-gradient(180deg, #1e1838 0%, #0c0a16 100%);
+  border: 1px solid rgba(139, 92, 255, 0.35);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.25s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 6px 20px -10px rgba(139, 92, 255, 0.4);
+}
+.sp-shiny:hover {
+  transform: translateY(-1px);
+  border-color: rgba(192, 132, 252, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 10px 28px -10px rgba(139, 92, 255, 0.6);
+}
+.sp-shiny:active {
+  transform: translateY(0);
+}
+.sp-shiny:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sp-shiny--secondary {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.sp-shiny--secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Surface cards */
+.surface-card {
+  background-color: #0f0f1a;
+  border: 1px solid #1a1a2e;
+  border-radius: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+.surface-card:hover {
+  border-color: rgba(139, 92, 255, 0.45);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 24px rgba(139, 92, 255, 0.18);
+}
+
+/* Form inputs */
+.sp-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: white;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.sp-input:focus {
+  border-color: rgba(139, 92, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+}
+.sp-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }

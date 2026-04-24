@@ -1,10 +1,8 @@
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import type { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const db = getDb();
   const body = await request.json();
-
   const { post_id, status, comment } = body;
 
   if (!post_id || !status) {
@@ -21,30 +19,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const post = db.prepare("SELECT * FROM posts WHERE id = ?").get(post_id);
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id")
+    .eq("id", post_id)
+    .single();
+
   if (!post) {
     return Response.json({ error: "Post not found" }, { status: 404 });
   }
 
   const now = new Date().toISOString();
 
-  // Insert approval record
-  const result = db
-    .prepare(
-      "INSERT INTO approvals (post_id, status, comment, created_at) VALUES (?, ?, ?, ?)"
-    )
-    .run(post_id, status, comment || null, now);
+  const { data: approval, error } = await supabase
+    .from("approvals")
+    .insert({ post_id, status, comment: comment || null, created_at: now })
+    .select()
+    .single();
 
-  // Update post status and updated_at
-  db.prepare("UPDATE posts SET status = ?, updated_at = ? WHERE id = ?").run(
-    status,
-    now,
-    post_id
-  );
+  if (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
 
-  const approval = db
-    .prepare("SELECT * FROM approvals WHERE id = ?")
-    .get(result.lastInsertRowid);
+  await supabase
+    .from("posts")
+    .update({ status, updated_at: now })
+    .eq("id", post_id);
 
   return Response.json(approval);
 }

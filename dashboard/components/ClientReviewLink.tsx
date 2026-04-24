@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 interface ClientReviewLinkProps {
-  path: string; // e.g. "/client/omega" or "/client/omega/post/11"
+  path: string;
   label?: string;
   emailSubject?: string;
   emailBody?: string;
@@ -26,7 +26,6 @@ export default function ClientReviewLink({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard API blocked — fall back to a prompt
       window.prompt("Copy this link:", fullUrl);
     }
   }
@@ -36,29 +35,54 @@ export default function ClientReviewLink({
   )}&body=${encodeURIComponent(emailBody + fullUrl)}`;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-700">{label}</h2>
+    <div
+      className="surface-card flex flex-col"
+      style={{ padding: "18px 20px", gap: "12px", borderRadius: "14px" }}
+    >
+      <h2 className="eyebrow">{label}</h2>
 
-      <div className="flex gap-2">
+      <div className="flex" style={{ gap: "8px" }}>
         <input
           type="text"
           value={fullUrl}
           readOnly
           onFocus={(e) => e.target.select()}
-          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="sp-input"
+          style={{ flex: 1, fontSize: "13px" }}
         />
         <button
           onClick={handleCopy}
-          className="px-3 py-2 bg-gray-900 text-white text-sm rounded hover:bg-gray-700 whitespace-nowrap"
+          style={{
+            padding: "10px 14px",
+            background: "white",
+            color: "#07070e",
+            fontSize: "12px",
+            fontWeight: 600,
+            borderRadius: "10px",
+            border: "1px solid white",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            transition: "background 0.2s ease",
+          }}
         >
           {copied ? "Copied ✓" : "Copy"}
         </button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex" style={{ gap: "8px" }}>
         <a
           href={mailtoHref}
-          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 inline-block"
+          style={{
+            padding: "8px 14px",
+            background: "rgba(139,92,255,0.12)",
+            color: "#e9d5ff",
+            fontSize: "12px",
+            fontWeight: 500,
+            borderRadius: "999px",
+            border: "1px solid rgba(139,92,255,0.35)",
+            textDecoration: "none",
+            transition: "background 0.2s ease",
+          }}
         >
           ✉ Email Client
         </a>
@@ -66,7 +90,17 @@ export default function ClientReviewLink({
           href={fullUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded border border-gray-300 hover:bg-gray-50 inline-block"
+          style={{
+            padding: "8px 14px",
+            background: "transparent",
+            color: "#bfbfcc",
+            fontSize: "12px",
+            fontWeight: 500,
+            borderRadius: "999px",
+            border: "1px solid rgba(255,255,255,0.12)",
+            textDecoration: "none",
+            transition: "background 0.2s ease",
+          }}
         >
           ↗ Open
         </a>

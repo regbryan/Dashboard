@@ -1,11 +1,6 @@
-import { NextResponse } from "next/server";
-import { importCalendar } from "@/lib/import-calendar";
-
 export async function POST() {
-  try {
-    const result = importCalendar();
-    return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  return Response.json(
+    { error: "Calendar import is only available in local development" },
+    { status: 501 }
+  );
 }

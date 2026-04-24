@@ -25,17 +25,19 @@ export default async function PostDetailPage({
 
   if (!post) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" style={{ padding: "40px 24px" }}>
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Post not found</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="display-heading" style={{ fontSize: "clamp(36px, 5vw, 48px)" }}>
+            Post <span className="accent">not found</span>
+          </h1>
+          <p style={{ marginTop: "12px", color: "#9999a6", fontSize: "14px" }}>
             No post exists with ID &ldquo;{id}&rdquo; for this brand.
           </p>
           <Link
             href={`/dashboard/brand/${slug}`}
-            className="mt-4 inline-block text-blue-600 hover:underline"
+            style={{ marginTop: "20px", display: "inline-block", color: "#c084fc", fontSize: "13px", textDecoration: "none" }}
           >
-            Back to brand
+            ← Back to brand
           </Link>
         </div>
       </div>
@@ -53,22 +55,30 @@ export default async function PostDetailPage({
   const thumbAspect: "portrait" | "landscape" =
     brandData?.platform === "linkedin" ? "landscape" : "portrait";
 
+  const crumbStyle: React.CSSProperties = {
+    color: "#9999a6",
+    textDecoration: "none",
+    transition: "color 0.2s ease",
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <nav className="mb-6 text-sm text-gray-500">
-          <Link href="/dashboard" className="hover:underline">
-            Dashboard
-          </Link>
-          {" / "}
-          <Link href={`/dashboard/brand/${slug}`} className="hover:underline">
+    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "32px clamp(20px, 4vw, 56px) 64px" }}>
+      <div className="mx-auto" style={{ maxWidth: "1280px" }}>
+        {/* Breadcrumbs */}
+        <nav
+          className="flex items-center flex-wrap"
+          style={{ gap: "8px", fontSize: "13px", marginBottom: "24px" }}
+        >
+          <Link href="/dashboard" style={crumbStyle}>Dashboard</Link>
+          <span style={{ color: "#4a4a55" }}>/</span>
+          <Link href={`/dashboard/brand/${slug}`} style={crumbStyle}>
             {brandData?.name || slug}
           </Link>
-          {" / "}
-          <span className="text-gray-900">Post #{post.post_number}</span>
+          <span style={{ color: "#4a4a55" }}>/</span>
+          <span style={{ color: "white" }}>Post #{post.post_number}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "40px" }}>
           <div>
             <PostImageViewer
               imageUrl={imageUrl}
@@ -77,81 +87,72 @@ export default async function PostDetailPage({
             />
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center gap-3 text-sm text-gray-500 mb-2">
-                <span>#{post.post_number}</span>
-                {post.date && (
-                  <>
-                    <span>&middot;</span>
-                    <span>{post.date}</span>
-                  </>
-                )}
-                {post.day && (
-                  <>
-                    <span>&middot;</span>
-                    <span>{post.day}</span>
-                  </>
-                )}
-              </div>
-
-              <h1 className="text-2xl font-bold text-gray-900 mb-3">
+          <div className="flex flex-col" style={{ gap: "20px" }}>
+            <div>
+              <span className="eyebrow" style={{ color: "#c084fc" }}>
+                #{post.post_number}
+                {post.date ? ` · ${post.date}` : ""}
+                {post.day ? ` · ${post.day}` : ""}
+              </span>
+              <h1
+                className="display-heading"
+                style={{ fontSize: "clamp(32px, 4vw, 48px)", marginTop: "8px" }}
+              >
                 {post.concept || "Untitled Post"}
               </h1>
-
-              <StatusBadge status={post.status} />
+              <div style={{ marginTop: "14px" }}>
+                <StatusBadge status={post.status} />
+              </div>
             </div>
 
             {post.caption && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">Copy</h2>
-                <div className="max-h-48 overflow-y-auto text-sm text-gray-800 whitespace-pre-wrap">
+              <div className="surface-card" style={{ padding: "20px" }}>
+                <h2 className="eyebrow" style={{ marginBottom: "10px" }}>Copy</h2>
+                <div
+                  style={{
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                    fontSize: "14px",
+                    color: "#bfbfcc",
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.6,
+                  }}
+                >
                   {post.caption}
                 </div>
               </div>
             )}
 
             {post.hashtags && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">Hashtags</h2>
-                <p className="text-sm text-gray-800">{post.hashtags}</p>
+              <div className="surface-card" style={{ padding: "20px" }}>
+                <h2 className="eyebrow" style={{ marginBottom: "10px" }}>Hashtags</h2>
+                <p style={{ fontSize: "13px", color: "#bfbfcc", lineHeight: 1.6 }}>{post.hashtags}</p>
               </div>
             )}
 
             {post.cta && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">CTA</h2>
-                <p className="text-sm text-gray-800">{post.cta}</p>
+              <div className="surface-card" style={{ padding: "20px" }}>
+                <h2 className="eyebrow" style={{ marginBottom: "10px" }}>CTA</h2>
+                <p style={{ fontSize: "14px", color: "#bfbfcc", lineHeight: 1.6 }}>{post.cta}</p>
               </div>
             )}
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Details</h2>
-              <div className="flex flex-wrap gap-2">
-                {post.post_type && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                    {post.post_type}
-                  </span>
-                )}
-                {post.content_pillar && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                    {post.content_pillar}
-                  </span>
-                )}
-                {post.archetype && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                    {post.archetype}
-                  </span>
-                )}
+            <div className="surface-card" style={{ padding: "20px" }}>
+              <h2 className="eyebrow" style={{ marginBottom: "12px" }}>Details</h2>
+              <div className="flex flex-wrap" style={{ gap: "6px" }}>
+                {post.post_type && <MetaChip>{post.post_type}</MetaChip>}
+                {post.content_pillar && <MetaChip>{post.content_pillar}</MetaChip>}
+                {post.archetype && <MetaChip>{post.archetype}</MetaChip>}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Actions</h2>
+            <div className="surface-card" style={{ padding: "24px" }}>
+              <h2 className="eyebrow" style={{ marginBottom: "14px" }}>Actions</h2>
               <PostActions
                 postId={post.id}
                 currentStatus={post.status}
                 hasLogo={!!brandData?.logo_path}
+                archetype={post.archetype}
               />
             </div>
 
@@ -163,10 +164,8 @@ export default async function PostDetailPage({
             />
 
             {(approvals || []).length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">
-                  Approval History
-                </h2>
+              <div className="surface-card" style={{ padding: "24px" }}>
+                <h2 className="eyebrow" style={{ marginBottom: "14px" }}>Approval History</h2>
                 <ApprovalHistory approvals={approvals || []} />
               </div>
             )}
@@ -174,5 +173,25 @@ export default async function PostDetailPage({
         </div>
       </div>
     </div>
+  );
+}
+
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "4px 10px",
+        borderRadius: "999px",
+        fontSize: "11px",
+        fontWeight: 500,
+        letterSpacing: "0.04em",
+        background: "rgba(255,255,255,0.04)",
+        color: "#bfbfcc",
+        border: "1px solid rgba(255,255,255,0.1)",
+      }}
+    >
+      {children}
+    </span>
   );
 }

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 interface PostImageViewerProps {
   imageUrl: string | null;
   alt: string;
-  /** "portrait" = 4:5 crop (default), "landscape" = 1.91:1 crop, "natural" = no crop */
   thumbAspect?: "portrait" | "landscape" | "natural";
 }
 
@@ -22,7 +21,6 @@ export default function PostImageViewer({
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", onKey);
-    // lock background scroll
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -31,61 +29,125 @@ export default function PostImageViewer({
     };
   }, [open]);
 
-  const aspectClass =
+  const aspectRatio =
     thumbAspect === "landscape"
-      ? "aspect-[1.91/1]"
+      ? "1.91 / 1"
       : thumbAspect === "natural"
-      ? ""
-      : "aspect-[4/5]";
+      ? undefined
+      : "4 / 5";
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow overflow-hidden relative group">
+      <div
+        className="surface-card overflow-hidden relative group"
+        style={{ borderRadius: "16px" }}
+      >
         {imageUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={alt}
-              className={`w-full ${aspectClass} ${
-                thumbAspect === "natural" ? "" : "object-cover"
-              }`}
+              style={{
+                width: "100%",
+                aspectRatio,
+                objectFit: thumbAspect === "natural" ? undefined : "cover",
+                display: "block",
+              }}
             />
             <button
               onClick={() => setOpen(true)}
-              className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/70 text-white text-xs rounded-full hover:bg-black/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label="Preview full design"
+              className="opacity-0 group-hover:opacity-100"
+              style={{
+                position: "absolute",
+                bottom: "12px",
+                right: "12px",
+                padding: "7px 14px",
+                background: "rgba(7,7,14,0.8)",
+                color: "white",
+                fontSize: "11px",
+                fontWeight: 500,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                borderRadius: "999px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                cursor: "pointer",
+                transition: "opacity 0.2s ease",
+              }}
             >
-              👁 Preview Full Design
+              Preview Full Design
             </button>
           </>
         ) : (
-          <div className="aspect-[4/5] bg-gray-100 flex items-center justify-center text-gray-400">
+          <div
+            style={{
+              aspectRatio: "4 / 5",
+              background: "#0a0a14",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#4a4a55",
+              fontSize: "12px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
             No image yet
           </div>
         )}
       </div>
 
-      {/* Always-visible full-preview button below thumbnail (accessibility + non-hover devices) */}
       {imageUrl && (
         <button
           onClick={() => setOpen(true)}
-          className="mt-2 w-full px-4 py-2 bg-gray-900 text-white text-sm rounded hover:bg-gray-700"
+          className="sp-shiny"
+          style={{
+            marginTop: "12px",
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+          }}
         >
-          👁 View Full Design
+          <span className="sp-shiny__label">View Full Design</span>
         </button>
       )}
 
-      {/* Lightbox */}
       {open && imageUrl && (
         <div
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(5,5,12,0.92)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            cursor: "zoom-out",
+          }}
         >
           <button
             onClick={() => setOpen(false)}
-            className="absolute top-4 right-4 text-white text-2xl hover:opacity-70"
             aria-label="Close preview"
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              color: "white",
+              fontSize: "18px",
+              cursor: "pointer",
+            }}
           >
             ✕
           </button>
@@ -94,7 +156,12 @@ export default function PostImageViewer({
             src={imageUrl}
             alt={alt}
             onClick={(e) => e.stopPropagation()}
-            className="max-w-full max-h-full object-contain cursor-default"
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+              cursor: "default",
+            }}
           />
         </div>
       )}

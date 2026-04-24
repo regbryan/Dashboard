@@ -14,17 +14,51 @@ interface ClientPostCardProps {
   platform?: string | null;
 }
 
-const STATUS_LABEL: Record<string, { text: string; className: string }> = {
-  approved: { text: "Approved ✓", className: "bg-green-100 text-green-800" },
-  in_review: { text: "Needs review", className: "bg-blue-100 text-blue-800" },
-  changes_requested: {
-    text: "Changes requested",
-    className: "bg-amber-100 text-amber-800",
+type StatusKey = "approved" | "in_review" | "changes_requested" | "scheduled" | "posted" | "generating" | "not_started";
+
+const STATUS_META: Record<string, { text: string; color: string; bg: string; border: string }> = {
+  approved: {
+    text: "APPROVED",
+    color: "#a7f3c4",
+    bg: "rgba(125,226,156,0.12)",
+    border: "rgba(125,226,156,0.3)",
   },
-  scheduled: { text: "Scheduled", className: "bg-purple-100 text-purple-800" },
-  posted: { text: "Posted", className: "bg-gray-800 text-white" },
-  generating: { text: "In progress", className: "bg-gray-100 text-gray-600" },
-  not_started: { text: "In progress", className: "bg-gray-100 text-gray-600" },
+  in_review: {
+    text: "NEEDS REVIEW",
+    color: "#e9d5ff",
+    bg: "rgba(192,132,252,0.14)",
+    border: "rgba(192,132,252,0.35)",
+  },
+  changes_requested: {
+    text: "CHANGES REQUESTED",
+    color: "#fde68a",
+    bg: "rgba(253,224,138,0.12)",
+    border: "rgba(253,224,138,0.32)",
+  },
+  scheduled: {
+    text: "SCHEDULED",
+    color: "#c4b5fd",
+    bg: "rgba(139,92,255,0.14)",
+    border: "rgba(139,92,255,0.35)",
+  },
+  posted: {
+    text: "POSTED",
+    color: "#9999a6",
+    bg: "rgba(255,255,255,0.05)",
+    border: "rgba(255,255,255,0.1)",
+  },
+  generating: {
+    text: "IN PROGRESS",
+    color: "#9999a6",
+    bg: "rgba(255,255,255,0.04)",
+    border: "rgba(255,255,255,0.08)",
+  },
+  not_started: {
+    text: "IN PROGRESS",
+    color: "#9999a6",
+    bg: "rgba(255,255,255,0.04)",
+    border: "rgba(255,255,255,0.08)",
+  },
 };
 
 export default function ClientPostCard({
@@ -38,11 +72,12 @@ export default function ClientPostCard({
   platform,
 }: ClientPostCardProps) {
   const [preview, setPreview] = useState(false);
-  const aspectClass =
-    platform === "linkedin" ? "aspect-[1.91/1]" : "aspect-[4/5]";
-  const statusInfo = STATUS_LABEL[status] || {
-    text: status,
-    className: "bg-gray-100 text-gray-700",
+  const aspectRatio = platform === "linkedin" ? "1.91 / 1" : "4 / 5";
+  const meta = STATUS_META[status] || {
+    text: status.toUpperCase(),
+    color: "#9999a6",
+    bg: "rgba(255,255,255,0.04)",
+    border: "rgba(255,255,255,0.08)",
   };
   const isReviewable = status === "in_review" || status === "changes_requested";
 
@@ -62,49 +97,117 @@ export default function ClientPostCard({
 
   return (
     <>
-      <div className="rounded-lg border border-gray-200 overflow-hidden bg-white hover:shadow-md transition-shadow">
-        <div className={`${aspectClass} relative bg-gray-100`}>
+      <div
+        className="surface-card overflow-hidden flex flex-col"
+        style={{ borderRadius: "16px" }}
+      >
+        <div style={{ aspectRatio, position: "relative", background: "#0a0a14" }}>
           {imageUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageUrl}
                 alt={concept}
-                className="w-full h-full object-cover"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
               <button
                 onClick={() => setPreview(true)}
-                className="absolute bottom-2 right-2 px-2.5 py-1 bg-black/70 text-white text-xs rounded-full hover:bg-black/90 backdrop-blur-sm"
                 aria-label="Preview full design"
+                style={{
+                  position: "absolute",
+                  bottom: "10px",
+                  right: "10px",
+                  padding: "6px 12px",
+                  background: "rgba(7,7,14,0.75)",
+                  color: "white",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  cursor: "pointer",
+                }}
               >
-                👁 Preview
+                Preview
               </button>
             </>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#4a4a55",
+                fontSize: "12px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
               No image yet
             </div>
           )}
         </div>
 
-        <div className="p-3 space-y-2">
-          <p className="text-xs text-gray-500">
+        <div
+          className="flex flex-col"
+          style={{ padding: "16px 18px", gap: "10px" }}
+        >
+          <p
+            style={{
+              fontSize: "11px",
+              color: "#6f6f7e",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontWeight: 600,
+            }}
+          >
             #{postNumber}
             {date ? ` · ${date}` : ""}
           </p>
-          <p className="font-medium text-gray-900 text-sm leading-snug line-clamp-2">
+          <p
+            style={{
+              color: "white",
+              fontSize: "14px",
+              lineHeight: 1.45,
+              fontWeight: 500,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
             {concept || "Untitled"}
           </p>
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between" style={{ paddingTop: "4px" }}>
             <span
-              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.className}`}
+              style={{
+                display: "inline-block",
+                padding: "4px 10px",
+                borderRadius: "999px",
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                background: meta.bg,
+                color: meta.color,
+                border: `1px solid ${meta.border}`,
+              }}
             >
-              {statusInfo.text}
+              {meta.text}
             </span>
             {isReviewable && (
               <Link
                 href={`/client/${brand}/post/${postId}`}
-                className="text-sm font-medium text-blue-600 hover:underline"
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "#c084fc",
+                  textDecoration: "none",
+                }}
               >
                 Review →
               </Link>
@@ -112,7 +215,7 @@ export default function ClientPostCard({
             {!isReviewable && imageUrl && (
               <Link
                 href={`/client/${brand}/post/${postId}`}
-                className="text-sm text-gray-500 hover:underline"
+                style={{ fontSize: "13px", color: "#7a7a88", textDecoration: "none" }}
               >
                 View →
               </Link>
@@ -124,12 +227,36 @@ export default function ClientPostCard({
       {preview && imageUrl && (
         <div
           onClick={() => setPreview(false)}
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(5,5,12,0.92)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            cursor: "zoom-out",
+          }}
         >
           <button
             onClick={() => setPreview(false)}
-            className="absolute top-4 right-4 text-white text-2xl hover:opacity-70"
             aria-label="Close"
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              color: "white",
+              fontSize: "18px",
+              cursor: "pointer",
+            }}
           >
             ✕
           </button>
@@ -138,7 +265,7 @@ export default function ClientPostCard({
             src={imageUrl}
             alt={concept}
             onClick={(e) => e.stopPropagation()}
-            className="max-w-full max-h-full object-contain cursor-default"
+            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "default" }}
           />
         </div>
       )}
