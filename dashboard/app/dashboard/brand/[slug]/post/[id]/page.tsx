@@ -6,6 +6,8 @@ import ClientReviewLink from "@/components/ClientReviewLink";
 import PostImageViewer from "@/components/PostImageViewer";
 import Link from "next/link";
 import PostActions from "./PostActions";
+import LogoOverlayPanel from "./LogoOverlayPanel";
+import { getBrandClientEmails } from "@/lib/brand-clients";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +54,7 @@ export default async function PostDetailPage({
 
   const brandData = post.brands as { name: string; folder_path: string; logo_path: string | null; platform: string | null } | null;
   const imageUrl = getImageUrl(post.brand_id, post.file_path);
+  const clientEmails = await getBrandClientEmails(post.brand_id).catch(() => []);
   const thumbAspect: "portrait" | "landscape" =
     brandData?.platform === "linkedin" ? "landscape" : "portrait";
 
@@ -156,11 +159,15 @@ export default async function PostDetailPage({
               />
             </div>
 
+            {brandData?.logo_path && <LogoOverlayPanel postId={post.id} />}
+
             <ClientReviewLink
               path={`/client/${slug}/post/${post.id}`}
               label="Share this post with client"
               emailSubject={`${brandData?.name || "Your brand"} — Post #${post.post_number} ready for review`}
               emailBody={`Hi,\n\nPost #${post.post_number} (${post.concept || "Untitled"}) is ready for your review. Tap the link below to approve or request changes:\n\n`}
+              to={clientEmails}
+              postId={post.id}
             />
 
             {(approvals || []).length > 0 && (

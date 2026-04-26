@@ -39,7 +39,12 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes
-  const publicRoutes = ["/login", "/auth/callback", "/auth/error"];
+  const publicRoutes = [
+    "/login",
+    "/auth/callback",
+    "/auth/error",
+    "/api/cron/", // Vercel Cron — gated by CRON_SECRET inside the route
+  ];
   const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
 
   if (isPublic) return supabaseResponse;
@@ -59,29 +64,32 @@ export async function proxy(request: NextRequest) {
 
   // Admin-only routes
   if (pathname.startsWith("/dashboard") && !isAdmin) {
-    // Non-admin trying to reach /dashboard — redirect to their brand
+    // Non-admin trying to reach /dashboard — redirect to their brand.
+    // URL params are brand UUIDs (the pages query brands by id), so we route
+    // straight to the brand_id without a slug indirection.
     const { data: access } = await supabase
       .from("user_brand_access")
-      .select("brand_id, brands(slug)")
+      .select("brand_id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
 
-    const brandSlug = (access?.brands as { slug?: string } | null)?.slug;
+    const brandId = (access as { brand_id?: string } | null)?.brand_id;
     const url = request.nextUrl.clone();
-    url.pathname = brandSlug ? `/client/${brandSlug}` : "/no-access";
+    url.pathname = brandId ? `/client/${brandId}` : "/no-access";
     return NextResponse.redirect(url);
   }
 
-  // Client routes — verify access to the requested brand
+  // Client routes — verify access to the requested brand.
+  // URL param is the brand UUID (matches pages' .eq("id", brand) queries).
   if (pathname.startsWith("/client/")) {
-    const slug = pathname.split("/")[2];
-    if (!isAdmin && slug) {
+    const brandId = pathname.split("/")[2];
+    if (!isAdmin && brandId) {
       const { data: access } = await supabase
         .from("user_brand_access")
-        .select("brand_id, brands!inner(slug)")
+        .select("brand_id")
         .eq("user_id", user.id)
-        .eq("brands.slug", slug)
+        .eq("brand_id", brandId)
         .maybeSingle();
 
       if (!access) {

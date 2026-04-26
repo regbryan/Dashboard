@@ -62,7 +62,7 @@ export default async function DashboardPage() {
   const totalBrands = (brands || []).length;
   const totalPosts = (posts || []).length;
   const totalInReview = Object.values(statsMap).reduce(
-    (sum, s) => sum + s.in_review + s.changes_requested,
+    (sum, s) => sum + s.in_review,
     0
   );
   const totalApproved = Object.values(statsMap).reduce(

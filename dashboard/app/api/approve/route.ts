@@ -34,9 +34,14 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: error.message }, { status: 500 });
     }
 
+    // Approval history keeps the literal client decision ("changes_requested")
+    // for audit, but the post itself flips back into the regeneration queue
+    // so the team's workflow surfaces it as work-to-do.
+    const newPostStatus = status === "changes_requested" ? "generating" : status;
+
     await ctx.supabase
       .from("posts")
-      .update({ status, updated_at: now })
+      .update({ status: newPostStatus, updated_at: now })
       .eq("id", post_id);
 
     return Response.json(approval);

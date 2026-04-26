@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import PostCard from "@/components/PostCard";
 import ClientReviewLink from "@/components/ClientReviewLink";
+import { getBrandClientEmails } from "@/lib/brand-clients";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,8 @@ export default async function BrandDetailPage({
   const accentColor = brand.color_primary || "#8b5cff";
 
   const isAllActive = !filterStatus && !filter;
+
+  const clientEmails = await getBrandClientEmails(brand.id).catch(() => []);
 
   return (
     <div className="min-h-[calc(100vh-64px)]" style={{ padding: "32px clamp(20px, 4vw, 56px) 64px" }}>
@@ -144,6 +147,8 @@ export default async function BrandDetailPage({
             label={`Share with ${brand.name}`}
             emailSubject={`${brand.name} — Content calendar ready for review`}
             emailBody={`Hi,\n\nYour content calendar is ready for review. You can see every post, approve the ones you love, and request changes on anything you'd like tweaked here:\n\n`}
+            to={clientEmails}
+            brandId={brand.id}
           />
         </div>
 
@@ -162,14 +167,16 @@ export default async function BrandDetailPage({
               accent="#fbb27a"
             />
           )}
-          {Object.entries(statusCounts).map(([status, count]) => (
-            <FilterPill
-              key={status}
-              href={`/dashboard/brand/${slug}?status=${status}`}
-              active={filterStatus === status}
-              label={`${status === "not_started" ? "Approval Not Started" : status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} (${count})`}
-            />
-          ))}
+          {Object.entries(statusCounts)
+            .filter(([status]) => status !== "changes_requested")
+            .map(([status, count]) => (
+              <FilterPill
+                key={status}
+                href={`/dashboard/brand/${slug}?status=${status}`}
+                active={filterStatus === status}
+                label={`${status === "not_started" ? "Approval Not Started" : status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} (${count})`}
+              />
+            ))}
         </div>
 
         {/* Grid */}

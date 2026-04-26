@@ -1,11 +1,17 @@
 import { supabaseAdmin } from "./supabase-admin";
 import { startHyperFramesRender, type HyperFramesVars } from "./hyperframes";
+import {
+  applyOverlayLogo,
+  undoOverlayLogo,
+  VALID_POSITIONS,
+  type OverlayPosition,
+} from "./overlay-logo";
 
 export interface RunScriptOptions {
   scriptName: string;
   brandId?: string | null;
   postId?: number | null;
-  vars?: HyperFramesVars;
+  vars?: HyperFramesVars | Record<string, unknown>;
 }
 
 /**
@@ -43,7 +49,52 @@ export async function runScript(opts: RunScriptOptions): Promise<number> {
     case "hyperframes_render": {
       if (!postId) throw new Error("hyperframes_render requires postId");
       // Intentional fire-and-forget: the renderer updates script_runs when done.
-      void startHyperFramesRender(runId, { postId, overrides: vars });
+      void startHyperFramesRender(runId, {
+        postId,
+        overrides: vars as HyperFramesVars | undefined,
+      });
+      break;
+    }
+    case "overlay_logo": {
+      if (!postId) throw new Error("overlay_logo requires postId");
+      const v = (vars ?? {}) as Record<string, unknown>;
+      const position =
+        typeof v.position === "string" &&
+        (VALID_POSITIONS as readonly string[]).includes(v.position)
+          ? (v.position as OverlayPosition)
+          : "top-left";
+      const overlayVars = {
+        position,
+        maxLogoWidth:
+          typeof v.maxLogoWidth === "number" ? v.maxLogoWidth : undefined,
+        padding: typeof v.padding === "number" ? v.padding : undefined,
+        backgroundBlock:
+          typeof v.backgroundBlock === "string" ? v.backgroundBlock : null,
+      };
+      void applyOverlayLogo(postId, overlayVars).then((res) =>
+        admin
+          .from("script_runs")
+          .update({
+            status: res.ok ? "success" : "error",
+            output: res.ok ? "Overlay applied" : res.error,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", runId)
+      );
+      break;
+    }
+    case "undo_logo": {
+      if (!postId) throw new Error("undo_logo requires postId");
+      void undoOverlayLogo(postId).then((res) =>
+        admin
+          .from("script_runs")
+          .update({
+            status: res.ok ? "success" : "error",
+            output: res.ok ? "Overlay reverted" : res.error,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", runId)
+      );
       break;
     }
     default:

@@ -39,9 +39,7 @@ export default async function ClientCalendarPage({
     .order("post_number");
 
   const allPosts = posts || [];
-  const reviewCount = allPosts.filter(
-    (p) => p.status === "in_review" || p.status === "changes_requested"
-  ).length;
+  const reviewCount = allPosts.filter((p) => p.status === "in_review").length;
   const approvedCount = allPosts.filter((p) => p.status === "approved").length;
 
   const dates = allPosts.map((p) => p.date).filter(Boolean).sort() as string[];

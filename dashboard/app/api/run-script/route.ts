@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     script?: string;
     post_id?: number;
     brand_id?: string;
-    vars?: Record<string, string>;
+    vars?: Record<string, unknown>;
   };
   try {
     body = await request.json();

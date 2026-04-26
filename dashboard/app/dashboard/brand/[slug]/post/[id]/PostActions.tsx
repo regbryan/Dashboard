@@ -8,7 +8,6 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "not_started", label: "Approval Not Started" },
   { value: "generating", label: "Generating" },
   { value: "in_review", label: "In Review" },
-  { value: "changes_requested", label: "Changes Requested" },
   { value: "approved", label: "Approved" },
   { value: "scheduled", label: "Scheduled" },
   { value: "posted", label: "Posted" },
@@ -73,16 +72,6 @@ export default function PostActions({
     router.refresh();
   }
 
-  async function handleRunLogo() {
-    setLoading(true);
-    await fetch("/api/run-script", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ script: "overlay_logo", post_id: postId }),
-    });
-    setLoading(false);
-    router.refresh();
-  }
 
   async function handleRenderHyperFrames() {
     setRenderStatus("running");
@@ -226,15 +215,6 @@ export default function PostActions({
 
       {/* Action buttons */}
       <div className="flex flex-wrap" style={{ gap: "10px" }}>
-        {hasLogo && (
-          <ShinyButton
-            variant="secondary"
-            onClick={handleRunLogo}
-            disabled={loading}
-          >
-            Run Logo Overlay
-          </ShinyButton>
-        )}
         {canHyperFrames && (
           <ShinyButton
             variant="secondary"

@@ -27,7 +27,7 @@ export default function BrandCard({ brand }: { brand: Brand }) {
   const generated = stats.has_image;
   const genPct = stats.total > 0 ? Math.round((generated / stats.total) * 100) : 0;
   const approvedPct = stats.total > 0 ? Math.round((approved / stats.total) * 100) : 0;
-  const needsReview = stats.in_review + stats.changes_requested;
+  const needsReview = stats.in_review;
 
   return (
     <Link
