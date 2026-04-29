@@ -8,6 +8,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "not_started", label: "Approval Not Started" },
   { value: "generating", label: "Generating" },
   { value: "in_review", label: "In Review" },
+  { value: "changes_requested", label: "Request Changes (with feedback)" },
   { value: "approved", label: "Approved" },
   { value: "scheduled", label: "Scheduled" },
   { value: "posted", label: "Posted" },
