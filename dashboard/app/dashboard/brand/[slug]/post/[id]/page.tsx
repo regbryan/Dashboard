@@ -149,6 +149,51 @@ export default async function PostDetailPage({
               </div>
             </div>
 
+            <div
+              className="surface-card"
+              style={{
+                padding: "24px",
+                ...(((approvals || []).filter(
+                  (a) => a.status === "changes_requested"
+                ).length > 0)
+                  ? {
+                      borderColor: "rgba(251,178,122,0.45)",
+                      background: "rgba(251,178,122,0.04)",
+                    }
+                  : {}),
+              }}
+            >
+              <div
+                className="flex items-center justify-between"
+                style={{ marginBottom: "14px", gap: "12px" }}
+              >
+                <h2 className="eyebrow" style={{ margin: 0 }}>
+                  Feedback
+                </h2>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "#9999a6",
+                    fontFamily: "var(--font-mono, monospace)",
+                  }}
+                >
+                  {(approvals || []).length === 0
+                    ? "no entries"
+                    : `${(approvals || []).length} entr${
+                        (approvals || []).length === 1 ? "y" : "ies"
+                      }`}
+                </span>
+              </div>
+              {(approvals || []).length === 0 ? (
+                <p style={{ fontSize: "13px", color: "#6f6f7e", margin: 0 }}>
+                  No feedback yet. Use the action panel below to leave a note,
+                  or share the post with the client for them to review.
+                </p>
+              ) : (
+                <ApprovalHistory approvals={approvals || []} />
+              )}
+            </div>
+
             <div className="surface-card" style={{ padding: "24px" }}>
               <h2 className="eyebrow" style={{ marginBottom: "14px" }}>Actions</h2>
               <PostActions
@@ -169,13 +214,6 @@ export default async function PostDetailPage({
               to={clientEmails}
               postId={post.id}
             />
-
-            {(approvals || []).length > 0 && (
-              <div className="surface-card" style={{ padding: "24px" }}>
-                <h2 className="eyebrow" style={{ marginBottom: "14px" }}>Approval History</h2>
-                <ApprovalHistory approvals={approvals || []} />
-              </div>
-            )}
           </div>
         </div>
       </div>
