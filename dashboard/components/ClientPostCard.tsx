@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { isVideoUrl } from "@/lib/media";
 
 interface ClientPostCardProps {
   brand: string;
@@ -80,6 +81,7 @@ export default function ClientPostCard({
     border: "rgba(255,255,255,0.08)",
   };
   const isReviewable = status === "in_review" || status === "changes_requested";
+  const isVideo = isVideoUrl(imageUrl);
 
   useEffect(() => {
     if (!preview) return;
@@ -104,12 +106,22 @@ export default function ClientPostCard({
         <div style={{ aspectRatio, position: "relative", background: "#0a0a14" }}>
           {imageUrl ? (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={concept}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
+              {isVideo ? (
+                <video
+                  src={imageUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", background: "#0a0a14" }}
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={imageUrl}
+                  alt={concept}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              )}
               <button
                 onClick={() => setPreview(true)}
                 aria-label="Preview full design"
@@ -260,13 +272,24 @@ export default function ClientPostCard({
           >
             ✕
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={concept}
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "default" }}
-          />
+          {isVideo ? (
+            <video
+              src={imageUrl}
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "default" }}
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={imageUrl}
+              alt={concept}
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", cursor: "default" }}
+            />
+          )}
         </div>
       )}
     </>

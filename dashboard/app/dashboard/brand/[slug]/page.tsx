@@ -209,6 +209,7 @@ export default async function BrandDetailPage({
                   post_type: post.post_type,
                   content_pillar: post.content_pillar,
                   status: post.status,
+                  file_path: post.file_path,
                 }}
                 brandSlug={slug}
                 platform={brand.platform}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isVideoUrl } from "@/lib/media";
 
 interface PostImageViewerProps {
   imageUrl: string | null;
@@ -36,6 +37,9 @@ export default function PostImageViewer({
       ? undefined
       : "4 / 5";
 
+  const isVideo = isVideoUrl(imageUrl);
+  const previewLabel = isVideo ? "Open Video" : "Preview Full Design";
+
   return (
     <>
       <div
@@ -44,20 +48,36 @@ export default function PostImageViewer({
       >
         {imageUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt={alt}
-              style={{
-                width: "100%",
-                aspectRatio,
-                objectFit: thumbAspect === "natural" ? undefined : "cover",
-                display: "block",
-              }}
-            />
+            {isVideo ? (
+              <video
+                src={imageUrl}
+                controls
+                playsInline
+                preload="metadata"
+                style={{
+                  width: "100%",
+                  aspectRatio,
+                  objectFit: thumbAspect === "natural" ? undefined : "cover",
+                  display: "block",
+                  background: "#0a0a14",
+                }}
+              />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={imageUrl}
+                alt={alt}
+                style={{
+                  width: "100%",
+                  aspectRatio,
+                  objectFit: thumbAspect === "natural" ? undefined : "cover",
+                  display: "block",
+                }}
+              />
+            )}
             <button
               onClick={() => setOpen(true)}
-              aria-label="Preview full design"
+              aria-label={previewLabel}
               className="opacity-0 group-hover:opacity-100"
               style={{
                 position: "absolute",
@@ -78,7 +98,7 @@ export default function PostImageViewer({
                 transition: "opacity 0.2s ease",
               }}
             >
-              Preview Full Design
+              {previewLabel}
             </button>
           </>
         ) : (
@@ -111,7 +131,7 @@ export default function PostImageViewer({
             justifyContent: "center",
           }}
         >
-          <span className="sp-shiny__label">View Full Design</span>
+          <span className="sp-shiny__label">{isVideo ? "Open Video" : "View Full Design"}</span>
         </button>
       )}
 
@@ -151,18 +171,34 @@ export default function PostImageViewer({
           >
             ✕
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={alt}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              objectFit: "contain",
-              cursor: "default",
-            }}
-          />
+          {isVideo ? (
+            <video
+              src={imageUrl}
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                cursor: "default",
+              }}
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={imageUrl}
+              alt={alt}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                cursor: "default",
+              }}
+            />
+          )}
         </div>
       )}
     </>

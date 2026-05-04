@@ -3,6 +3,7 @@
 import Link from "next/link";
 import StatusBadge from "./StatusBadge";
 import { useState } from "react";
+import { isVideoUrl } from "@/lib/media";
 
 interface Post {
   id: string;
@@ -11,6 +12,7 @@ interface Post {
   post_type: string;
   content_pillar: string;
   status: string;
+  file_path?: string | null;
 }
 
 export default function PostCard({
@@ -22,8 +24,10 @@ export default function PostCard({
   brandSlug: string;
   platform?: string | null;
 }) {
-  const [imgFailed, setImgFailed] = useState(false);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const aspectRatio = platform === "linkedin" ? "1.91 / 1" : "4 / 5";
+  const isVideo = isVideoUrl(post.file_path);
+  const mediaSrc = `/api/posts/${post.id}/image`;
 
   return (
     <Link
@@ -36,14 +40,25 @@ export default function PostCard({
       }}
     >
       <div style={{ aspectRatio, position: "relative", background: "#0a0a14" }}>
-        {!imgFailed ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={`/api/posts/${post.id}/image`}
-            alt={post.concept}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            onError={() => setImgFailed(true)}
-          />
+        {!mediaFailed ? (
+          isVideo ? (
+            <video
+              src={mediaSrc}
+              muted
+              playsInline
+              preload="metadata"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={() => setMediaFailed(true)}
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={mediaSrc}
+              alt={post.concept}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={() => setMediaFailed(true)}
+            />
+          )
         ) : (
           <div
             style={{
