@@ -47,6 +47,34 @@ export default function QuickActions() {
     }
   }
 
+  async function handleSendDigest() {
+    setLoading("send_digest");
+    setStatus(null);
+    try {
+      const res = await fetch("/api/admin/send-digest", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus(`Error: ${data.error ?? "Digest failed"}`);
+        return;
+      }
+      const sent = data.brandsNotified ?? 0;
+      const rows = data.rowsFlushed ?? 0;
+      if (sent === 0 && rows === 0) {
+        setStatus("Digest: nothing pending to send");
+      } else {
+        setStatus(
+          `Digest sent: ${sent} brand${sent === 1 ? "" : "s"}, ${rows} item${
+            rows === 1 ? "" : "s"
+          }`
+        );
+      }
+    } catch {
+      setStatus("Error: Network request failed");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   const isBusy = loading !== null;
   const isError = status?.startsWith("Error");
 
@@ -71,6 +99,13 @@ export default function QuickActions() {
           disabled={isBusy}
         >
           {loading === "run_all_overlays" ? "Running…" : "Run All Overlays"}
+        </ShinyButton>
+        <ShinyButton
+          variant="secondary"
+          onClick={handleSendDigest}
+          disabled={isBusy}
+        >
+          {loading === "send_digest" ? "Sending…" : "Send Feedback Digest"}
         </ShinyButton>
       </div>
 
