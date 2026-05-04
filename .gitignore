@@ -1,3 +1,12 @@
+# Allowlist mode: this repo exists to ship the dashboard project. The parent
+# folder also holds brand assets, screenshots, and unrelated experiments that
+# must NEVER leak into git history.
+/*
+!/.gitignore
+!/dashboard/
+
+# Belt-and-suspenders for anything inside dashboard/ that should be ignored
+# regardless of the project's own .gitignore.
 node_modules/
 .env*
 .DS_Store
