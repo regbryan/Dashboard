@@ -69,13 +69,6 @@ export default async function DashboardPage() {
     (sum, s) => sum + s.approved + s.scheduled + s.posted,
     0
   );
-  // "Changes" count covers posts the client asked us to fix. The approve
-  // handler flips posts to status="generating" on a client changes_requested,
-  // so both states represent outstanding work.
-  const totalChanges = Object.values(statsMap).reduce(
-    (sum, s) => sum + s.changes_requested + s.generating,
-    0
-  );
 
   return (
     <div className="min-h-[calc(100vh-64px)]" style={{ padding: "48px clamp(20px, 4vw, 56px) 64px" }}>
@@ -94,7 +87,7 @@ export default async function DashboardPage() {
 
           {/* Stats row */}
           <div
-            className="grid grid-cols-2 md:grid-cols-5"
+            className="grid grid-cols-2 md:grid-cols-4"
             style={{ gap: "16px", marginTop: "32px" }}
           >
             <StatTile label="Brands" value={totalBrands} />
@@ -103,11 +96,6 @@ export default async function DashboardPage() {
               label="Needs Review"
               value={totalInReview}
               accent={totalInReview > 0 ? "#c084fc" : undefined}
-            />
-            <StatTile
-              label="Change Requests"
-              value={totalChanges}
-              accent={totalChanges > 0 ? "#fbbf24" : undefined}
             />
             <StatTile
               label="Approved"
