@@ -15,7 +15,7 @@ export type PendingApproval = {
     post_number: number | null;
     concept: string | null;
     brand_id: string;
-    brands: { id: string; slug: string; name: string } | null;
+    brands: { id: string; name: string } | null;
   } | null;
 };
 
@@ -52,7 +52,7 @@ export async function runFeedbackDigest(
   const { data: rows, error } = await sb
     .from("approvals")
     .select(
-      "id, post_id, status, comment, created_at, posts:post_id (id, post_number, concept, brand_id, brands:brand_id (id, slug, name))"
+      "id, post_id, status, comment, created_at, posts:post_id (id, post_number, concept, brand_id, brands:brand_id (id, name))"
     )
     .in("status", ["approved", "changes_requested"])
     .is("notified_at", null)
