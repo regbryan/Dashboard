@@ -26,6 +26,9 @@ export type OverlayVars = {
   // For position='custom': logo top-left as fractions of post width/height.
   xPct?: number; // 0.0 – 1.0
   yPct?: number; // 0.0 – 1.0
+  // brand_logos.id of the variant to use. When omitted, falls back to the
+  // brand's default logo_path. Resolved server-side to a local file path.
+  logoId?: string;
 };
 
 type PostLookup = {
@@ -100,7 +103,28 @@ export async function applyOverlayLogo(
   }
 
   const absPost = postImagePath(post.brands.folder_path, post.file_path);
-  const absLogo = path.join(brandFolderPath(post.brands.folder_path), post.brands.logo_path);
+  // Resolve logo: prefer the explicit variant the user picked (looked up via
+  // brand_logos.id → local_path, which is project-root-relative). Fall back
+  // to the brand's legacy logo_path on the brands row.
+  let absLogo = path.join(brandFolderPath(post.brands.folder_path), post.brands.logo_path);
+  if (vars.logoId) {
+    const { data: chosen } = await supabaseAdmin()
+      .from("brand_logos")
+      .select("local_path, brand_id")
+      .eq("id", vars.logoId)
+      .maybeSingle();
+    const row = chosen as { local_path: string | null; brand_id: string } | null;
+    if (!row) {
+      return { ok: false, error: `logo variant ${vars.logoId} not found` };
+    }
+    if (row.brand_id !== post.brand_id) {
+      return { ok: false, error: "logo variant belongs to a different brand" };
+    }
+    if (!row.local_path) {
+      return { ok: false, error: "logo variant has no local_path configured" };
+    }
+    absLogo = path.join(PROJECT_ROOT, row.local_path);
+  }
   const snap = snapshotPath(absPost);
 
   if (!existsSync(absPost)) return { ok: false, error: `Post not found: ${absPost}` };

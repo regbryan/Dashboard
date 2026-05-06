@@ -72,6 +72,7 @@ export async function runScript(opts: RunScriptOptions): Promise<number> {
           typeof v.backgroundBlock === "string" ? v.backgroundBlock : null,
         xPct: typeof v.xPct === "number" ? v.xPct : undefined,
         yPct: typeof v.yPct === "number" ? v.yPct : undefined,
+        logoId: typeof v.logoId === "string" ? v.logoId : undefined,
       };
       void applyOverlayLogo(postId, overlayVars).then((res) =>
         admin

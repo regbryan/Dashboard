@@ -248,7 +248,7 @@ export default async function PostDetailPage({
             {brandData?.logo_path && (
               <LogoOverlayPanel
                 postId={post.id}
-                logoUrl={`/api/brands/${post.brand_id}/logo`}
+                brandId={post.brand_id}
                 postImageUrl={imageUrl}
                 thumbAspect={thumbAspect}
               />

@@ -15,10 +15,17 @@ const PRESETS: { value: string; label: string; xPct: number; yPct: number }[] = 
 
 interface LogoOverlayPanelProps {
   postId: number;
-  logoUrl: string | null;
+  brandId: string;
   postImageUrl: string | null;
   thumbAspect?: "portrait" | "landscape";
 }
+
+type LogoVariant = {
+  id: string;
+  label: string;
+  isDefault: boolean;
+  previewUrl: string | null;
+};
 
 // xPct/yPct in this component are "anchor" coords — the *center* of the logo
 // as a fraction of post dimensions. That makes drag-from-anywhere behave
@@ -28,7 +35,7 @@ interface LogoOverlayPanelProps {
 
 export default function LogoOverlayPanel({
   postId,
-  logoUrl,
+  brandId,
   postImageUrl,
   thumbAspect = "portrait",
 }: LogoOverlayPanelProps) {
@@ -44,10 +51,16 @@ export default function LogoOverlayPanel({
   // Anchor (center of logo) as fractions. Default = top-left preset.
   const [anchor, setAnchor] = useState({ x: 0.04, y: 0.04 });
   const [logoNaturalAspect, setLogoNaturalAspect] = useState(1); // logo w/h
+  const [variants, setVariants] = useState<LogoVariant[]>([]);
+  const [selectedLogoId, setSelectedLogoId] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ active: boolean; pointerId?: number }>({
     active: false,
   });
+
+  const selectedLogo =
+    variants.find((v) => v.id === selectedLogoId) ?? variants[0] ?? null;
+  const logoUrl = selectedLogo?.previewUrl ?? null;
 
   const aspectRatio = thumbAspect === "landscape" ? "1.91 / 1" : "4 / 5";
   const logoWidthPct = maxLogoWidth / 100; // 0–1 fraction of stage width
@@ -68,6 +81,29 @@ export default function LogoOverlayPanel({
     void refreshSnapshotState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadVariants() {
+      try {
+        const res = await fetch(`/api/brands/${brandId}/logos`);
+        if (!res.ok) return;
+        const body = (await res.json()) as { logos: LogoVariant[] };
+        if (cancelled) return;
+        setVariants(body.logos ?? []);
+        // Default-select whichever variant is flagged is_default; fall back
+        // to the first one returned.
+        const fallback = body.logos.find((l) => l.isDefault) ?? body.logos[0];
+        if (fallback) setSelectedLogoId(fallback.id);
+      } catch {
+        // ignore — preview will show "no logo" empty state
+      }
+    }
+    void loadVariants();
+    return () => {
+      cancelled = true;
+    };
+  }, [brandId]);
 
   function clamp01(n: number): number {
     if (Number.isNaN(n)) return 0;
@@ -161,6 +197,7 @@ export default function LogoOverlayPanel({
             xPct,
             yPct,
             backgroundBlock: bgEnabled ? bgColor : null,
+            logoId: selectedLogo?.id,
           },
         }),
       });
@@ -330,6 +367,50 @@ export default function LogoOverlayPanel({
       )}
 
       <div style={{ display: "grid", gap: "12px" }}>
+        {variants.length > 1 && (
+          <div>
+            <div style={labelStyle}>Logo variant</div>
+            <div className="flex flex-wrap" style={{ gap: "6px", marginTop: "6px" }}>
+              {variants.map((v) => {
+                const on = selectedLogoId === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setSelectedLogoId(v.id)}
+                    disabled={!!busy}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      border: on
+                        ? "1px solid #c084fc"
+                        : "1px solid rgba(255,255,255,0.12)",
+                      background: on ? "rgba(192,132,252,0.18)" : "transparent",
+                      color: on ? "#e9d5ff" : "#bfbfcc",
+                      cursor: busy ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {v.label}
+                    {v.isDefault && (
+                      <span
+                        style={{
+                          marginLeft: "6px",
+                          fontSize: "9px",
+                          opacity: 0.6,
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        ★
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div>
           <div style={labelStyle}>Quick presets</div>
           <div className="flex flex-wrap" style={{ gap: "6px", marginTop: "6px" }}>
