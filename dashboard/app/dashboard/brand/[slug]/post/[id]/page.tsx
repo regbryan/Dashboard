@@ -8,6 +8,7 @@ import Link from "next/link";
 import PostActions from "./PostActions";
 import LogoOverlayPanel from "./LogoOverlayPanel";
 import { getBrandClientEmails } from "@/lib/brand-clients";
+import { buildClaudeRevisionLink } from "@/lib/claude-link";
 
 export const dynamic = "force-dynamic";
 
@@ -192,6 +193,46 @@ export default async function PostDetailPage({
               ) : (
                 <ApprovalHistory approvals={approvals || []} />
               )}
+              {(() => {
+                const lastChangeRequest = (approvals || [])
+                  .filter((a) => a.status === "changes_requested")
+                  .slice(-1)[0];
+                if (!lastChangeRequest) return null;
+                const claudeUrl = buildClaudeRevisionLink({
+                  brandName: brandData?.name ?? post.brand_id,
+                  postNumber: post.post_number,
+                  concept: post.concept,
+                  postType: post.post_type,
+                  date: post.date,
+                  caption: post.caption,
+                  hashtags: post.hashtags,
+                  cta: post.cta,
+                  visualDirection: post.visual_direction,
+                  assetUrl: imageUrl,
+                  clientComment: lastChangeRequest.comment,
+                });
+                return (
+                  <a
+                    href={claudeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-block",
+                      marginTop: "16px",
+                      padding: "10px 16px",
+                      background: "rgba(192,132,252,0.12)",
+                      border: "1px solid rgba(192,132,252,0.4)",
+                      borderRadius: "8px",
+                      color: "#e9d5ff",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Draft revision in Claude →
+                  </a>
+                );
+              })()}
             </div>
 
             <div className="surface-card" style={{ padding: "24px" }}>

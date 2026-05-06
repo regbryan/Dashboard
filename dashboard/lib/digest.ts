@@ -1,6 +1,8 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/send-email";
+import { buildClaudeRevisionLink } from "@/lib/claude-link";
+import { getImageUrl } from "@/lib/image-url";
 
 const QUIET_MINUTES = 10;
 
@@ -14,6 +16,13 @@ export type PendingApproval = {
     id: number;
     post_number: number | null;
     concept: string | null;
+    post_type: string | null;
+    date: string | null;
+    caption: string | null;
+    hashtags: string | null;
+    cta: string | null;
+    visual_direction: string | null;
+    file_path: string | null;
     brand_id: string;
     brands: { id: string; name: string } | null;
   } | null;
@@ -52,7 +61,7 @@ export async function runFeedbackDigest(
   const { data: rows, error } = await sb
     .from("approvals")
     .select(
-      "id, post_id, status, comment, created_at, posts:post_id (id, post_number, concept, brand_id, brands:brand_id (id, name))"
+      "id, post_id, status, comment, created_at, posts:post_id (id, post_number, concept, post_type, date, caption, hashtags, cta, visual_direction, file_path, brand_id, brands:brand_id (id, name))"
     )
     .in("status", ["approved", "changes_requested"])
     .is("notified_at", null)
@@ -225,6 +234,30 @@ function renderHtml(args: {
         ? ""
         : `<div style="margin-top:8px;font-size:12px;color:#999;font-style:italic;">No comment provided</div>`;
 
+      // Only generate the Claude revision link for changes_requested rows.
+      // Approvals don't need a revision; the link would be noise.
+      let claudeLinkHtml = "";
+      if (!isApproved) {
+        const post = g.posts;
+        const assetUrl = post?.brand_id && post?.file_path
+          ? getImageUrl(post.brand_id, post.file_path)
+          : null;
+        const claudeUrl = buildClaudeRevisionLink({
+          brandName,
+          postNumber: post?.post_number,
+          concept: post?.concept,
+          postType: post?.post_type,
+          date: post?.date,
+          caption: post?.caption,
+          hashtags: post?.hashtags,
+          cta: post?.cta,
+          visualDirection: post?.visual_direction,
+          assetUrl,
+          clientComment: g.comment,
+        });
+        claudeLinkHtml = `<a href="${claudeUrl}" style="font-size:12px;color:#7c3aed;text-decoration:none;margin-left:14px;">Draft revision in Claude →</a>`;
+      }
+
       return `
         <tr>
           <td style="padding:14px 16px;border-bottom:1px solid #eaeaea;vertical-align:top;">
@@ -237,7 +270,7 @@ function renderHtml(args: {
             </div>
             ${commentBlock}
             <div style="margin-top:10px;">
-              <a href="${link}" style="font-size:12px;color:#7c3aed;text-decoration:none;">Open post →</a>
+              <a href="${link}" style="font-size:12px;color:#7c3aed;text-decoration:none;">Open post →</a>${claudeLinkHtml}
             </div>
           </td>
         </tr>
