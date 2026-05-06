@@ -77,30 +77,32 @@ export async function runScript(opts: RunScriptOptions): Promise<number> {
         yPct: typeof v.yPct === "number" ? v.yPct : undefined,
         logoId: typeof v.logoId === "string" ? v.logoId : undefined,
       };
-      void applyOverlayLogo(postId, overlayVars).then((res) =>
-        admin
-          .from("script_runs")
-          .update({
-            status: res.ok ? "success" : "error",
-            output: res.ok ? "Overlay applied" : res.error,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", runId)
-      );
+      // Await synchronously: sharp+storage work is fast (a few seconds) and
+      // serverless functions kill fire-and-forget background work as soon
+      // as the response returns. The route's HTTP response holds the
+      // function alive until this completes.
+      const logoRes = await applyOverlayLogo(postId, overlayVars);
+      await admin
+        .from("script_runs")
+        .update({
+          status: logoRes.ok ? "success" : "error",
+          output: logoRes.ok ? "Overlay applied" : logoRes.error,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
       break;
     }
     case "undo_logo": {
       if (!postId) throw new Error("undo_logo requires postId");
-      void undoOverlayLogo(postId).then((res) =>
-        admin
-          .from("script_runs")
-          .update({
-            status: res.ok ? "success" : "error",
-            output: res.ok ? "Overlay reverted" : res.error,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", runId)
-      );
+      const undoLogoRes = await undoOverlayLogo(postId);
+      await admin
+        .from("script_runs")
+        .update({
+          status: undoLogoRes.ok ? "success" : "error",
+          output: undoLogoRes.ok ? "Overlay reverted" : undoLogoRes.error,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
       break;
     }
     case "overlay_footer": {
@@ -143,30 +145,28 @@ export async function runScript(opts: RunScriptOptions): Promise<number> {
         textOverride:
           typeof v.textOverride === "string" ? v.textOverride : undefined,
       };
-      void applyOverlayFooter(postId, footerVars).then((res) =>
-        admin
-          .from("script_runs")
-          .update({
-            status: res.ok ? "success" : "error",
-            output: res.ok ? "Footer applied" : res.error,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", runId)
-      );
+      const footerRes = await applyOverlayFooter(postId, footerVars);
+      await admin
+        .from("script_runs")
+        .update({
+          status: footerRes.ok ? "success" : "error",
+          output: footerRes.ok ? "Footer applied" : footerRes.error,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
       break;
     }
     case "undo_footer": {
       if (!postId) throw new Error("undo_footer requires postId");
-      void undoOverlayFooter(postId).then((res) =>
-        admin
-          .from("script_runs")
-          .update({
-            status: res.ok ? "success" : "error",
-            output: res.ok ? "Footer reverted" : res.error,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", runId)
-      );
+      const undoFooterRes = await undoOverlayFooter(postId);
+      await admin
+        .from("script_runs")
+        .update({
+          status: undoFooterRes.ok ? "success" : "error",
+          output: undoFooterRes.ok ? "Footer reverted" : undoFooterRes.error,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
       break;
     }
     default:
