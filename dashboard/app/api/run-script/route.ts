@@ -2,11 +2,34 @@ import type { NextRequest } from "next/server";
 import { runScript } from "@/lib/scripts";
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 
+// Scripts that run safely in any environment, including production on
+// Vercel. These don't shell out — they read/write Supabase Storage in
+// process via sharp. Other scripts (hyperframes_render, run_all_overlays,
+// etc.) still spawn Python and only work locally.
+const PRODUCTION_SAFE_SCRIPTS = new Set(["overlay_logo", "undo_logo"]);
+
 export async function POST(request: NextRequest) {
-  if (
+  let body: {
+    script?: string;
+    post_id?: number;
+    brand_id?: string;
+    vars?: Record<string, unknown>;
+  };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "invalid JSON body" }, { status: 400 });
+  }
+
+  const requestedScript = body.script;
+  if (!requestedScript) {
+    return Response.json({ error: "script is required" }, { status: 400 });
+  }
+
+  const isProductionGated =
     process.env.NODE_ENV === "production" &&
-    process.env.ENABLE_LOCAL_SCRIPTS !== "1"
-  ) {
+    process.env.ENABLE_LOCAL_SCRIPTS !== "1";
+  if (isProductionGated && !PRODUCTION_SAFE_SCRIPTS.has(requestedScript)) {
     return Response.json(
       { error: "Script execution is only available in local development" },
       { status: 501 }
@@ -21,26 +44,9 @@ export async function POST(request: NextRequest) {
     throw err;
   }
 
-  let body: {
-    script?: string;
-    post_id?: number;
-    brand_id?: string;
-    vars?: Record<string, unknown>;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "invalid JSON body" }, { status: 400 });
-  }
-
-  const script = body.script;
-  if (!script) {
-    return Response.json({ error: "script is required" }, { status: 400 });
-  }
-
   try {
     const runId = await runScript({
-      scriptName: script,
+      scriptName: requestedScript,
       postId: body.post_id ?? null,
       brandId: body.brand_id ?? null,
       vars: body.vars,

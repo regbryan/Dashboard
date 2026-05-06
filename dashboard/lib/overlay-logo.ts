@@ -1,10 +1,18 @@
 import "server-only";
-import { spawn } from "node:child_process";
-import fs from "node:fs/promises";
 import path from "node:path";
-import { existsSync } from "node:fs";
+import sharp from "sharp";
 import { supabaseAdmin } from "./supabase-admin";
-import { brandFolderPath, postImagePath, PROJECT_ROOT } from "./paths";
+
+// Compositing pipeline: download post + logo from Supabase Storage, run
+// sharp in-process to overlay, re-upload. No Python, no local filesystem,
+// works identically in dev and on Vercel.
+//
+// A snapshot of the original (pre-logo) image is kept as a sibling object
+// with `_pre_logo` appended before the extension. Re-apply uses that snapshot
+// as the base so multiple overlays don't stack. Undo restores the snapshot
+// and deletes it.
+
+const BUCKET = "post-images";
 
 export const VALID_POSITIONS = [
   "top-left",
@@ -26,190 +34,335 @@ export type OverlayVars = {
   // For position='custom': logo top-left as fractions of post width/height.
   xPct?: number; // 0.0 – 1.0
   yPct?: number; // 0.0 – 1.0
-  // brand_logos.id of the variant to use. When omitted, falls back to the
-  // brand's default logo_path. Resolved server-side to a local file path.
+  // brand_logos.id of the variant to use. When omitted, the brand's default
+  // variant (is_default=true) is selected automatically.
   logoId?: string;
 };
 
-type PostLookup = {
+type PostRow = {
   id: number;
   brand_id: string;
   file_path: string | null;
-  brands: {
-    folder_path: string | null;
-    logo_path: string | null;
-  } | null;
 };
 
-function snapshotPath(absPostPath: string): string {
-  const ext = path.extname(absPostPath);
-  const base = absPostPath.slice(0, -ext.length);
-  return `${base}_pre_logo${ext}`;
+type BrandLogoRow = {
+  id: string;
+  brand_id: string;
+  storage_path: string;
+};
+
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+
+function isImageFile(filePath: string): boolean {
+  return IMAGE_EXTS.has(path.posix.extname(filePath).toLowerCase());
 }
 
-async function reuploadToSupabase(
-  brandId: string,
-  filePath: string,
-  absPath: string
-) {
-  const buf = await fs.readFile(absPath);
-  const sb = supabaseAdmin();
-  const { error } = await sb.storage
-    .from("post-images")
-    .upload(`${brandId}/${filePath}`, buf, {
-      contentType: "image/png",
-      upsert: true,
-    });
-  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+function postKey(brandId: string, filePath: string): string {
+  return `${brandId}/${filePath}`;
 }
 
-async function loadPost(postId: number): Promise<PostLookup> {
+function snapshotKey(brandId: string, filePath: string): string {
+  const ext = path.posix.extname(filePath);
+  const base = filePath.slice(0, filePath.length - ext.length);
+  return `${brandId}/${base}_pre_logo${ext}`;
+}
+
+async function loadPost(postId: number): Promise<PostRow> {
   const { data, error } = await supabaseAdmin()
     .from("posts")
-    .select("id, brand_id, file_path, brands:brand_id (folder_path, logo_path)")
+    .select("id, brand_id, file_path")
     .eq("id", postId)
     .maybeSingle();
   if (error || !data) throw new Error(`Post ${postId} not found`);
-  const post = data as unknown as PostLookup;
-  if (!post.file_path) throw new Error(`Post ${postId} has no file_path`);
-  if (!post.brands?.folder_path) throw new Error(`Brand has no folder_path`);
-  if (!post.brands.logo_path) throw new Error(`Brand has no logo_path configured`);
-  return post;
+  return data as PostRow;
+}
+
+async function resolveLogo(
+  brandId: string,
+  logoId: string | undefined
+): Promise<BrandLogoRow> {
+  const sb = supabaseAdmin();
+  if (logoId) {
+    const { data } = await sb
+      .from("brand_logos")
+      .select("id, brand_id, storage_path")
+      .eq("id", logoId)
+      .maybeSingle();
+    const row = data as BrandLogoRow | null;
+    if (!row) throw new Error(`Logo variant ${logoId} not found`);
+    if (row.brand_id !== brandId) {
+      throw new Error("Logo variant belongs to a different brand");
+    }
+    return row;
+  }
+  // Fall back to the brand's default variant.
+  const { data: def } = await sb
+    .from("brand_logos")
+    .select("id, brand_id, storage_path")
+    .eq("brand_id", brandId)
+    .eq("is_default", true)
+    .maybeSingle();
+  const row = def as BrandLogoRow | null;
+  if (!row) {
+    throw new Error(`No default logo configured for brand ${brandId}`);
+  }
+  return row;
+}
+
+async function downloadObject(key: string): Promise<Buffer> {
+  const sb = supabaseAdmin();
+  const { data, error } = await sb.storage.from(BUCKET).download(key);
+  if (error || !data) {
+    throw new Error(`Storage download failed: ${error?.message ?? "no data"}`);
+  }
+  const ab = await data.arrayBuffer();
+  return Buffer.from(ab);
+}
+
+async function uploadObject(key: string, body: Buffer, contentType: string) {
+  const sb = supabaseAdmin();
+  const { error } = await sb.storage.from(BUCKET).upload(key, body, {
+    contentType,
+    upsert: true,
+  });
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+}
+
+async function objectExists(key: string): Promise<boolean> {
+  const sb = supabaseAdmin();
+  const dir = key.includes("/") ? key.slice(0, key.lastIndexOf("/")) : "";
+  const name = key.includes("/") ? key.slice(key.lastIndexOf("/") + 1) : key;
+  const { data } = await sb.storage.from(BUCKET).list(dir, { search: name });
+  return !!data?.some((f) => f.name === name);
 }
 
 export async function hasLogoSnapshot(postId: number): Promise<boolean> {
   try {
     const post = await loadPost(postId);
-    if (!post.file_path || !post.brands?.folder_path) return false;
-    const abs = postImagePath(post.brands.folder_path, post.file_path);
-    return existsSync(snapshotPath(abs));
+    if (!post.file_path) return false;
+    return await objectExists(snapshotKey(post.brand_id, post.file_path));
   } catch {
     return false;
   }
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  if (Number.isNaN(n)) return lo;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function computePosition(args: {
+  position: OverlayPosition;
+  postW: number;
+  postH: number;
+  logoW: number;
+  logoH: number;
+  padding: number;
+  xPct?: number;
+  yPct?: number;
+}): { x: number; y: number } {
+  const { position, postW, postH, logoW, logoH, padding } = args;
+  const maxX = Math.max(0, postW - logoW);
+  const maxY = Math.max(0, postH - logoH);
+  switch (position) {
+    case "top-left":
+      return { x: padding, y: padding };
+    case "top-center":
+      return { x: Math.floor((postW - logoW) / 2), y: padding };
+    case "top-right":
+      return { x: postW - logoW - padding, y: padding };
+    case "bottom-left":
+      return { x: padding, y: postH - logoH - padding };
+    case "bottom-center":
+      return {
+        x: Math.floor((postW - logoW) / 2),
+        y: postH - logoH - padding,
+      };
+    case "bottom-right":
+      return { x: postW - logoW - padding, y: postH - logoH - padding };
+    case "center":
+      return {
+        x: Math.floor((postW - logoW) / 2),
+        y: Math.floor((postH - logoH) / 2),
+      };
+    case "custom": {
+      const xp = args.xPct ?? 0;
+      const yp = args.yPct ?? 0;
+      return {
+        x: clamp(Math.round(postW * xp), 0, maxX),
+        y: clamp(Math.round(postH * yp), 0, maxY),
+      };
+    }
+    default:
+      return { x: padding, y: padding };
+  }
+}
+
+function backgroundBlockSvg(
+  width: number,
+  height: number,
+  hex: string,
+  radius = 10
+): Buffer {
+  const safe = /^#[0-9a-fA-F]{6,8}$/.test(hex) ? hex : "#000000";
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="${safe}"/></svg>`
+  );
 }
 
 export async function applyOverlayLogo(
   postId: number,
   vars: OverlayVars
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  let post: PostLookup;
+  let post: PostRow;
   try {
     post = await loadPost(postId);
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
-  if (!post.file_path || !post.brands?.folder_path || !post.brands.logo_path) {
-    return { ok: false, error: "Missing post or brand paths" };
+  if (!post.file_path) {
+    return { ok: false, error: "Post has no file_path" };
+  }
+  if (!isImageFile(post.file_path)) {
+    return {
+      ok: false,
+      error: `Logo overlay only supports images (got ${path.posix.extname(post.file_path)})`,
+    };
   }
 
-  const absPost = postImagePath(post.brands.folder_path, post.file_path);
-  // Resolve logo: prefer the explicit variant the user picked (looked up via
-  // brand_logos.id → local_path, which is project-root-relative). Fall back
-  // to the brand's legacy logo_path on the brands row.
-  let absLogo = path.join(brandFolderPath(post.brands.folder_path), post.brands.logo_path);
-  if (vars.logoId) {
-    const { data: chosen } = await supabaseAdmin()
-      .from("brand_logos")
-      .select("local_path, brand_id")
-      .eq("id", vars.logoId)
-      .maybeSingle();
-    const row = chosen as { local_path: string | null; brand_id: string } | null;
-    if (!row) {
-      return { ok: false, error: `logo variant ${vars.logoId} not found` };
-    }
-    if (row.brand_id !== post.brand_id) {
-      return { ok: false, error: "logo variant belongs to a different brand" };
-    }
-    if (!row.local_path) {
-      return { ok: false, error: "logo variant has no local_path configured" };
-    }
-    absLogo = path.join(PROJECT_ROOT, row.local_path);
-  }
-  const snap = snapshotPath(absPost);
-
-  if (!existsSync(absPost)) return { ok: false, error: `Post not found: ${absPost}` };
-  if (!existsSync(absLogo)) return { ok: false, error: `Logo not found: ${absLogo}` };
-
-  // Snapshot once. Re-runs overlay onto the original, not onto a previous overlay.
-  if (existsSync(snap)) {
-    await fs.copyFile(snap, absPost);
-  } else {
-    await fs.copyFile(absPost, snap);
-  }
-
-  const args = [
-    path.join(PROJECT_ROOT, "overlay_logo.py"),
-    absPost,
-    absLogo,
-    "--position",
-    vars.position ?? "top-left",
-    "--max-logo-width",
-    String(vars.maxLogoWidth ?? 0.3),
-    "--padding",
-    String(vars.padding ?? 40),
-  ];
-  if (vars.backgroundBlock) {
-    args.push("--background-block", vars.backgroundBlock);
-  }
-  if (vars.position === "custom") {
-    if (typeof vars.xPct !== "number" || typeof vars.yPct !== "number") {
-      return { ok: false, error: "position='custom' requires xPct and yPct" };
-    }
-    args.push("--x-pct", String(vars.xPct), "--y-pct", String(vars.yPct));
-  }
-
-  const result = await runPython(args);
-  if (!result.ok) {
-    return { ok: false, error: result.error };
-  }
-
+  let logo: BrandLogoRow;
   try {
-    await reuploadToSupabase(post.brand_id, post.file_path, absPost);
+    logo = await resolveLogo(post.brand_id, vars.logoId);
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
-  return { ok: true };
+
+  const postObj = postKey(post.brand_id, post.file_path);
+  const snapObj = snapshotKey(post.brand_id, post.file_path);
+
+  // Snapshot policy: re-apply onto the original, not the previous overlay.
+  // If a snapshot exists, use it as the base. Otherwise the current post
+  // file IS the original — copy it to snapshot before overwriting.
+  const snapExisted = await objectExists(snapObj);
+  let baseBuf: Buffer;
+  try {
+    if (snapExisted) {
+      baseBuf = await downloadObject(snapObj);
+    } else {
+      baseBuf = await downloadObject(postObj);
+      await uploadObject(snapObj, baseBuf, "image/png");
+    }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+
+  let logoBuf: Buffer;
+  try {
+    logoBuf = await downloadObject(logo.storage_path);
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Failed to download logo: ${err instanceof Error ? err.message : err}`,
+    };
+  }
+
+  try {
+    const baseMeta = await sharp(baseBuf).metadata();
+    const postW = baseMeta.width ?? 0;
+    const postH = baseMeta.height ?? 0;
+    if (!postW || !postH) {
+      return { ok: false, error: "Could not determine post dimensions" };
+    }
+
+    const maxLogoWidth = clamp(vars.maxLogoWidth ?? 0.3, 0.01, 0.95);
+    const targetW = Math.max(1, Math.round(postW * maxLogoWidth));
+
+    // Resize logo to target width preserving aspect ratio.
+    const resizedLogo = await sharp(logoBuf)
+      .ensureAlpha()
+      .resize({ width: targetW })
+      .toBuffer({ resolveWithObject: true });
+    const logoH = resizedLogo.info.height;
+    const logoW = resizedLogo.info.width;
+
+    const padding = clamp(vars.padding ?? 40, 0, Math.min(postW, postH));
+    const { x, y } = computePosition({
+      position: (vars.position as OverlayPosition) ?? "top-left",
+      postW,
+      postH,
+      logoW,
+      logoH,
+      padding,
+      xPct: vars.xPct,
+      yPct: vars.yPct,
+    });
+
+    const composites: sharp.OverlayOptions[] = [];
+    if (vars.backgroundBlock) {
+      const bgPad = 12;
+      const bgRadius = 10;
+      const bgW = logoW + bgPad * 2;
+      const bgH = logoH + bgPad * 2;
+      const bgX = clamp(x - bgPad, 0, postW);
+      const bgY = clamp(y - bgPad, 0, postH);
+      composites.push({
+        input: backgroundBlockSvg(bgW, bgH, vars.backgroundBlock, bgRadius),
+        left: bgX,
+        top: bgY,
+      });
+    }
+    composites.push({ input: resizedLogo.data, left: x, top: y });
+
+    const outBuf = await sharp(baseBuf)
+      .composite(composites)
+      .png()
+      .toBuffer();
+
+    await uploadObject(postObj, outBuf, "image/png");
+
+    // Bump updated_at so client-grid revalidations see fresh content.
+    await supabaseAdmin()
+      .from("posts")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", post.id);
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export async function undoOverlayLogo(
   postId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  let post: PostLookup;
+  let post: PostRow;
   try {
     post = await loadPost(postId);
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
-  if (!post.file_path || !post.brands?.folder_path) {
-    return { ok: false, error: "Missing post or brand paths" };
+  if (!post.file_path) {
+    return { ok: false, error: "Post has no file_path" };
   }
-  const absPost = postImagePath(post.brands.folder_path, post.file_path);
-  const snap = snapshotPath(absPost);
-  if (!existsSync(snap)) {
+  if (!isImageFile(post.file_path)) {
+    return { ok: false, error: "Logo overlay only supports images" };
+  }
+  const postObj = postKey(post.brand_id, post.file_path);
+  const snapObj = snapshotKey(post.brand_id, post.file_path);
+  if (!(await objectExists(snapObj))) {
     return { ok: false, error: "No snapshot to restore" };
   }
-  await fs.copyFile(snap, absPost);
-  await fs.unlink(snap);
   try {
-    await reuploadToSupabase(post.brand_id, post.file_path, absPost);
+    const buf = await downloadObject(snapObj);
+    await uploadObject(postObj, buf, "image/png");
+    const sb = supabaseAdmin();
+    await sb.storage.from(BUCKET).remove([snapObj]);
+    await sb
+      .from("posts")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", post.id);
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
-  return { ok: true };
-}
-
-function runPython(args: string[]): Promise<{ ok: true } | { ok: false; error: string }> {
-  return new Promise((resolve) => {
-    const cmd = process.env.PYTHON_BIN || "python";
-    const proc = spawn(cmd, args, { cwd: PROJECT_ROOT });
-    let stderr = "";
-    let stdout = "";
-    proc.stdout.on("data", (d) => (stdout += d.toString()));
-    proc.stderr.on("data", (d) => (stderr += d.toString()));
-    proc.on("error", (err) => resolve({ ok: false, error: err.message }));
-    proc.on("close", (code) => {
-      if (code === 0) resolve({ ok: true });
-      else resolve({ ok: false, error: stderr.trim() || stdout.trim() || `python exited ${code}` });
-    });
-  });
 }

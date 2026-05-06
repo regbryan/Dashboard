@@ -15,14 +15,12 @@ export interface RunScriptOptions {
 }
 
 /**
- * Dev-only script dispatcher. Production API routes should refuse to call this.
- * Inserts a script_runs row, kicks off the work in the background, and returns runId.
+ * Script dispatcher. Inserts a script_runs row, kicks off the work in the
+ * background, returns runId. The /api/run-script route is the only caller
+ * and gates which scripts are allowed in production (overlay_logo and
+ * undo_logo are now production-safe via sharp + Supabase Storage).
  */
 export async function runScript(opts: RunScriptOptions): Promise<number> {
-  if (process.env.NODE_ENV === "production" && process.env.ENABLE_LOCAL_SCRIPTS !== "1") {
-    throw new Error("Script execution is only available in local development");
-  }
-
   const { scriptName, brandId = null, postId = null, vars } = opts;
   const admin = supabaseAdmin();
 
