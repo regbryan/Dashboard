@@ -6,7 +6,12 @@ import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 // Vercel. These don't shell out — they read/write Supabase Storage in
 // process via sharp. Other scripts (hyperframes_render, run_all_overlays,
 // etc.) still spawn Python and only work locally.
-const PRODUCTION_SAFE_SCRIPTS = new Set(["overlay_logo", "undo_logo"]);
+const PRODUCTION_SAFE_SCRIPTS = new Set([
+  "overlay_logo",
+  "undo_logo",
+  "overlay_footer",
+  "undo_footer",
+]);
 
 export async function POST(request: NextRequest) {
   let body: {

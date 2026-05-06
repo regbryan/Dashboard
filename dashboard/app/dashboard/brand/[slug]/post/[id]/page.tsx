@@ -7,6 +7,7 @@ import PostImageViewer from "@/components/PostImageViewer";
 import Link from "next/link";
 import PostActions from "./PostActions";
 import LogoOverlayPanel from "./LogoOverlayPanel";
+import FooterOverlayPanel from "./FooterOverlayPanel";
 import { getBrandClientEmails } from "@/lib/brand-clients";
 import { buildClaudeRevisionLink } from "@/lib/claude-link";
 
@@ -21,7 +22,7 @@ export default async function PostDetailPage({
 
   const { data: post } = await supabase
     .from("posts")
-    .select("*, brands(name, folder_path, logo_path, platform)")
+    .select("*, brands(name, folder_path, logo_path, platform, compliance)")
     .eq("id", id)
     .eq("brand_id", slug)
     .single();
@@ -53,7 +54,13 @@ export default async function PostDetailPage({
     .eq("post_id", post.id)
     .order("created_at");
 
-  const brandData = post.brands as { name: string; folder_path: string; logo_path: string | null; platform: string | null } | null;
+  const brandData = post.brands as {
+    name: string;
+    folder_path: string;
+    logo_path: string | null;
+    platform: string | null;
+    compliance: string | null;
+  } | null;
   const imageUrl = getImageUrl(post.brand_id, post.file_path, post.updated_at);
   const clientEmails = await getBrandClientEmails(post.brand_id).catch(() => []);
   const thumbAspect: "portrait" | "landscape" =
@@ -251,6 +258,15 @@ export default async function PostDetailPage({
                 brandId={post.brand_id}
                 postImageUrl={imageUrl}
                 thumbAspect={thumbAspect}
+              />
+            )}
+
+            {brandData?.compliance && (
+              <FooterOverlayPanel
+                postId={post.id}
+                postImageUrl={imageUrl}
+                thumbAspect={thumbAspect}
+                complianceText={brandData.compliance}
               />
             )}
 

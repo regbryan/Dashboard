@@ -6,6 +6,11 @@ import {
   VALID_POSITIONS,
   type OverlayPosition,
 } from "./overlay-logo";
+import {
+  applyOverlayFooter,
+  undoOverlayFooter,
+  type FooterPosition,
+} from "./overlay-footer";
 
 export interface RunScriptOptions {
   scriptName: string;
@@ -92,6 +97,72 @@ export async function runScript(opts: RunScriptOptions): Promise<number> {
           .update({
             status: res.ok ? "success" : "error",
             output: res.ok ? "Overlay reverted" : res.error,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", runId)
+      );
+      break;
+    }
+    case "overlay_footer": {
+      if (!postId) throw new Error("overlay_footer requires postId");
+      const v = (vars ?? {}) as Record<string, unknown>;
+      const allowedPositions = new Set([
+        "bottom-center",
+        "bottom-left",
+        "bottom-right",
+        "top-center",
+        "top-left",
+        "top-right",
+        "custom",
+      ]);
+      const position =
+        typeof v.position === "string" && allowedPositions.has(v.position)
+          ? (v.position as FooterPosition)
+          : "bottom-center";
+      const allowedAlign = new Set(["left", "center", "right"]);
+      const footerVars = {
+        position,
+        widthPct: typeof v.widthPct === "number" ? v.widthPct : undefined,
+        fontSizePct:
+          typeof v.fontSizePct === "number" ? v.fontSizePct : undefined,
+        color: typeof v.color === "string" ? v.color : undefined,
+        background:
+          typeof v.background === "string" ? v.background : null,
+        backgroundOpacity:
+          typeof v.backgroundOpacity === "number"
+            ? v.backgroundOpacity
+            : undefined,
+        align:
+          typeof v.align === "string" && allowedAlign.has(v.align)
+            ? (v.align as "left" | "center" | "right")
+            : undefined,
+        xPct: typeof v.xPct === "number" ? v.xPct : undefined,
+        yPct: typeof v.yPct === "number" ? v.yPct : undefined,
+        edgePadding:
+          typeof v.edgePadding === "number" ? v.edgePadding : undefined,
+        textOverride:
+          typeof v.textOverride === "string" ? v.textOverride : undefined,
+      };
+      void applyOverlayFooter(postId, footerVars).then((res) =>
+        admin
+          .from("script_runs")
+          .update({
+            status: res.ok ? "success" : "error",
+            output: res.ok ? "Footer applied" : res.error,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", runId)
+      );
+      break;
+    }
+    case "undo_footer": {
+      if (!postId) throw new Error("undo_footer requires postId");
+      void undoOverlayFooter(postId).then((res) =>
+        admin
+          .from("script_runs")
+          .update({
+            status: res.ok ? "success" : "error",
+            output: res.ok ? "Footer reverted" : res.error,
             completed_at: new Date().toISOString(),
           })
           .eq("id", runId)
