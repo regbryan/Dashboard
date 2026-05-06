@@ -34,7 +34,7 @@ export default async function ClientCalendarPage({
 
   const { data: posts } = await supabase
     .from("posts")
-    .select("id, post_number, date, concept, status, file_path, brand_id")
+    .select("id, post_number, date, concept, status, file_path, updated_at, brand_id")
     .eq("brand_id", brand)
     .order("post_number");
 
@@ -139,7 +139,7 @@ export default async function ClientCalendarPage({
                 concept={post.concept}
                 date={post.date}
                 status={post.status}
-                imageUrl={getImageUrl(post.brand_id, post.file_path)}
+                imageUrl={getImageUrl(post.brand_id, post.file_path, post.updated_at)}
                 platform={brandRow.platform}
               />
             ))}

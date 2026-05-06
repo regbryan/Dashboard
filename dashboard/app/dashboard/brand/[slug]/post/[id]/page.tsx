@@ -54,7 +54,7 @@ export default async function PostDetailPage({
     .order("created_at");
 
   const brandData = post.brands as { name: string; folder_path: string; logo_path: string | null; platform: string | null } | null;
-  const imageUrl = getImageUrl(post.brand_id, post.file_path);
+  const imageUrl = getImageUrl(post.brand_id, post.file_path, post.updated_at);
   const clientEmails = await getBrandClientEmails(post.brand_id).catch(() => []);
   const thumbAspect: "portrait" | "landscape" =
     brandData?.platform === "linkedin" ? "landscape" : "portrait";

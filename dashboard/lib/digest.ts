@@ -23,6 +23,7 @@ export type PendingApproval = {
     cta: string | null;
     visual_direction: string | null;
     file_path: string | null;
+    updated_at: string | null;
     brand_id: string;
     brands: { id: string; name: string } | null;
   } | null;
@@ -61,7 +62,7 @@ export async function runFeedbackDigest(
   const { data: rows, error } = await sb
     .from("approvals")
     .select(
-      "id, post_id, status, comment, created_at, posts:post_id (id, post_number, concept, post_type, date, caption, hashtags, cta, visual_direction, file_path, brand_id, brands:brand_id (id, name))"
+      "id, post_id, status, comment, created_at, posts:post_id (id, post_number, concept, post_type, date, caption, hashtags, cta, visual_direction, file_path, updated_at, brand_id, brands:brand_id (id, name))"
     )
     .in("status", ["approved", "changes_requested"])
     .is("notified_at", null)
@@ -240,7 +241,7 @@ function renderHtml(args: {
       if (!isApproved) {
         const post = g.posts;
         const assetUrl = post?.brand_id && post?.file_path
-          ? getImageUrl(post.brand_id, post.file_path)
+          ? getImageUrl(post.brand_id, post.file_path, post.updated_at)
           : null;
         const claudeUrl = buildClaudeRevisionLink({
           brandName,

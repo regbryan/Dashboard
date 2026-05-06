@@ -16,7 +16,7 @@ export default async function ClientPostReviewPage({
 
   const { data: post } = await supabase
     .from("posts")
-    .select("id, brand_id, post_number, date, day, post_type, content_pillar, concept, caption, hashtags, cta, status, file_path, brands(platform)")
+    .select("id, brand_id, post_number, date, day, post_type, content_pillar, concept, caption, hashtags, cta, status, file_path, updated_at, brands(platform)")
     .eq("id", id)
     .eq("brand_id", brand)
     .single();
@@ -42,7 +42,7 @@ export default async function ClientPostReviewPage({
     .eq("post_id", post.id)
     .order("created_at");
 
-  const imageUrl = getImageUrl(post.brand_id, post.file_path);
+  const imageUrl = getImageUrl(post.brand_id, post.file_path, post.updated_at);
   const brandsRel = post.brands as unknown as
     | { platform: string | null }
     | { platform: string | null }[]
