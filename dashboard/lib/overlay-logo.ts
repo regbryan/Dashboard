@@ -14,14 +14,18 @@ export const VALID_POSITIONS = [
   "bottom-center",
   "bottom-right",
   "center",
+  "custom",
 ] as const;
 export type OverlayPosition = (typeof VALID_POSITIONS)[number];
 
 export type OverlayVars = {
   position?: OverlayPosition;
   maxLogoWidth?: number; // 0.05 – 0.6
-  padding?: number; // px
+  padding?: number; // px (ignored when position='custom')
   backgroundBlock?: string | null; // hex like "#000000"
+  // For position='custom': logo top-left as fractions of post width/height.
+  xPct?: number; // 0.0 – 1.0
+  yPct?: number; // 0.0 – 1.0
 };
 
 type PostLookup = {
@@ -122,6 +126,12 @@ export async function applyOverlayLogo(
   ];
   if (vars.backgroundBlock) {
     args.push("--background-block", vars.backgroundBlock);
+  }
+  if (vars.position === "custom") {
+    if (typeof vars.xPct !== "number" || typeof vars.yPct !== "number") {
+      return { ok: false, error: "position='custom' requires xPct and yPct" };
+    }
+    args.push("--x-pct", String(vars.xPct), "--y-pct", String(vars.yPct));
   }
 
   const result = await runPython(args);

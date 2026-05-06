@@ -245,7 +245,14 @@ export default async function PostDetailPage({
               />
             </div>
 
-            {brandData?.logo_path && <LogoOverlayPanel postId={post.id} />}
+            {brandData?.logo_path && (
+              <LogoOverlayPanel
+                postId={post.id}
+                logoUrl={`/api/brands/${post.brand_id}/logo`}
+                postImageUrl={imageUrl}
+                thumbAspect={thumbAspect}
+              />
+            )}
 
             <ClientReviewLink
               path={`/client/${slug}/post/${post.id}`}

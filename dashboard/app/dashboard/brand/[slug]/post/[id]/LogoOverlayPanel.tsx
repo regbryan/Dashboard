@@ -1,27 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const POSITIONS: { value: string; label: string }[] = [
-  { value: "top-left", label: "Top-Left" },
-  { value: "top-center", label: "Top-Center" },
-  { value: "top-right", label: "Top-Right" },
-  { value: "center", label: "Center" },
-  { value: "bottom-left", label: "Bottom-Left" },
-  { value: "bottom-center", label: "Bottom-Center" },
-  { value: "bottom-right", label: "Bottom-Right" },
+const PRESETS: { value: string; label: string; xPct: number; yPct: number }[] = [
+  { value: "top-left", label: "Top-Left", xPct: 0.04, yPct: 0.04 },
+  { value: "top-center", label: "Top-Center", xPct: 0.5, yPct: 0.04 },
+  { value: "top-right", label: "Top-Right", xPct: 0.96, yPct: 0.04 },
+  { value: "center", label: "Center", xPct: 0.5, yPct: 0.5 },
+  { value: "bottom-left", label: "Bottom-Left", xPct: 0.04, yPct: 0.96 },
+  { value: "bottom-center", label: "Bottom-Center", xPct: 0.5, yPct: 0.96 },
+  { value: "bottom-right", label: "Bottom-Right", xPct: 0.96, yPct: 0.96 },
 ];
 
 interface LogoOverlayPanelProps {
   postId: number;
+  logoUrl: string | null;
+  postImageUrl: string | null;
+  thumbAspect?: "portrait" | "landscape";
 }
 
-export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
+// xPct/yPct in this component are "anchor" coords — the *center* of the logo
+// as a fraction of post dimensions. That makes drag-from-anywhere behave
+// intuitively (the logo lands centered under your cursor). When sending to
+// the script we convert to top-left-corner coords by subtracting half the
+// logo's normalized width/height.
+
+export default function LogoOverlayPanel({
+  postId,
+  logoUrl,
+  postImageUrl,
+  thumbAspect = "portrait",
+}: LogoOverlayPanelProps) {
   const router = useRouter();
-  const [position, setPosition] = useState("top-left");
   const [maxLogoWidth, setMaxLogoWidth] = useState(30); // pct
-  const [padding, setPadding] = useState(40);
   const [bgEnabled, setBgEnabled] = useState(false);
   const [bgColor, setBgColor] = useState("#000000");
   const [busy, setBusy] = useState<"apply" | "undo" | null>(null);
@@ -29,6 +41,17 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
     null
   );
   const [hasSnapshot, setHasSnapshot] = useState(false);
+  // Anchor (center of logo) as fractions. Default = top-left preset.
+  const [anchor, setAnchor] = useState({ x: 0.04, y: 0.04 });
+  const [logoNaturalAspect, setLogoNaturalAspect] = useState(1); // logo w/h
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ active: boolean; pointerId?: number }>({
+    active: false,
+  });
+
+  const aspectRatio = thumbAspect === "landscape" ? "1.91 / 1" : "4 / 5";
+  const logoWidthPct = maxLogoWidth / 100; // 0–1 fraction of stage width
+  const logoHeightPct = logoWidthPct / logoNaturalAspect; // fraction of stage height
 
   async function refreshSnapshotState() {
     try {
@@ -45,6 +68,53 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
     void refreshSnapshotState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
+
+  function clamp01(n: number): number {
+    if (Number.isNaN(n)) return 0;
+    return Math.max(0, Math.min(1, n));
+  }
+
+  function updateAnchorFromPointer(clientX: number, clientY: number) {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    setAnchor({ x: clamp01(x), y: clamp01(y) });
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (busy) return;
+    dragRef.current.active = true;
+    dragRef.current.pointerId = e.pointerId;
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    updateAnchorFromPointer(e.clientX, e.clientY);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current.active) return;
+    if (e.pointerId !== dragRef.current.pointerId) return;
+    updateAnchorFromPointer(e.clientX, e.clientY);
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerId === dragRef.current.pointerId) {
+      dragRef.current.active = false;
+      dragRef.current.pointerId = undefined;
+    }
+  }
+
+  function applyPreset(p: (typeof PRESETS)[number]) {
+    setAnchor({ x: p.xPct, y: p.yPct });
+  }
+
+  // Convert anchor (center) → top-left corner that the Python script expects.
+  function anchorToTopLeft(): { xPct: number; yPct: number } {
+    return {
+      xPct: clamp01(anchor.x - logoWidthPct / 2),
+      yPct: clamp01(anchor.y - logoHeightPct / 2),
+    };
+  }
 
   async function pollRun(runId: number, action: "apply" | "undo") {
     for (let i = 0; i < 90; i++) {
@@ -77,6 +147,7 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
     setBusy("apply");
     setMessage(null);
     try {
+      const { xPct, yPct } = anchorToTopLeft();
       const res = await fetch("/api/run-script", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,9 +155,11 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
           script: "overlay_logo",
           post_id: postId,
           vars: {
-            position,
+            position: "custom",
             maxLogoWidth: maxLogoWidth / 100,
-            padding,
+            padding: 0,
+            xPct,
+            yPct,
             backgroundBlock: bgEnabled ? bgColor : null,
           },
         }),
@@ -132,6 +205,23 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
     letterSpacing: "0.08em",
   };
 
+  // Logo overlay box: positioned by its center (`anchor`), so its visual
+  // footprint extends ±halfWidth/halfHeight around that point. We render it
+  // with translate(-50%,-50%) to match.
+  const logoStyle: React.CSSProperties = {
+    position: "absolute",
+    left: `${anchor.x * 100}%`,
+    top: `${anchor.y * 100}%`,
+    transform: "translate(-50%, -50%)",
+    width: `${logoWidthPct * 100}%`,
+    pointerEvents: "none", // drag handled by stage, not the logo
+    background: bgEnabled ? bgColor : "transparent",
+    padding: bgEnabled ? "4%" : 0,
+    borderRadius: bgEnabled ? "6%" : 0,
+    boxShadow: bgEnabled ? "0 2px 8px rgba(0,0,0,0.25)" : "none",
+    transition: "background 0.15s ease",
+  };
+
   return (
     <div className="surface-card flex flex-col" style={{ padding: "20px", gap: "16px" }}>
       <div className="flex items-center justify-between" style={{ gap: "12px" }}>
@@ -152,42 +242,132 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
         )}
       </div>
 
+      {postImageUrl && logoUrl ? (
+        <div
+          ref={stageRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          style={{
+            position: "relative",
+            aspectRatio,
+            background: "#0a0a14",
+            borderRadius: "10px",
+            overflow: "hidden",
+            cursor: busy ? "not-allowed" : "crosshair",
+            touchAction: "none",
+            userSelect: "none",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={postImageUrl}
+            alt="Post preview"
+            draggable={false}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              pointerEvents: "none",
+            }}
+          />
+          <div style={logoStyle}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoUrl}
+              alt="Logo preview"
+              draggable={false}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalHeight > 0) {
+                  setLogoNaturalAspect(img.naturalWidth / img.naturalHeight);
+                }
+              }}
+              style={{
+                width: "100%",
+                height: "auto",
+                display: "block",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              padding: "6px 10px",
+              fontSize: "10px",
+              color: "rgba(255,255,255,0.7)",
+              background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)",
+              fontWeight: 500,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
+          >
+            Drag the logo · {Math.round(anchor.x * 100)}% / {Math.round(anchor.y * 100)}%
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            aspectRatio,
+            background: "#0a0a14",
+            borderRadius: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#6f6f7e",
+            fontSize: "12px",
+          }}
+        >
+          {!postImageUrl ? "No post image yet" : "No brand logo configured"}
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: "12px" }}>
         <div>
-          <div style={labelStyle}>Position</div>
+          <div style={labelStyle}>Quick presets</div>
           <div className="flex flex-wrap" style={{ gap: "6px", marginTop: "6px" }}>
-            {POSITIONS.map((p) => {
-              const on = position === p.value;
-              return (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setPosition(p.value)}
-                  disabled={!!busy}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    border: on
-                      ? "1px solid white"
-                      : "1px solid rgba(255,255,255,0.12)",
-                    background: on ? "white" : "transparent",
-                    color: on ? "#07070e" : "#bfbfcc",
-                    cursor: busy ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+            {PRESETS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => applyPreset(p)}
+                disabled={!!busy}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "8px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "transparent",
+                  color: "#bfbfcc",
+                  cursor: busy ? "not-allowed" : "pointer",
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between">
             <span style={labelStyle}>Size</span>
-            <span style={{ fontSize: "11px", color: "#bfbfcc", tabularNums: "tabular-nums" } as React.CSSProperties}>
+            <span
+              style={
+                {
+                  fontSize: "11px",
+                  color: "#bfbfcc",
+                  tabularNums: "tabular-nums",
+                } as React.CSSProperties
+              }
+            >
               {maxLogoWidth}%
             </span>
           </div>
@@ -203,26 +383,14 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
           />
         </div>
 
-        <div>
-          <div className="flex items-center justify-between">
-            <span style={labelStyle}>Padding</span>
-            <span style={{ fontSize: "11px", color: "#bfbfcc" }}>{padding}px</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={120}
-            step={2}
-            value={padding}
-            onChange={(e) => setPadding(Number(e.target.value))}
-            disabled={!!busy}
-            style={{ width: "100%", marginTop: "4px" }}
-          />
-        </div>
-
         <label
           className="flex items-center"
-          style={{ gap: "8px", fontSize: "12px", color: "#bfbfcc", cursor: "pointer" }}
+          style={{
+            gap: "8px",
+            fontSize: "12px",
+            color: "#bfbfcc",
+            cursor: "pointer",
+          }}
         >
           <input
             type="checkbox"
@@ -237,7 +405,14 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
               value={bgColor}
               onChange={(e) => setBgColor(e.target.value)}
               disabled={!!busy}
-              style={{ marginLeft: "auto", width: "32px", height: "24px", border: "none", background: "transparent", cursor: "pointer" }}
+              style={{
+                marginLeft: "auto",
+                width: "32px",
+                height: "24px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+              }}
             />
           )}
         </label>
@@ -247,7 +422,7 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
         <button
           type="button"
           onClick={handleApply}
-          disabled={!!busy}
+          disabled={!!busy || !logoUrl || !postImageUrl}
           style={{
             flex: 1,
             padding: "10px 14px",
@@ -258,7 +433,7 @@ export default function LogoOverlayPanel({ postId }: LogoOverlayPanelProps) {
             fontSize: "13px",
             fontWeight: 600,
             cursor: busy ? "not-allowed" : "pointer",
-            opacity: busy ? 0.6 : 1,
+            opacity: busy || !logoUrl || !postImageUrl ? 0.6 : 1,
           }}
         >
           {busy === "apply" ? "Applying…" : hasSnapshot ? "Re-apply" : "Apply Logo"}
