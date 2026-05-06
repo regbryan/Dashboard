@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       const { ctx, brandId } = await requirePostAccess(body.postId);
       const { data, error } = await ctx.supabase
         .from("posts")
-        .update({ status: "in_review", updated_at: new Date().toISOString() })
+        .update({ status: "in_review", client_notified_at: null, updated_at: new Date().toISOString() })
         .eq("id", body.postId)
         .not("status", "in", `(${PROTECTED_STATUSES.join(",")})`)
         .select("id");

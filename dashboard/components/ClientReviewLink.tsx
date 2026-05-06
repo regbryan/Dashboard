@@ -25,6 +25,8 @@ export default function ClientReviewLink({
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [marked, setMarked] = useState<number | null>(null);
+  const [sendStatus, setSendStatus] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   const fullUrl =
     typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
@@ -45,6 +47,45 @@ export default function ClientReviewLink({
       router.refresh();
     } catch {
       // Non-blocking — share still works.
+    }
+  }
+
+  async function handleSendNow() {
+    if (!postId) {
+      setSendStatus("Send Now is per-post only");
+      return;
+    }
+    setSending(true);
+    setSendStatus(null);
+    try {
+      // First mark this post in_review so the notify finds it in the right
+      // state — same step the share buttons trigger.
+      await markInReview();
+      const res = await fetch(`/api/posts/${postId}/notify-client`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setSendStatus(`Error: ${data?.error ?? "Send failed"}`);
+        return;
+      }
+      if (data?.skipped === "no_recipients") {
+        setSendStatus("No reviewers configured for this brand");
+      } else if (data?.skipped === "wrong_status") {
+        setSendStatus("Post is no longer in review — nothing sent");
+      } else if (data?.sent) {
+        setSendStatus(
+          `Sent to ${data.recipients} recipient${
+            data.recipients === 1 ? "" : "s"
+          }`
+        );
+      } else {
+        setSendStatus("Nothing sent");
+      }
+    } catch {
+      setSendStatus("Error: Network request failed");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -122,6 +163,27 @@ export default function ClientReviewLink({
       </div>
 
       <div className="flex flex-wrap" style={{ gap: "8px" }}>
+        {postId && (
+          <button
+            onClick={handleSendNow}
+            disabled={sending}
+            style={{
+              padding: "8px 14px",
+              background: sending
+                ? "rgba(125,226,156,0.06)"
+                : "rgba(125,226,156,0.14)",
+              color: "#a7f3c4",
+              fontSize: "12px",
+              fontWeight: 600,
+              borderRadius: "999px",
+              border: "1px solid rgba(125,226,156,0.4)",
+              cursor: sending ? "default" : "pointer",
+              opacity: sending ? 0.7 : 1,
+            }}
+          >
+            {sending ? "Sending…" : "✉ Send Email Now"}
+          </button>
+        )}
         <a
           href={mailtoHref}
           onClick={() => void markInReview()}
@@ -189,6 +251,17 @@ export default function ClientReviewLink({
           {marked > 0
             ? `${marked} post${marked === 1 ? "" : "s"} moved to In Review`
             : "Already in review"}
+        </p>
+      )}
+      {sendStatus && (
+        <p
+          style={{
+            fontSize: "11px",
+            color: sendStatus.startsWith("Error") ? "#ff8a8a" : "#a7f3c4",
+            marginTop: "2px",
+          }}
+        >
+          {sendStatus}
         </p>
       )}
     </div>
