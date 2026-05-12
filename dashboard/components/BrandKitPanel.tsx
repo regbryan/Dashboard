@@ -65,86 +65,90 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
 
         <div
           style={{
-            columnWidth: "380px",
-            columnGap: "24px",
-            columnFill: "balance",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+            gap: "24px",
+            alignItems: "start",
           }}
         >
-        <Section title="Identity">
-          <Field label="Name" value={brand.name} />
-          <Field label="Handle" value={brand.handle} />
-          <Field label="Platform" value={brand.platform} />
-          <Field label="Cadence" value={brand.cadence} />
-          <Field label="Tagline" value={kit?.tagline ?? null} />
-        </Section>
+          <div style={{ display: "grid", gap: "24px", alignContent: "start" }}>
+            <Section title="Identity">
+              <Field label="Name" value={brand.name} />
+              <Field label="Handle" value={brand.handle} />
+              <Field label="Platform" value={brand.platform} />
+              <Field label="Cadence" value={brand.cadence} />
+              <Field label="Tagline" value={kit?.tagline ?? null} />
+            </Section>
 
-        <Section title="Positioning">
-          <Field label="Archetype" value={kit?.archetype ?? null} />
-          <Field label="Industry" value={kit?.industry ?? null} />
-          <Field label="Positioning" value={kit?.positioning ?? null} multiline />
-          <Field label="Mission" value={kit?.mission ?? null} multiline />
-          <Field label="Description" value={kit?.description ?? null} multiline />
-        </Section>
+            <Section title="Visuals">
+              <Colors brand={brand} kit={kit} />
+              <Field
+                label="Color roles"
+                value={formatColorRoles(kit?.colors)}
+                multiline
+              />
+              <Field
+                label="Logo variants"
+                value={logoCount > 0 ? `${logoCount} on file` : null}
+              />
+              <Field
+                label="Photography direction"
+                value={kit?.photography_direction ?? null}
+                multiline
+              />
+              <Field label="Fonts" value={formatJson(kit?.fonts)} multiline />
+              <Field
+                label="Visual don'ts"
+                value={
+                  kit?.visual_donts && kit.visual_donts.length > 0
+                    ? kit.visual_donts.map((d) => `• ${d}`).join("\n")
+                    : null
+                }
+                multiline
+              />
+            </Section>
 
-        <Section title="Visuals">
-          <Colors brand={brand} kit={kit} />
-          <Field
-            label="Color roles"
-            value={formatColorRoles(kit?.colors)}
-            multiline
-          />
-          <Field
-            label="Logo variants"
-            value={logoCount > 0 ? `${logoCount} on file` : null}
-          />
-          <Field
-            label="Photography direction"
-            value={kit?.photography_direction ?? null}
-            multiline
-          />
-          <Field label="Fonts" value={formatJson(kit?.fonts)} multiline />
-          <Field
-            label="Visual don'ts"
-            value={
-              kit?.visual_donts && kit.visual_donts.length > 0
-                ? kit.visual_donts.map((d) => `• ${d}`).join("\n")
-                : null
-            }
-            multiline
-          />
-        </Section>
+            <Section title="Compliance & locale">
+              <Field
+                label="Compliance text (legacy brands.compliance)"
+                value={brand.compliance}
+                multiline
+              />
+              <Field
+                label="Compliance footer (brand_kits.compliance_footer)"
+                value={kit?.compliance_footer ?? null}
+                multiline
+              />
+              <Field label="HQ location" value={kit?.hq_location ?? null} />
+              <Field
+                label="Service area"
+                value={kit?.service_area && kit.service_area.length > 0 ? kit.service_area.join(", ") : null}
+              />
+              <Field label="Onboarding status" value={kit?.onboarding_status ?? null} />
+            </Section>
+          </div>
 
-        <Section title="Voice & content">
-          <Field label="Tone" value={formatJson(kit?.tone)} multiline />
-          <Field
-            label="Content pillars"
-            value={formatPillars(kit?.content_pillars)}
-            multiline
-          />
-          <Field label="Audiences" value={formatAudiences(kit?.audiences)} multiline />
-          <Field label="Hashtags" value={formatJson(kit?.hashtags)} multiline />
-        </Section>
+          <div style={{ display: "grid", gap: "24px", alignContent: "start" }}>
+            <Section title="Positioning">
+              <Field label="Archetype" value={kit?.archetype ?? null} />
+              <Field label="Industry" value={kit?.industry ?? null} />
+              <Field label="Positioning" value={kit?.positioning ?? null} multiline />
+              <Field label="Mission" value={kit?.mission ?? null} multiline />
+              <Field label="Description" value={kit?.description ?? null} multiline />
+            </Section>
 
-        <Section title="Compliance & locale">
-          <Field
-            label="Compliance text (legacy brands.compliance)"
-            value={brand.compliance}
-            multiline
-          />
-          <Field
-            label="Compliance footer (brand_kits.compliance_footer)"
-            value={kit?.compliance_footer ?? null}
-            multiline
-          />
-          <Field label="HQ location" value={kit?.hq_location ?? null} />
-          <Field
-            label="Service area"
-            value={kit?.service_area && kit.service_area.length > 0 ? kit.service_area.join(", ") : null}
-          />
-          <Field label="Onboarding status" value={kit?.onboarding_status ?? null} />
-        </Section>
+            <Section title="Voice & content">
+              <Field label="Tone" value={formatJson(kit?.tone)} multiline />
+              <Field
+                label="Content pillars"
+                value={formatPillars(kit?.content_pillars)}
+                multiline
+              />
+              <Field label="Audiences" value={formatAudiences(kit?.audiences)} multiline />
+              <Field label="Hashtags" value={formatJson(kit?.hashtags)} multiline />
+            </Section>
+          </div>
         </div>
-      </div>
     </details>
   );
 }
@@ -209,16 +213,7 @@ function Rules({ rules }: { rules: AutopilotRule[] }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        breakInside: "avoid",
-        marginBottom: "24px",
-        // Anchor as a discrete column item so the browser balances
-        // entire sections rather than splitting their contents.
-        display: "inline-block",
-        width: "100%",
-      }}
-    >
+    <div>
       <div
         style={{
           fontSize: "11px",
