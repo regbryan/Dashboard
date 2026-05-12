@@ -17,14 +17,34 @@ export default function RefreshBrandKitButton({ brandId }: { brandId: string }) 
       const res = await fetch(`/api/brands/${brandId}/refresh-kit`, {
         method: "POST",
       });
-      const body = (await res.json()) as
+      type TextResult =
         | { ok: true; postsAnalyzed: number; model: string }
         | { ok: false; error: string };
-      if (!res.ok || !body.ok) {
-        setErr("error" in body ? body.error : `HTTP ${res.status}`);
+      type VisualsResult =
+        | { ok: true; postsAnalyzed: number; colors: unknown[] }
+        | { ok: false; error: string };
+      const body = (await res.json()) as
+        | { ok: boolean; text: TextResult; visuals: VisualsResult }
+        | { ok: false; error: string };
+
+      if ("error" in body && body.error) {
+        setErr(body.error);
+      } else if ("text" in body) {
+        const parts: string[] = [];
+        if (body.text.ok) {
+          parts.push(`text: ${body.text.postsAnalyzed} posts`);
+        } else {
+          parts.push(`text skipped (${body.text.error})`);
+        }
+        if (body.visuals.ok) {
+          parts.push(`visuals: ${body.visuals.postsAnalyzed} images, ${body.visuals.colors.length} colors`);
+        } else {
+          parts.push(`visuals skipped (${body.visuals.error})`);
+        }
+        setMsg(parts.join(" · "));
+        if (body.ok) router.refresh();
       } else {
-        setMsg(`Refreshed from ${body.postsAnalyzed} approved posts (${body.model})`);
-        router.refresh();
+        setErr(`HTTP ${res.status}`);
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

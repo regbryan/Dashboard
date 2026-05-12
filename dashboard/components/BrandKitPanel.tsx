@@ -39,9 +39,11 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
         <div>
           <RefreshBrandKitButton brandId={brand.id} />
           <p style={{ marginTop: "8px", fontSize: "11px", color: MUTED, lineHeight: 1.5 }}>
-            Derives positioning, tone, content pillars, hashtags, and photography
-            direction from this brand&apos;s approved posts (≥3 needed). Runs nightly
-            via cron — this button forces an immediate refresh.
+            Text side: positioning, tone, content pillars, hashtags, photography
+            direction (needs ≥3 approved posts). Visual side: dominant colors
+            sampled from approved post images, plus a low-confidence typography
+            hint via Gemini Vision. Runs nightly via cron — this button forces
+            an immediate refresh.
           </p>
         </div>
 
