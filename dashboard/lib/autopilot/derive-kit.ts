@@ -11,9 +11,11 @@ import { supabaseAdmin } from "../supabase-admin";
 const TEXT_ENDPOINT_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
 
-// Minimum approved posts needed before derivation is meaningful. Below this we
-// skip rather than emit noise.
-const MIN_POSTS_FOR_DERIVATION = 3;
+// Minimum approved posts needed before derivation is meaningful. Lowered
+// from 3 to 1 — the legacy backfill (colors + name + compliance) gives every
+// brand a baseline, so deriving from even a single post can only improve
+// things further. Confidence is recorded per field; reviewers can override.
+const MIN_POSTS_FOR_DERIVATION = 1;
 
 export type DeriveKitResult =
   | { ok: true; brandSlug: string; postsAnalyzed: number; model: string; updated: boolean }
