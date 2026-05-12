@@ -64,13 +64,19 @@ export async function deriveBrandKitForSlug(
     return { ok: false, brandSlug: slug, error: "brand not found" };
   }
 
+  // Pull EVERY post for this brand with meaningful brief content — regardless
+  // of status. The calendar entries themselves capture the brand's intended
+  // direction (concept, visual_direction, content_pillar, caption, hashtags).
+  // We don't need approval history to learn the brand's voice and themes.
+  // Approved posts get sorted to the top so they carry more signal weight.
   const { data: postsData, error: postsErr } = await admin
     .from("posts")
-    .select("concept, caption, visual_direction, content_pillar, post_type, hashtags")
+    .select("concept, caption, visual_direction, content_pillar, post_type, hashtags, status")
     .eq("brand_id", slug)
-    .eq("status", "approved")
+    .or("concept.not.is.null,visual_direction.not.is.null")
+    .order("status", { ascending: false })
     .order("post_number", { ascending: false })
-    .limit(40);
+    .limit(60);
   if (postsErr) {
     return { ok: false, brandSlug: slug, error: `posts query: ${postsErr.message}` };
   }
@@ -79,7 +85,7 @@ export async function deriveBrandKitForSlug(
     return {
       ok: false,
       brandSlug: slug,
-      error: `only ${posts.length} approved post(s); need >= ${MIN_POSTS_FOR_DERIVATION}`,
+      error: `only ${posts.length} post(s) with concept/visual_direction; need >= ${MIN_POSTS_FOR_DERIVATION}`,
     };
   }
 

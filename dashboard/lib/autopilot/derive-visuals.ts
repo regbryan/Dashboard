@@ -61,12 +61,16 @@ export async function deriveBrandVisuals(slug: string): Promise<DeriveVisualsRes
   }
   const brandName = (brand as { name: string }).name;
 
+  // Sample any post with an image — approval status doesn't matter for
+  // extracting the brand's dominant palette. The brief itself already
+  // shaped these images, so they represent the brand whether approved
+  // or pending.
   const { data: postsData, error: postsErr } = await admin
     .from("posts")
-    .select("file_path")
+    .select("file_path, status")
     .eq("brand_id", slug)
-    .eq("status", "approved")
     .not("file_path", "is", null)
+    .order("status", { ascending: false })
     .order("post_number", { ascending: false })
     .limit(MAX_POSTS_TO_SAMPLE);
   if (postsErr) return { ok: false, brandSlug: slug, error: `posts: ${postsErr.message}` };
