@@ -149,6 +149,7 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
             </Section>
           </div>
         </div>
+      </div>
     </details>
   );
 }
