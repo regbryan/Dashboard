@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/autopilot-generate",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-brand-kits",
+      "schedule": "0 15 * * *"
     }
   ]
 }

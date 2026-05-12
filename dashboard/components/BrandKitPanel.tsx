@@ -1,4 +1,5 @@
 import type { BrandKitView, AutopilotRule } from "@/lib/brand-kit";
+import RefreshBrandKitButton from "./RefreshBrandKitButton";
 
 const PANEL_BG = "#0f0f1a";
 const PANEL_BORDER = "1px solid #1a1a2e";
@@ -35,6 +36,15 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
       </summary>
 
       <div style={{ display: "grid", gap: "24px", marginTop: "20px" }}>
+        <div>
+          <RefreshBrandKitButton brandId={brand.id} />
+          <p style={{ marginTop: "8px", fontSize: "11px", color: MUTED, lineHeight: 1.5 }}>
+            Derives positioning, tone, content pillars, hashtags, and photography
+            direction from this brand&apos;s approved posts (≥3 needed). Runs nightly
+            via cron — this button forces an immediate refresh.
+          </p>
+        </div>
+
         <Rules rules={rules} />
 
         <Section title="Identity">
