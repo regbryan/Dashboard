@@ -1,5 +1,10 @@
 import "server-only";
-import { supabase } from "./supabase";
+// Use the service-role client so we can read brand_kits regardless of RLS.
+// brand_kits has a single is_admin() policy that the anon-key client (used
+// elsewhere on the page) can't satisfy — it returned zero rows even when
+// data was clearly present in the table. Service role is fine here: this
+// function is server-only and the page itself is admin-gated.
+import { supabaseAdmin } from "./supabase-admin";
 
 // Loader for everything we'd want to see on the per-brand "Brand Kit" panel.
 // Pulls the legacy `brands` row (always populated) and the newer `brand_kits`
@@ -98,7 +103,7 @@ const BRAND_RULES: Record<string, AutopilotRule[]> = {
 };
 
 export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
-  const { data: brand } = await supabase
+  const { data: brand } = await supabaseAdmin()
     .from("brands")
     .select(
       "id, name, handle, platform, color_primary, color_secondary, color_accent, cadence, compliance, has_brand_doc"
@@ -108,7 +113,7 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
 
   if (!brand) return null;
 
-  const { data: kit } = await supabase
+  const { data: kit } = await supabaseAdmin()
     .from("brand_kits")
     .select(
       "positioning, mission, tagline, description, photography_direction, compliance_footer, colors, fonts, tone, content_pillars, hashtags, audiences, primary_platform, hq_location, service_area, onboarding_status, archetype, industry, visual_donts, website_url"
@@ -116,7 +121,7 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
     .eq("slug", slug)
     .maybeSingle();
 
-  const { count: logoCount } = await supabase
+  const { count: logoCount } = await supabaseAdmin()
     .from("brand_logos")
     .select("id", { count: "exact", head: true })
     .eq("brand_id", slug);
