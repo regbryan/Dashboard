@@ -65,10 +65,9 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-            gap: "24px",
-            alignItems: "start",
+            columnWidth: "380px",
+            columnGap: "24px",
+            columnFill: "balance",
           }}
         >
         <Section title="Identity">
@@ -210,7 +209,16 @@ function Rules({ rules }: { rules: AutopilotRule[] }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div
+      style={{
+        breakInside: "avoid",
+        marginBottom: "24px",
+        // Anchor as a discrete column item so the browser balances
+        // entire sections rather than splitting their contents.
+        display: "inline-block",
+        width: "100%",
+      }}
+    >
       <div
         style={{
           fontSize: "11px",
