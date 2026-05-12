@@ -58,10 +58,19 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
               ? ((kit.colors as { roles?: Record<string, string | null> }).roles ?? null)
               : null
           }
+          initialWebsiteUrl={kit?.website_url ?? null}
         />
 
         <Rules rules={rules} />
 
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+            gap: "24px",
+            alignItems: "start",
+          }}
+        >
         <Section title="Identity">
           <Field label="Name" value={brand.name} />
           <Field label="Handle" value={brand.handle} />
@@ -135,6 +144,7 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
           />
           <Field label="Onboarding status" value={kit?.onboarding_status ?? null} />
         </Section>
+        </div>
       </div>
     </details>
   );

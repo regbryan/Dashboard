@@ -51,12 +51,14 @@ export default function EditBrandKitForm({
   initialIndustry,
   initialVisualDonts,
   initialColorRoles,
+  initialWebsiteUrl,
 }: {
   brandId: string;
   initialArchetype: string | null;
   initialIndustry: string | null;
   initialVisualDonts: string[] | null;
   initialColorRoles: ColorRoles | null;
+  initialWebsiteUrl: string | null;
 }) {
   const router = useRouter();
   const [archetype, setArchetype] = useState(initialArchetype ?? "");
@@ -65,7 +67,9 @@ export default function EditBrandKitForm({
     (initialVisualDonts ?? []).join("\n")
   );
   const [roles, setRoles] = useState<ColorRoles>(initialColorRoles ?? {});
+  const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl ?? "");
   const [busy, setBusy] = useState(false);
+  const [bootstrapping, setBootstrapping] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -106,6 +110,37 @@ export default function EditBrandKitForm({
     setRoles((prev) => ({ ...prev, [k]: v || null }));
   }
 
+  async function onBootstrap() {
+    if (!websiteUrl.trim()) {
+      setErr("enter a website URL first");
+      return;
+    }
+    setBootstrapping(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/brands/${brandId}/bootstrap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ website_url: websiteUrl }),
+      });
+      const data = (await res.json()) as { ok: boolean; error?: string; filled?: Record<string, unknown> };
+      if (!res.ok || !data.ok) {
+        setErr(data.error ?? `HTTP ${res.status}`);
+      } else {
+        const filledCount = Object.values(data.filled ?? {}).filter(
+          (v) => v != null && (typeof v !== "string" || v.length > 0)
+        ).length;
+        setMsg(`Bootstrapped ${filledCount} fields from website`);
+        router.refresh();
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBootstrapping(false);
+    }
+  }
+
   return (
     <details
       style={{
@@ -132,9 +167,44 @@ export default function EditBrandKitForm({
       <div style={{ display: "grid", gap: "16px", marginTop: "16px" }}>
         <p style={{ fontSize: "11px", color: LABEL, lineHeight: 1.5, margin: 0 }}>
           Derivation handles positioning, tone, pillars, hashtags, photography
-          direction, colors, and fonts. These four fields need a human once per
+          direction, colors, and fonts. These fields need a human once per
           brand — they shape every prompt afterward.
         </p>
+
+        <Block label="Website URL · bootstrap kit from site">
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <input
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://yourbrand.com"
+              style={{ ...inputStyle, flex: "1 1 240px", minWidth: 0 }}
+            />
+            <button
+              type="button"
+              onClick={onBootstrap}
+              disabled={bootstrapping || busy}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 600,
+                background: "rgba(192,132,252,0.18)",
+                color: "#d9b4ff",
+                border: "1px solid rgba(192,132,252,0.4)",
+                cursor: bootstrapping ? "wait" : "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {bootstrapping ? "Reading site…" : "↗ Bootstrap from site"}
+            </button>
+          </div>
+          <p style={{ fontSize: "11px", color: LABEL, margin: "4px 0 0", lineHeight: 1.4 }}>
+            Gemini reads the URL and fills tagline, description, positioning,
+            mission, audiences, HQ location, and service area — only fields
+            currently blank, so this never overwrites your edits.
+          </p>
+        </Block>
 
         <Block label="Archetype">
           <select
