@@ -42,6 +42,19 @@ export type TypographyHint = {
 export async function deriveBrandVisuals(slug: string): Promise<DeriveVisualsResult> {
   const admin = supabaseAdmin();
 
+  // brand_kits.name is NOT NULL with no default; Postgres validates NOT NULL
+  // during INSERT row construction BEFORE ON CONFLICT DO UPDATE kicks in, so
+  // the visuals upsert needs name even when only updating an existing row.
+  const { data: brand, error: brandErr } = await admin
+    .from("brands")
+    .select("name")
+    .eq("id", slug)
+    .maybeSingle();
+  if (brandErr || !brand) {
+    return { ok: false, brandSlug: slug, error: "brand not found" };
+  }
+  const brandName = (brand as { name: string }).name;
+
   const { data: postsData, error: postsErr } = await admin
     .from("posts")
     .select("file_path")
@@ -137,6 +150,7 @@ export async function deriveBrandVisuals(slug: string): Promise<DeriveVisualsRes
 
   const upsertPayload: Record<string, unknown> = {
     slug,
+    name: brandName,
     updated_at: new Date().toISOString(),
     colors: colorsPayload,
     confidence: {
