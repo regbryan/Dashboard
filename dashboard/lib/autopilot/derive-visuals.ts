@@ -15,9 +15,15 @@ import { supabaseAdmin } from "../supabase-admin";
 
 const BUCKET = "post-images";
 const MAX_POSTS_TO_SAMPLE = 8;
-const SAMPLE_SIZE = 24; // pixels per side after resize
-const PALETTE_BUCKETS = 6; // 6^3 = 216 bins
+const SAMPLE_SIZE = 32; // pixels per side after resize
+const PALETTE_BUCKETS = 8; // 8^3 = 512 bins, finer than 6^3
 const TOP_COLORS = 6;
+// Skip near-white, near-black, and near-grey pixels — backgrounds and
+// shadows drown out the brand palette otherwise. Tuned after CSC came back
+// all-grey on the first run.
+const MIN_LUM = 24;
+const MAX_LUM = 230;
+const MIN_SATURATION = 0.18;
 
 const TEXT_ENDPOINT_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
@@ -97,13 +103,19 @@ export async function deriveBrandVisuals(slug: string): Promise<DeriveVisualsRes
       const r = pixels[i];
       const g = pixels[i + 1];
       const b = pixels[i + 2];
-      // Skip near-white and near-black — backgrounds and shadows drown out
-      // the brand palette otherwise.
       const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      if (lum < 18 || lum > 237) continue;
+      if (lum < MIN_LUM || lum > MAX_LUM) continue;
+      // HSV-style saturation: how far from grey is this pixel.
+      const maxC = Math.max(r, g, b);
+      const minC = Math.min(r, g, b);
+      const sat = maxC === 0 ? 0 : (maxC - minC) / maxC;
+      if (sat < MIN_SATURATION) continue;
+      // Weight by saturation^1.5 so vibrant brand colors out-vote
+      // semi-washed-out background tints.
+      const weight = Math.pow(sat, 1.5);
       const bucket = colorBucket(r, g, b);
-      buckets.set(bucket, (buckets.get(bucket) ?? 0) + 1);
-      totalPixels += 1;
+      buckets.set(bucket, (buckets.get(bucket) ?? 0) + weight);
+      totalPixels += weight;
     }
     if (!firstImageBuffer) {
       firstImageBuffer = buf;
