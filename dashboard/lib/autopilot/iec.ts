@@ -45,7 +45,7 @@ export function buildIECImagePrompt(post: IECPostInput): string {
     lines.push(`Concept: ${post.concept}`);
   }
   if (post.visualDirection) {
-    lines.push(`Visual direction: ${post.visualDirection}`);
+    lines.push(`Visual direction: ${stripLogoMentions(post.visualDirection)}`);
   }
   lines.push(
     "Photography style: bright, real, lived-in Inland Empire homes — no stock-photo plastic. Authentic California stucco/tile-roof context when exterior."
@@ -57,6 +57,26 @@ export function buildIECImagePrompt(post: IECPostInput): string {
     "Composition must be visually full and bold — no dead space, no sparse empty backdrops."
   );
   return lines.join(" ");
+}
+
+/**
+ * Strip references to brand marks from visual_direction text. The universal
+ * "no automated logos" rule says the pipeline never paints a logo; the client
+ * composites them after generation. Older calendar entries were written for
+ * human designers and still say things like "Brand logo center" — leaving
+ * those in the Gemini prompt collides with the explicit "DO NOT render any
+ * company logo" instruction lower in the prompt. We remove sentence-level
+ * fragments that mention logo/watermark/brand mark before passing the rest
+ * of the visual direction to the model.
+ */
+export function stripLogoMentions(visualDirection: string): string {
+  const pattern = /\b(logo|watermark|brand[\s-]?mark|brand[\s-]?name(?:\s+text)?)\b/i;
+  const cleaned = visualDirection
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !pattern.test(sentence))
+    .join(" ")
+    .trim();
+  return cleaned.length > 0 ? cleaned : visualDirection.replace(pattern, "").trim();
 }
 
 export function ensureIECCaptionFooter(caption: string | null): string {
