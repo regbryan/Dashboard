@@ -53,16 +53,11 @@ export async function generateBrandPost(
     };
   }
 
-  const promptResult = await buildBrandImagePrompt(post.brand_id, {
-    concept: post.concept,
-    visual_direction: post.visual_direction,
-    content_pillar: post.content_pillar,
-    post_type: post.post_type,
-  });
-  if (typeof promptResult !== "string") {
+  const promptResult = await buildBrandImagePrompt(post.brand_id, post.id);
+  if ("error" in promptResult) {
     return { ok: false, postId: post.id, error: promptResult.error };
   }
-  const prompt = promptResult;
+  const prompt = promptResult.text;
 
   const previousStatus = post.status ?? "not_started";
   await admin

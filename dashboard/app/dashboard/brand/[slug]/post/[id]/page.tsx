@@ -8,7 +8,7 @@ import Link from "next/link";
 import PostActions from "./PostActions";
 import LogoOverlayPanel from "./LogoOverlayPanel";
 import FooterOverlayPanel from "./FooterOverlayPanel";
-import RegeneratePostButton from "@/components/RegeneratePostButton";
+import ImageBriefPanel from "@/components/ImageBriefPanel";
 import { getBrandClientEmails } from "@/lib/brand-clients";
 import { buildClaudeRevisionLink } from "@/lib/claude-link";
 
@@ -251,10 +251,9 @@ export default async function PostDetailPage({
                 hasLogo={!!brandData?.logo_path}
                 archetype={post.archetype}
               />
-              <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <RegeneratePostButton postId={post.id} />
-              </div>
             </div>
+
+            <ImageBriefPanel postId={post.id} />
 
             {brandData?.logo_path && (
               <LogoOverlayPanel
