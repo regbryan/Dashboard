@@ -2,9 +2,11 @@ import type { NextRequest } from "next/server";
 import { deriveAllBrands } from "@/lib/autopilot/derive-kit";
 import { deriveVisualsForAllBrands } from "@/lib/autopilot/derive-visuals";
 
-// Two passes (text + visuals) across N brands. Generous budget — vision
-// calls + image downloads can be slow.
-export const maxDuration = 600;
+// Two passes (text + visuals) across N brands. Pro plan caps at 300s so we
+// match that ceiling. If derivation across all brands ever doesn't fit, we
+// switch to sharding (split brand list across multiple invocations) rather
+// than asking for a higher cap.
+export const maxDuration = 300;
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
