@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
-import { runIECAutopilot } from "@/lib/autopilot";
+import { runAllBrandsAutopilot, runBrandAutopilot } from "@/lib/autopilot";
 
-// Long-ish budget — three Gemini image gens + uploads can take 30–60s.
-export const maxDuration = 120;
+// 300s ceiling matches Vercel Pro's cap. Each gen is 5-20s; per-brand cap of
+// 3 + N brands keeps us well inside this.
+export const maxDuration = 300;
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -23,18 +24,29 @@ export async function GET(req: NextRequest) {
   const lookaheadDays = lookaheadParam ? Number(lookaheadParam) : undefined;
   const limitParam = req.nextUrl.searchParams.get("limit");
   const limit = limitParam ? Number(limitParam) : undefined;
+  const brandFilter = req.nextUrl.searchParams.get("brand");
 
   try {
-    const summary = await runIECAutopilot({
+    if (brandFilter) {
+      const summary = await runBrandAutopilot(brandFilter, {
+        dryRun,
+        lookaheadDays:
+          Number.isFinite(lookaheadDays) && lookaheadDays! > 0
+            ? lookaheadDays
+            : undefined,
+        limit: Number.isFinite(limit) && limit! > 0 ? limit : undefined,
+      });
+      return Response.json({ ok: true, dryRun, summaries: [summary] });
+    }
+    const { summaries } = await runAllBrandsAutopilot({
       dryRun,
       lookaheadDays:
         Number.isFinite(lookaheadDays) && lookaheadDays! > 0
           ? lookaheadDays
           : undefined,
-      limit:
-        Number.isFinite(limit) && limit! > 0 ? limit : undefined,
+      limitPerBrand: Number.isFinite(limit) && limit! > 0 ? limit : undefined,
     });
-    return Response.json({ ok: true, dryRun, summary });
+    return Response.json({ ok: true, dryRun, summaries });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return Response.json({ ok: false, error: message }, { status: 500 });

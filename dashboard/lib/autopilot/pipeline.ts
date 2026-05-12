@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "../supabase-admin";
 import { generateImage } from "./gemini";
-import { buildIECImagePrompt, ensureIECCaptionFooter } from "./iec";
+import { buildBrandImagePrompt, ensureBrandCaptionFooter } from "./brand-prompt";
 
 const BUCKET = "post-images";
 
@@ -20,22 +20,28 @@ type PostRow = {
 };
 
 export type GenerateOneResult =
-  | { ok: true; postId: number; storagePath: string; model: string }
+  | { ok: true; postId: number; storagePath: string; model: string; brandSlug: string }
   | { ok: false; postId: number; error: string };
 
 /**
- * Generate one IEC post end-to-end:
- *   1. build prompt from posts.concept + visual_direction
+ * Generate one post end-to-end for ANY brand:
+ *   1. build prompt via the generic builder (reads brand_kits + brands)
  *   2. call Gemini -> image bytes
  *   3. upload to post-images bucket
- *   4. ensure caption has the mandatory IEC footer block
+ *   4. ensure the brand's mandatory caption footer (if any) is present
  *   5. set status='in_review' so it appears in the dashboard approval queue
  *
- * No logo and no image-burned footer — both are IEC-specific rules
- * (universal "no automated logos"; IEC compliance lives in caption).
+ * Logo overlay and image-burned footer compliance are NOT applied here —
+ * those are post-processing steps the user runs manually (or via a future
+ * per-brand chain). The universal "no automated logos" rule is enforced in
+ * the prompt itself.
+ *
+ * `regenerate=true` allows the caller to overwrite an image even if the
+ * post already has a file_path — needed for the manual regenerate button.
  */
-export async function generateIECPost(
-  post: PostRow
+export async function generateBrandPost(
+  post: PostRow,
+  opts: { regenerate?: boolean } = {}
 ): Promise<GenerateOneResult> {
   const admin = supabaseAdmin();
 
@@ -47,14 +53,18 @@ export async function generateIECPost(
     };
   }
 
-  const prompt = buildIECImagePrompt({
+  const promptResult = await buildBrandImagePrompt(post.brand_id, {
     concept: post.concept,
-    visualDirection: post.visual_direction,
-    contentPillar: post.content_pillar,
-    postType: post.post_type,
+    visual_direction: post.visual_direction,
+    content_pillar: post.content_pillar,
+    post_type: post.post_type,
   });
+  if (typeof promptResult !== "string") {
+    return { ok: false, postId: post.id, error: promptResult.error };
+  }
+  const prompt = promptResult;
 
-  // Mark generating so concurrent ticks don't double-pick this row.
+  const previousStatus = post.status ?? "not_started";
   await admin
     .from("posts")
     .update({ status: "generating", updated_at: new Date().toISOString() })
@@ -65,7 +75,7 @@ export async function generateIECPost(
     await admin
       .from("posts")
       .update({
-        status: "not_started",
+        status: previousStatus,
         updated_at: new Date().toISOString(),
       })
       .eq("id", post.id);
@@ -74,9 +84,9 @@ export async function generateIECPost(
 
   const ext = gen.mimeType === "image/jpeg" ? "jpg" : "png";
   const filePath =
-    post.file_path && post.file_path.length > 0
-      ? post.file_path
-      : `autopilot/post-${post.post_number ?? post.id}-v1.${ext}`;
+    opts.regenerate || !post.file_path || post.file_path.length === 0
+      ? `autopilot/post-${post.post_number ?? post.id}-v${Date.now()}.${ext}`
+      : post.file_path;
   const storageKey = `${post.brand_id}/${filePath}`;
 
   const upload = await admin.storage
@@ -89,7 +99,7 @@ export async function generateIECPost(
     await admin
       .from("posts")
       .update({
-        status: "not_started",
+        status: previousStatus,
         updated_at: new Date().toISOString(),
       })
       .eq("id", post.id);
@@ -100,7 +110,7 @@ export async function generateIECPost(
     };
   }
 
-  const nextCaption = ensureIECCaptionFooter(post.caption);
+  const nextCaption = ensureBrandCaptionFooter(post.brand_id, post.caption);
 
   const { error: updateErr } = await admin
     .from("posts")
@@ -123,11 +133,13 @@ export async function generateIECPost(
     ok: true,
     postId: post.id,
     storagePath: storageKey,
+    brandSlug: post.brand_id,
     model: gen.model,
   };
 }
 
-// Re-export the row shape so the dispatcher can type its query.
-export type { PostRow as AutopilotPostRow };
+// Backwards-compatible alias — older callers can keep using this name.
+export const generateIECPost = generateBrandPost;
 
+export type { PostRow as AutopilotPostRow };
 export const AUTOPILOT_BUCKET = BUCKET;
