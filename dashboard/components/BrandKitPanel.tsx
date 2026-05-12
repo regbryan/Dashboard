@@ -1,5 +1,6 @@
 import type { BrandKitView, AutopilotRule } from "@/lib/brand-kit";
 import RefreshBrandKitButton from "./RefreshBrandKitButton";
+import EditBrandKitForm from "./EditBrandKitForm";
 
 const PANEL_BG = "#0f0f1a";
 const PANEL_BORDER = "1px solid #1a1a2e";
@@ -47,6 +48,18 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
           </p>
         </div>
 
+        <EditBrandKitForm
+          brandId={brand.id}
+          initialArchetype={kit?.archetype ?? null}
+          initialIndustry={kit?.industry ?? null}
+          initialVisualDonts={kit?.visual_donts ?? null}
+          initialColorRoles={
+            kit?.colors && typeof kit.colors === "object" && kit.colors !== null && "roles" in kit.colors
+              ? ((kit.colors as { roles?: Record<string, string | null> }).roles ?? null)
+              : null
+          }
+        />
+
         <Rules rules={rules} />
 
         <Section title="Identity">
@@ -58,6 +71,8 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
         </Section>
 
         <Section title="Positioning">
+          <Field label="Archetype" value={kit?.archetype ?? null} />
+          <Field label="Industry" value={kit?.industry ?? null} />
           <Field label="Positioning" value={kit?.positioning ?? null} multiline />
           <Field label="Mission" value={kit?.mission ?? null} multiline />
           <Field label="Description" value={kit?.description ?? null} multiline />
@@ -65,6 +80,11 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
 
         <Section title="Visuals">
           <Colors brand={brand} kit={kit} />
+          <Field
+            label="Color roles"
+            value={formatColorRoles(kit?.colors)}
+            multiline
+          />
           <Field
             label="Logo variants"
             value={logoCount > 0 ? `${logoCount} on file` : null}
@@ -75,6 +95,15 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
             multiline
           />
           <Field label="Fonts" value={formatJson(kit?.fonts)} multiline />
+          <Field
+            label="Visual don'ts"
+            value={
+              kit?.visual_donts && kit.visual_donts.length > 0
+                ? kit.visual_donts.map((d) => `• ${d}`).join("\n")
+                : null
+            }
+            multiline
+          />
         </Section>
 
         <Section title="Voice & content">
@@ -307,6 +336,19 @@ function Colors({
       )}
     </div>
   );
+}
+
+function formatColorRoles(
+  colors: Record<string, unknown> | null | undefined
+): string | null {
+  if (!colors || typeof colors !== "object") return null;
+  const roles = (colors as { roles?: Record<string, unknown> }).roles;
+  if (!roles || typeof roles !== "object") return null;
+  const lines: string[] = [];
+  for (const [k, v] of Object.entries(roles)) {
+    if (typeof v === "string" && v.length > 0) lines.push(`${k}: ${v}`);
+  }
+  return lines.length > 0 ? lines.join("\n") : null;
 }
 
 function formatJson(value: Record<string, unknown> | null | undefined): string | null {

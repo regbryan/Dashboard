@@ -19,6 +19,10 @@ type KitRow = {
   positioning: string | null;
   tagline: string | null;
   tone: Record<string, unknown> | null;
+  archetype: string | null;
+  industry: string | null;
+  visual_donts: string[] | null;
+  colors: Record<string, unknown> | null;
 };
 
 export type BuiltPrompt = {
@@ -46,7 +50,7 @@ export async function buildBrandImagePrompt(
 
   const { data: kitData } = await admin
     .from("brand_kits")
-    .select("positioning, tagline, tone")
+    .select("positioning, tagline, tone, archetype, industry, visual_donts, colors")
     .eq("slug", brandSlug)
     .maybeSingle();
   const kit = (kitData ?? null) as KitRow | null;
@@ -56,13 +60,21 @@ export async function buildBrandImagePrompt(
   // The structured envelope sent to Gemini. Plain JSON. Each field is what
   // the user sees and edits in the ImageBriefPanel — plus brand context
   // that's pulled from brand_kit so it stays current automatically.
+  const colorRoles =
+    kit?.colors && typeof kit.colors === "object"
+      ? (kit.colors as { roles?: Record<string, string> }).roles ?? null
+      : null;
+
   const envelope = {
     platform,
     brand: {
       name: brand.name,
       tagline: kit?.tagline ?? null,
       positioning: kit?.positioning ?? null,
+      archetype: kit?.archetype ?? null,
+      industry: kit?.industry ?? null,
       voice_keywords: readToneKeywords(kit?.tone),
+      color_roles: colorRoles,
     },
     brief: briefResult.brief,
     constraints: {
@@ -72,7 +84,12 @@ export async function buildBrandImagePrompt(
       no_footer_band: true,
       no_brand_name_text: true,
     },
-    negative: UNIVERSAL_NEGATIVE_RULES,
+    negative: [
+      ...UNIVERSAL_NEGATIVE_RULES,
+      ...(kit?.visual_donts && kit.visual_donts.length > 0
+        ? kit.visual_donts.map((d) => `Avoid: ${d}.`)
+        : []),
+    ],
   };
 
   // Natural-language framing + JSON body. Image models follow JSON better

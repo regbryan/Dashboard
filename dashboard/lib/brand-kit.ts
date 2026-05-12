@@ -43,6 +43,9 @@ export type BrandKitRow = {
   hq_location: string | null;
   service_area: string[] | null;
   onboarding_status: string | null;
+  archetype: string | null;
+  industry: string | null;
+  visual_donts: string[] | null;
 };
 
 export type AutopilotRule = {
@@ -107,7 +110,7 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
   const { data: kit } = await supabase
     .from("brand_kits")
     .select(
-      "positioning, mission, tagline, description, photography_direction, compliance_footer, colors, fonts, tone, content_pillars, hashtags, audiences, primary_platform, hq_location, service_area, onboarding_status"
+      "positioning, mission, tagline, description, photography_direction, compliance_footer, colors, fonts, tone, content_pillars, hashtags, audiences, primary_platform, hq_location, service_area, onboarding_status, archetype, industry, visual_donts"
     )
     .eq("slug", slug)
     .maybeSingle();
