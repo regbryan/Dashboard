@@ -15,6 +15,7 @@ export type BrandKitView = {
   brand: BrandRow;
   kit: BrandKitRow | null;
   logoCount: number;
+  defaultLogoUrl: string | null;
   rules: AutopilotRule[];
 };
 
@@ -126,6 +127,21 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
     .select("id", { count: "exact", head: true })
     .eq("brand_id", slug);
 
+  // Pull the default logo for the hero. Prefer is_default=true, fall
+  // back to the first row alphabetically by label.
+  const { data: defaultLogoRow } = await supabaseAdmin()
+    .from("brand_logos")
+    .select("storage_path")
+    .eq("brand_id", slug)
+    .order("is_default", { ascending: false })
+    .order("label", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const defaultLogoUrl = buildLogoUrl(
+    (defaultLogoRow as { storage_path?: string | null } | null)?.storage_path ?? null
+  );
+
   const rules: AutopilotRule[] = [
     ...UNIVERSAL_RULES,
     ...(BRAND_RULES[slug] ?? []),
@@ -135,6 +151,24 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
     brand: brand as BrandRow,
     kit: (kit ?? null) as BrandKitRow | null,
     logoCount: logoCount ?? 0,
+    defaultLogoUrl,
     rules,
   };
+}
+
+/**
+ * Build a public URL for a brand_logos.storage_path. The path already
+ * includes the full key inside the post-images bucket (e.g.
+ * "logos/blitz/4C.png"). Each segment is URI-encoded so filenames
+ * with spaces or `&` resolve correctly.
+ */
+function buildLogoUrl(path: string | null): string | null {
+  if (!path) return null;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  const encoded = path
+    .split("/")
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
+  return `${base}/storage/v1/object/public/post-images/${encoded}`;
 }

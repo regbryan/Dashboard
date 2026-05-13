@@ -8,7 +8,7 @@ const VALUE = "#dcdce4";
 const ACCENT = "#c084fc";
 
 export default function BrandKitPanel({ view }: { view: BrandKitView }) {
-  const { brand, kit, logoCount, rules } = view;
+  const { brand, kit, logoCount, defaultLogoUrl, rules } = view;
 
   const colors = collectColors(brand, kit);
   const primaryHex = colors[0]?.hex ?? null;
@@ -20,6 +20,7 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
         brand={brand}
         kit={kit}
         primaryHex={primaryHex}
+        logoUrl={defaultLogoUrl}
         logoCount={logoCount}
       />
 
@@ -56,13 +57,19 @@ function Hero({
   brand,
   kit,
   primaryHex,
+  logoUrl,
   logoCount,
 }: {
   brand: BrandKitView["brand"];
   kit: BrandKitView["kit"];
   primaryHex: string | null;
+  logoUrl: string | null;
   logoCount: number;
 }) {
+  // Logo if we have one; otherwise fall back to the primary color
+  // chip so the hero never renders empty.
+  const showLogo = Boolean(logoUrl);
+
   return (
     <div
       style={{
@@ -75,7 +82,37 @@ function Hero({
       }}
     >
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px" }}>
-        {primaryHex && (
+        {showLogo ? (
+          <div
+            style={{
+              width: "72px",
+              height: "72px",
+              borderRadius: "16px",
+              background:
+                "repeating-conic-gradient(rgba(255,255,255,0.02) 0deg 90deg, rgba(255,255,255,0.04) 90deg 180deg) 0 0 / 12px 12px",
+              border: "1px solid rgba(255,255,255,0.1)",
+              boxShadow: primaryHex
+                ? `0 0 32px ${primaryHex}40`
+                : "0 0 24px rgba(192,132,252,0.18)",
+              flexShrink: 0,
+              padding: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoUrl ?? ""}
+              alt={`${brand.name} logo`}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        ) : primaryHex ? (
           <div
             style={{
               width: "56px",
@@ -87,7 +124,7 @@ function Hero({
               flexShrink: 0,
             }}
           />
-        )}
+        ) : null}
         <div style={{ minWidth: 0 }}>
           <div
             style={{
