@@ -85,11 +85,13 @@ export default function BrandTabs({ slug }: { slug: string }) {
                     left: -FLARE,
                     width: FLARE,
                     height: FLARE,
-                    // Gradient center at TOP-RIGHT of this pseudo (= tab's
-                    // bottom-left corner). Inside the radius: transparent
-                    // (concave cutout). Outside: card color filling the
-                    // bottom-left of the pseudo and bleeding into the card.
-                    background: `radial-gradient(circle at top right, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
+                    // Gradient center at BOTTOM-RIGHT of this pseudo (= the
+                    // point where the card top edge meets the tab). Card
+                    // color fills the disk; the upper-left CORNER of the
+                    // pseudo (which sits next to the tab's bottom-left
+                    // corner) is OUTSIDE the disk → transparent → that's
+                    // the concave cutout where the page bg shows through.
+                    background: `radial-gradient(circle at bottom right, ${TAB_CARD_BG} ${FLARE - 0.5}px, transparent ${FLARE}px)`,
                     pointerEvents: "none",
                   }}
                 />
@@ -101,9 +103,9 @@ export default function BrandTabs({ slug }: { slug: string }) {
                     right: -FLARE,
                     width: FLARE,
                     height: FLARE,
-                    // Mirror of the left flare — gradient center at TOP-LEFT
-                    // of this pseudo (= tab's bottom-right corner).
-                    background: `radial-gradient(circle at top left, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
+                    // Mirror: center at BOTTOM-LEFT, concave cutout at the
+                    // TOP-RIGHT corner of the pseudo.
+                    background: `radial-gradient(circle at bottom left, ${TAB_CARD_BG} ${FLARE - 0.5}px, transparent ${FLARE}px)`,
                     pointerEvents: "none",
                   }}
                 />
