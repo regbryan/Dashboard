@@ -9,9 +9,17 @@ export const dynamic = "force-dynamic";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-function logoUrl(brandId: string, path: string | null): string | null {
+function logoUrl(path: string | null): string | null {
   if (!path) return null;
-  return `${SUPABASE_URL}/storage/v1/object/public/post-images/${brandId}/${path}`;
+  // brand_logos.storage_path already includes the full path inside the
+  // post-images bucket (e.g. "logos/blitz/4C.png"). Encode each segment
+  // so filenames with spaces or `&` don't break the URL — matches the
+  // pattern in /api/brands/[brandId]/logos.
+  const encoded = path
+    .split("/")
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
+  return `${SUPABASE_URL}/storage/v1/object/public/post-images/${encoded}`;
 }
 
 export default async function BrandAssetsPage({
@@ -81,7 +89,7 @@ export default async function BrandAssetsPage({
             }}
           >
             {logos.map((logo) => {
-              const url = logoUrl(slug, logo.storage_path);
+              const url = logoUrl(logo.storage_path);
               return (
                 <div
                   key={logo.id}
