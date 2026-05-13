@@ -4,14 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * File-folder tabs above every brand sub-route. The active tab sits
- * forward — same fill as the content surface below — with rounded top
- * corners and a 1px negative margin-bottom so its lower edge overlaps
- * the container's separator line, visually merging tab + content into
- * a single folder.
+ * Brand sub-nav rendered as premium file-folder tabs.
  *
- * Active state via longest-suffix pathname match so nested routes keep
- * the right tab highlighted (e.g. /post/[id] still reads as Designs).
+ * Restraint over decoration: no stripe across the active tab, no
+ * heavy borders. Active state is communicated by elevation — a card
+ * surface with a soft inner top highlight and a faint accent glow
+ * radiating upward. Inactive tabs are quiet text that brighten on
+ * hover. The tab strip's separator line is "punched" by the active
+ * tab so the folder connects seamlessly to the content surface.
+ *
+ * Active suffix uses longest-match on usePathname() so nested routes
+ * (e.g. /post/[id]) keep the right tab highlighted.
  */
 const SECTIONS = [
   { label: "Designs", suffix: "" },
@@ -20,9 +23,7 @@ const SECTIONS = [
   { label: "Assets", suffix: "/assets" },
 ] as const;
 
-const FOLDER_BG = "#0f0f1a"; // matches PostCard / BrandKitPanel surface
-const FOLDER_BORDER = "#1a1a2e";
-const MUTED_FILL = "#0a0a14";
+const ACTIVE_BG = "#0f0f1a";
 
 export default function BrandTabs({
   slug,
@@ -51,14 +52,11 @@ export default function BrandTabs({
     <div
       role="tablist"
       aria-label="Brand sections"
+      className="flex items-end gap-1 overflow-x-auto"
       style={{
-        display: "flex",
-        alignItems: "flex-end",
-        gap: "4px",
-        borderBottom: `1px solid ${FOLDER_BORDER}`,
-        marginBottom: "-1px", // sits flush over the next surface's top edge
-        overflowX: "auto",
-        paddingTop: "6px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        marginBottom: "-1px",
+        paddingTop: "10px",
       }}
     >
       {SECTIONS.map((s) => {
@@ -70,31 +68,49 @@ export default function BrandTabs({
             href={href}
             role="tab"
             aria-selected={active}
+            className={
+              "group/tab relative whitespace-nowrap transition-all duration-200 ease-out " +
+              (active
+                ? "text-white"
+                : "text-[#7a7a88] hover:text-[#dcdce4]")
+            }
             style={{
-              position: "relative",
-              padding: active ? "11px 20px 12px" : "9px 18px 10px",
+              padding: active ? "12px 22px 14px" : "9px 20px 11px",
               fontSize: "13px",
               fontWeight: active ? 600 : 500,
-              color: active ? "white" : "#9999a6",
+              letterSpacing: active ? "-0.005em" : "0",
               textDecoration: "none",
-              whiteSpace: "nowrap",
-              background: active ? FOLDER_BG : MUTED_FILL,
-              border: `1px solid ${FOLDER_BORDER}`,
-              borderTop: active
-                ? `2px solid ${accentColor}`
-                : `1px solid ${FOLDER_BORDER}`,
-              borderBottomColor: active ? FOLDER_BG : FOLDER_BORDER,
-              borderTopLeftRadius: "9px",
-              borderTopRightRadius: "9px",
+              background: active
+                ? `linear-gradient(180deg, #16162b 0%, ${ACTIVE_BG} 65%, ${ACTIVE_BG} 100%)`
+                : "transparent",
+              border: active
+                ? "1px solid rgba(255,255,255,0.08)"
+                : "1px solid transparent",
+              borderBottomColor: active ? ACTIVE_BG : "transparent",
+              borderTopLeftRadius: "11px",
+              borderTopRightRadius: "11px",
               marginBottom: active ? "-1px" : "0",
               boxShadow: active
-                ? `0 -6px 14px -8px ${accentColor}40`
+                ? [
+                    `0 -14px 28px -16px ${accentColor}33`,
+                    "inset 0 1px 0 rgba(255,255,255,0.06)",
+                  ].join(", ")
                 : undefined,
-              transition: "color 0.15s ease, background 0.15s ease",
               zIndex: active ? 2 : 1,
             }}
           >
-            {s.label}
+            {/* Inactive hover surface — soft top fade */}
+            {!active && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-1 top-1 bottom-0 rounded-t-[10px] opacity-0 transition-opacity duration-200 ease-out group-hover/tab:opacity-100"
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)",
+                }}
+              />
+            )}
+            <span className="relative">{s.label}</span>
           </Link>
         );
       })}
