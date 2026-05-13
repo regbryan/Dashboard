@@ -152,30 +152,11 @@ export default async function BrandLayout({
           )}
         </div>
 
-        <BrandTabs slug={slug} />
-
-        <div
-          style={{
-            background: TAB_CARD_BG,
-            borderRadius: "24px",
-            borderTopLeftRadius: "24px",
-            borderTopRightRadius: "24px",
-            boxShadow: [
-              // Inner top highlight — paper-like sheen
-              "0 1px 0 rgba(255,255,255,0.05) inset",
-              // Soft violet rim that catches the aurora above
-              "0 0 0 1px rgba(177,139,255,0.05)",
-              // Deep drop for elevation
-              "0 24px 80px -28px rgba(0,0,0,0.7)",
-              // Faint violet glow under the card lifts it off the bg
-              "0 30px 90px -40px rgba(139,92,255,0.18)",
-            ].join(", "),
-            overflow: "hidden",
-            minHeight: "calc(100vh - 220px)",
-          }}
-        >
-          {children}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "28px" }}>
+          <BrandTabs slug={slug} />
         </div>
+
+        <div style={{ minHeight: "calc(100vh - 260px)" }}>{children}</div>
       </div>
     </div>
   );

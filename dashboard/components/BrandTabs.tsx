@@ -4,35 +4,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * Premium folder tabs that flow into a content card via concave corner
- * flares — the active tab's bottom-left and bottom-right curves spread
- * outward and merge into the rounded top of the surface below. Done
- * with radial-gradient pseudo-elements (cheap, no SVG, no JS).
+ * Brand sub-nav — shiny gradient pills matching the dashboard's
+ * existing ShinyButton language. Active tab gets the full sp-shiny
+ * primary treatment: violet vertical gradient, 1px inner top
+ * highlight, violet rim, soft outer glow. Inactive tabs are quiet
+ * text that brighten on hover.
  *
- * Inactive tabs are quiet text on the page background with a subtle
- * hover. No color accent.
+ * No folder shapes, no SVG hacks, no Framer Motion dep — just the
+ * tokens already established in globals.css. Active suffix computed
+ * via longest-match on usePathname() so nested routes stay accurate.
  */
+// Kept as a named export so the layout can still import it for now —
+// no longer used (the card surface follows below) but cheap to keep.
+export const TAB_CARD_BG = "#0f0f1a";
+
 const SECTIONS = [
   { label: "Designs", suffix: "" },
   { label: "Calendar", suffix: "/calendar" },
   { label: "Brand Kit", suffix: "/kit" },
   { label: "Assets", suffix: "/assets" },
 ] as const;
-
-export const TAB_CARD_BG = "#1e1e30";
-// Page bg color the circle "punches through" with — must match the
-// surface immediately behind the tabs so the bite reads as page, not
-// some other color.
-const PAGE_BG = "#07070e";
-// CSS-Tricks "Tabs with Round Out Borders" two-layer technique:
-//   1. SQUARE (card color, just outside the tab) — extends the card up
-//      beside the tab so we have a card-colored surface to curve out of
-//   2. CIRCLE (page color, double the square size, border-radius 50%)
-//      sits ON TOP of the square AND overlaps the tab's bottom corner.
-//      The rounded edge bites a quarter-circle out of both, producing
-//      the concave outward swoop that connects tab → card.
-const SQ = 22;
-const CIRCLE = SQ * 2;
 
 export default function BrandTabs({ slug }: { slug: string }) {
   const pathname = usePathname() ?? "";
@@ -55,8 +46,16 @@ export default function BrandTabs({ slug }: { slug: string }) {
     <div
       role="tablist"
       aria-label="Brand sections"
-      className="flex items-end justify-center overflow-x-auto"
-      style={{ gap: "24px", paddingTop: "12px", marginBottom: "-1px" }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        padding: "5px",
+        borderRadius: "999px",
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
     >
       {SECTIONS.map((s) => {
         const href = `${base}${s.suffix}`;
@@ -67,102 +66,44 @@ export default function BrandTabs({ slug }: { slug: string }) {
             href={href}
             role="tab"
             aria-selected={active}
-            className={
-              "group/tab relative whitespace-nowrap transition-colors duration-200 ease-out " +
-              (active
-                ? "text-white"
-                : "text-[#8a8a96] hover:text-[#dcdce4]")
-            }
             style={{
-              padding: active ? "16px 36px 20px" : "12px 22px 16px",
-              fontSize: "15px",
-              fontWeight: active ? 600 : 500,
-              letterSpacing: active ? "-0.005em" : "0.005em",
+              position: "relative",
+              padding: "9px 18px",
+              fontSize: "13px",
+              fontWeight: 500,
+              letterSpacing: "0.01em",
+              lineHeight: 1,
+              color: active ? "white" : "rgba(255,255,255,0.55)",
               textDecoration: "none",
-              background: active ? TAB_CARD_BG : "transparent",
-              borderTopLeftRadius: "20px",
-              borderTopRightRadius: "20px",
-              marginBottom: active ? "0" : "0",
-              zIndex: active ? 2 : 1,
+              borderRadius: "999px",
+              whiteSpace: "nowrap",
+              background: active
+                ? "linear-gradient(180deg, #1e1838 0%, #0c0a16 100%)"
+                : "transparent",
+              border: active
+                ? "1px solid rgba(139,92,255,0.35)"
+                : "1px solid transparent",
+              boxShadow: active
+                ? [
+                    "inset 0 1px 0 rgba(255,255,255,0.12)",
+                    "0 6px 20px -10px rgba(139,92,255,0.4)",
+                  ].join(", ")
+                : undefined,
+              transition:
+                "color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              if (active) return;
+              e.currentTarget.style.color = "white";
+              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+            }}
+            onMouseLeave={(e) => {
+              if (active) return;
+              e.currentTarget.style.color = "rgba(255,255,255,0.55)";
+              e.currentTarget.style.background = "transparent";
             }}
           >
-            {/* Active flares — CSS-Tricks "Round Out Borders" technique.
-                Two stacked elements per side: card-color square extends
-                the card up beside the tab; page-color circle on top
-                bites a curve out of both the square AND the tab's
-                bottom corner. */}
-            {active && (
-              <>
-                {/* LEFT side — square (card color, beneath) */}
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: -SQ,
-                    width: SQ,
-                    height: SQ,
-                    background: TAB_CARD_BG,
-                    zIndex: 1,
-                    pointerEvents: "none",
-                  }}
-                />
-                {/* LEFT side — circle (page bg, on top, rounds the corner out) */}
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: -CIRCLE,
-                    width: CIRCLE,
-                    height: CIRCLE,
-                    borderRadius: "50%",
-                    background: PAGE_BG,
-                    zIndex: 2,
-                    pointerEvents: "none",
-                  }}
-                />
-                {/* RIGHT side — mirror */}
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: -SQ,
-                    width: SQ,
-                    height: SQ,
-                    background: TAB_CARD_BG,
-                    zIndex: 1,
-                    pointerEvents: "none",
-                  }}
-                />
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: -CIRCLE,
-                    width: CIRCLE,
-                    height: CIRCLE,
-                    borderRadius: "50%",
-                    background: PAGE_BG,
-                    zIndex: 2,
-                    pointerEvents: "none",
-                  }}
-                />
-              </>
-            )}
-
-            {/* Inactive hover surface */}
-            {!active && (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] opacity-0 transition-opacity duration-200 ease-out group-hover/tab:opacity-100"
-                style={{ background: "rgba(255,255,255,0.04)" }}
-              />
-            )}
-
-            <span className="relative">{s.label}</span>
+            {s.label}
           </Link>
         );
       })}
