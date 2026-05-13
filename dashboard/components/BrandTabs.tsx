@@ -31,7 +31,7 @@ const PAGE_BG = "#07070e";
 //      sits ON TOP of the square AND overlaps the tab's bottom corner.
 //      The rounded edge bites a quarter-circle out of both, producing
 //      the concave outward swoop that connects tab → card.
-const SQ = 14;
+const SQ = 22;
 const CIRCLE = SQ * 2;
 
 export default function BrandTabs({ slug }: { slug: string }) {
@@ -56,7 +56,7 @@ export default function BrandTabs({ slug }: { slug: string }) {
       role="tablist"
       aria-label="Brand sections"
       className="flex items-end justify-center overflow-x-auto"
-      style={{ gap: "2px", paddingTop: "8px", marginBottom: "-1px" }}
+      style={{ gap: "24px", paddingTop: "12px", marginBottom: "-1px" }}
     >
       {SECTIONS.map((s) => {
         const href = `${base}${s.suffix}`;
@@ -74,14 +74,14 @@ export default function BrandTabs({ slug }: { slug: string }) {
                 : "text-[#8a8a96] hover:text-[#dcdce4]")
             }
             style={{
-              padding: active ? "14px 28px 18px" : "10px 22px 14px",
-              fontSize: "14px",
+              padding: active ? "16px 36px 20px" : "12px 22px 16px",
+              fontSize: "15px",
               fontWeight: active ? 600 : 500,
               letterSpacing: active ? "-0.005em" : "0.005em",
               textDecoration: "none",
               background: active ? TAB_CARD_BG : "transparent",
-              borderTopLeftRadius: "16px",
-              borderTopRightRadius: "16px",
+              borderTopLeftRadius: "20px",
+              borderTopRightRadius: "20px",
               marginBottom: active ? "0" : "0",
               zIndex: active ? 2 : 1,
             }}
