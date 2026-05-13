@@ -20,7 +20,19 @@ const SECTIONS = [
 ] as const;
 
 export const TAB_CARD_BG = "#1e1e30";
-const FLARE = 20;
+// Page bg color the circle "punches through" with — must match the
+// surface immediately behind the tabs so the bite reads as page, not
+// some other color.
+const PAGE_BG = "#07070e";
+// CSS-Tricks "Tabs with Round Out Borders" two-layer technique:
+//   1. SQUARE (card color, just outside the tab) — extends the card up
+//      beside the tab so we have a card-colored surface to curve out of
+//   2. CIRCLE (page color, double the square size, border-radius 50%)
+//      sits ON TOP of the square AND overlaps the tab's bottom corner.
+//      The rounded edge bites a quarter-circle out of both, producing
+//      the concave outward swoop that connects tab → card.
+const SQ = 14;
+const CIRCLE = SQ * 2;
 
 export default function BrandTabs({ slug }: { slug: string }) {
   const pathname = usePathname() ?? "";
@@ -74,24 +86,53 @@ export default function BrandTabs({ slug }: { slug: string }) {
               zIndex: active ? 2 : 1,
             }}
           >
-            {/* Active flares — concave corners that merge into the card */}
+            {/* Active flares — CSS-Tricks "Round Out Borders" technique.
+                Two stacked elements per side: card-color square extends
+                the card up beside the tab; page-color circle on top
+                bites a curve out of both the square AND the tab's
+                bottom corner. */}
             {active && (
               <>
+                {/* LEFT side — square (card color, beneath) */}
                 <span
                   aria-hidden
                   style={{
                     position: "absolute",
                     bottom: 0,
-                    left: -FLARE,
-                    width: FLARE,
-                    height: FLARE,
-                    // Gradient center at BOTTOM-RIGHT of this pseudo (= the
-                    // point where the card top edge meets the tab). Card
-                    // color fills the disk; the upper-left CORNER of the
-                    // pseudo (which sits next to the tab's bottom-left
-                    // corner) is OUTSIDE the disk → transparent → that's
-                    // the concave cutout where the page bg shows through.
-                    background: `radial-gradient(circle at bottom right, ${TAB_CARD_BG} ${FLARE - 0.5}px, transparent ${FLARE}px)`,
+                    left: -SQ,
+                    width: SQ,
+                    height: SQ,
+                    background: TAB_CARD_BG,
+                    zIndex: 1,
+                    pointerEvents: "none",
+                  }}
+                />
+                {/* LEFT side — circle (page bg, on top, rounds the corner out) */}
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: -CIRCLE,
+                    width: CIRCLE,
+                    height: CIRCLE,
+                    borderRadius: "50%",
+                    background: PAGE_BG,
+                    zIndex: 2,
+                    pointerEvents: "none",
+                  }}
+                />
+                {/* RIGHT side — mirror */}
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: -SQ,
+                    width: SQ,
+                    height: SQ,
+                    background: TAB_CARD_BG,
+                    zIndex: 1,
                     pointerEvents: "none",
                   }}
                 />
@@ -100,12 +141,12 @@ export default function BrandTabs({ slug }: { slug: string }) {
                   style={{
                     position: "absolute",
                     bottom: 0,
-                    right: -FLARE,
-                    width: FLARE,
-                    height: FLARE,
-                    // Mirror: center at BOTTOM-LEFT, concave cutout at the
-                    // TOP-RIGHT corner of the pseudo.
-                    background: `radial-gradient(circle at bottom left, ${TAB_CARD_BG} ${FLARE - 0.5}px, transparent ${FLARE}px)`,
+                    right: -CIRCLE,
+                    width: CIRCLE,
+                    height: CIRCLE,
+                    borderRadius: "50%",
+                    background: PAGE_BG,
+                    zIndex: 2,
                     pointerEvents: "none",
                   }}
                 />
