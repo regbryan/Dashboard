@@ -85,7 +85,11 @@ export default function BrandTabs({ slug }: { slug: string }) {
                     left: -FLARE,
                     width: FLARE,
                     height: FLARE,
-                    background: `radial-gradient(circle at top left, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
+                    // Gradient center at TOP-RIGHT of this pseudo (= tab's
+                    // bottom-left corner). Inside the radius: transparent
+                    // (concave cutout). Outside: card color filling the
+                    // bottom-left of the pseudo and bleeding into the card.
+                    background: `radial-gradient(circle at top right, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
                     pointerEvents: "none",
                   }}
                 />
@@ -97,7 +101,9 @@ export default function BrandTabs({ slug }: { slug: string }) {
                     right: -FLARE,
                     width: FLARE,
                     height: FLARE,
-                    background: `radial-gradient(circle at top right, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
+                    // Mirror of the left flare — gradient center at TOP-LEFT
+                    // of this pseudo (= tab's bottom-right corner).
+                    background: `radial-gradient(circle at top left, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
                     pointerEvents: "none",
                   }}
                 />
