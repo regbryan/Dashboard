@@ -2,9 +2,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import PostCard from "@/components/PostCard";
 import ClientReviewLink from "@/components/ClientReviewLink";
-import BrandKitPanel from "@/components/BrandKitPanel";
 import { getBrandClientEmails } from "@/lib/brand-clients";
-import { loadBrandKit } from "@/lib/brand-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +71,6 @@ export default async function BrandDetailPage({
   const isAllActive = !filterStatus && !filter;
 
   const clientEmails = await getBrandClientEmails(brand.id).catch(() => []);
-  const brandKitView = await loadBrandKit(slug).catch(() => null);
 
   return (
     <div className="min-h-[calc(100vh-64px)]" style={{ padding: "32px clamp(20px, 4vw, 56px) 64px" }}>
@@ -143,8 +140,6 @@ export default async function BrandDetailPage({
             </p>
           )}
         </div>
-
-        {brandKitView && <BrandKitPanel view={brandKitView} />}
 
         <div style={{ marginBottom: "28px" }}>
           <ClientReviewLink
