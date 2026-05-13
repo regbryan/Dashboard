@@ -77,21 +77,33 @@ function Hero({
         }}
       >
         {logoUrl ? (
-          /* Logo renders raw — no tile, no glow, no checkerboard.
-             Just the mark on the page. */
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={logoUrl}
-            alt={`${brand.name} logo`}
+          /* White tile so logos designed for light backgrounds read
+             cleanly on the dark dashboard. */
+          <div
             style={{
-              height: "72px",
-              width: "auto",
-              maxWidth: "200px",
-              objectFit: "contain",
+              width: "96px",
+              height: "96px",
+              borderRadius: "16px",
+              background: "white",
+              padding: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               flexShrink: 0,
               alignSelf: "center",
             }}
-          />
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoUrl}
+              alt={`${brand.name} logo`}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </div>
         ) : primaryHex ? (
           /* No logo on file — thin color rule reads as a vertical
              accent bar next to the name. Not a decorative chip. */
