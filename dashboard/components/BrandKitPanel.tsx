@@ -66,83 +66,81 @@ function Hero({
   logoUrl: string | null;
   logoCount: number;
 }) {
-  // Logo if we have one; otherwise fall back to the primary color
-  // chip so the hero never renders empty.
-  const showLogo = Boolean(logoUrl);
-
   return (
-    <div
-      style={{
-        background: "linear-gradient(180deg, rgba(192,132,252,0.06) 0%, rgba(15,15,26,0.6) 100%)",
-        border: "1px solid rgba(192,132,252,0.18)",
-        borderRadius: "20px",
-        padding: "24px 28px",
-        display: "grid",
-        gap: "20px",
-      }}
-    >
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px" }}>
-        {showLogo ? (
-          <div
+    <div style={{ display: "grid", gap: "28px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "24px",
+          flexWrap: "wrap",
+        }}
+      >
+        {logoUrl ? (
+          /* Logo renders raw — no tile, no glow, no checkerboard.
+             Just the mark on the page. */
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={logoUrl}
+            alt={`${brand.name} logo`}
             style={{
-              width: "72px",
               height: "72px",
-              borderRadius: "16px",
-              background:
-                "repeating-conic-gradient(rgba(255,255,255,0.02) 0deg 90deg, rgba(255,255,255,0.04) 90deg 180deg) 0 0 / 12px 12px",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: primaryHex
-                ? `0 0 32px ${primaryHex}40`
-                : "0 0 24px rgba(192,132,252,0.18)",
+              width: "auto",
+              maxWidth: "200px",
+              objectFit: "contain",
               flexShrink: 0,
-              padding: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              alignSelf: "center",
             }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoUrl ?? ""}
-              alt={`${brand.name} logo`}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-              }}
-            />
-          </div>
+          />
         ) : primaryHex ? (
+          /* No logo on file — thin color rule reads as a vertical
+             accent bar next to the name. Not a decorative chip. */
           <div
             style={{
-              width: "56px",
+              width: "3px",
               height: "56px",
-              borderRadius: "16px",
               background: primaryHex,
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: `0 0 32px ${primaryHex}40`,
+              alignSelf: "center",
               flexShrink: 0,
             }}
           />
         ) : null}
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          {kit?.archetype && (
+            <div
+              style={{
+                fontSize: "11px",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: LABEL,
+                fontWeight: 600,
+              }}
+            >
+              {kit.archetype} archetype
+            </div>
+          )}
           <div
             style={{
-              fontSize: "11px",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: ACCENT,
+              marginTop: kit?.archetype ? "6px" : 0,
+              fontSize: "32px",
               fontWeight: 600,
+              color: "white",
+              letterSpacing: "-0.025em",
+              lineHeight: 1.1,
             }}
           >
-            {kit?.archetype ? `${kit.archetype} archetype` : "Brand archetype unset"}
-          </div>
-          <div style={{ marginTop: "4px", fontSize: "24px", fontWeight: 600, color: "white", letterSpacing: "-0.02em" }}>
             {brand.name}
           </div>
           {kit?.tagline && (
-            <div style={{ marginTop: "6px", fontSize: "14px", color: VALUE, fontStyle: "italic" }}>
-              &ldquo;{kit.tagline}&rdquo;
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "15px",
+                color: VALUE,
+                lineHeight: 1.5,
+              }}
+            >
+              {kit.tagline}
             </div>
           )}
         </div>
@@ -152,7 +150,11 @@ function Hero({
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: "12px",
+          gap: "1px",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: "12px",
+          overflow: "hidden",
         }}
       >
         <StatTile label="Industry" value={kit?.industry} />
@@ -168,16 +170,14 @@ function StatTile({ label, value }: { label: string; value: string | null | unde
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        borderRadius: "12px",
-        padding: "12px 14px",
+        background: "#0c0c14",
+        padding: "16px 18px",
       }}
     >
       <div
         style={{
           fontSize: "10px",
-          letterSpacing: "0.1em",
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: LABEL,
           fontWeight: 600,
@@ -187,8 +187,8 @@ function StatTile({ label, value }: { label: string; value: string | null | unde
       </div>
       <div
         style={{
-          marginTop: "4px",
-          fontSize: "14px",
+          marginTop: "6px",
+          fontSize: "15px",
           color: value ? "white" : MUTED,
           fontWeight: 500,
           textTransform: value && value.length < 16 ? "capitalize" : "none",
