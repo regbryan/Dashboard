@@ -19,11 +19,10 @@ export default async function BrandLayout({
 
   const { data: brand } = await supabase
     .from("brands")
-    .select("id, name, color_primary, handle")
+    .select("id, name, handle")
     .eq("id", slug)
     .single();
 
-  const accentColor = brand?.color_primary || "#8b5cff";
 
   return (
     <>
@@ -75,7 +74,7 @@ export default async function BrandLayout({
               </span>
             )}
           </div>
-          <BrandTabs slug={slug} accentColor={accentColor} />
+          <BrandTabs slug={slug} />
         </div>
       </div>
       {children}

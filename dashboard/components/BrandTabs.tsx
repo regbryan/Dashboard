@@ -4,17 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * Brand sub-nav rendered as premium file-folder tabs.
+ * File-drawer tabs. Each section reads as the top edge of a manila
+ * folder sitting in a drawer — inactive folders are recessed slightly,
+ * the active one is pulled forward with a clear elevation shadow and
+ * sits flush against the content surface below.
  *
- * Restraint over decoration: no stripe across the active tab, no
- * heavy borders. Active state is communicated by elevation — a card
- * surface with a soft inner top highlight and a faint accent glow
- * radiating upward. Inactive tabs are quiet text that brighten on
- * hover. The tab strip's separator line is "punched" by the active
- * tab so the folder connects seamlessly to the content surface.
- *
- * Active suffix uses longest-match on usePathname() so nested routes
- * (e.g. /post/[id]) keep the right tab highlighted.
+ * No colored accent — depth alone communicates which folder is open.
+ * Active state computed via longest-suffix pathname match.
  */
 const SECTIONS = [
   { label: "Designs", suffix: "" },
@@ -23,15 +19,11 @@ const SECTIONS = [
   { label: "Assets", suffix: "/assets" },
 ] as const;
 
-const ACTIVE_BG = "#0f0f1a";
+const ACTIVE_BG = "#15151f";
+const INACTIVE_BG = "#0c0c14";
+const RIM = "rgba(255,255,255,0.06)";
 
-export default function BrandTabs({
-  slug,
-  accentColor = "#8b5cff",
-}: {
-  slug: string;
-  accentColor?: string;
-}) {
+export default function BrandTabs({ slug }: { slug: string }) {
   const pathname = usePathname() ?? "";
   const base = `/dashboard/brand/${slug}`;
 
@@ -52,11 +44,12 @@ export default function BrandTabs({
     <div
       role="tablist"
       aria-label="Brand sections"
-      className="flex items-end gap-1 overflow-x-auto"
+      className="flex items-end overflow-x-auto"
       style={{
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        gap: "2px",
+        borderBottom: `1px solid ${RIM}`,
         marginBottom: "-1px",
-        paddingTop: "10px",
+        paddingTop: "16px",
       }}
     >
       {SECTIONS.map((s) => {
@@ -72,41 +65,52 @@ export default function BrandTabs({
               "group/tab relative whitespace-nowrap transition-all duration-200 ease-out " +
               (active
                 ? "text-white"
-                : "text-[#7a7a88] hover:text-[#dcdce4]")
+                : "text-[#8a8a96] hover:text-[#cfcfd8]")
             }
             style={{
-              padding: active ? "12px 22px 14px" : "9px 20px 11px",
+              // Active sits ~5px taller so it reads as pulled forward
+              padding: active ? "13px 22px 14px" : "8px 20px 10px",
               fontSize: "13px",
               fontWeight: active ? 600 : 500,
-              letterSpacing: active ? "-0.005em" : "0",
+              letterSpacing: active ? "-0.005em" : "0.005em",
               textDecoration: "none",
+              // Subtle vertical gradient on active for a paper-like sheen;
+              // flat muted fill on inactive so they recede.
               background: active
-                ? `linear-gradient(180deg, #16162b 0%, ${ACTIVE_BG} 65%, ${ACTIVE_BG} 100%)`
-                : "transparent",
-              border: active
-                ? "1px solid rgba(255,255,255,0.08)"
-                : "1px solid transparent",
-              borderBottomColor: active ? ACTIVE_BG : "transparent",
-              borderTopLeftRadius: "11px",
-              borderTopRightRadius: "11px",
+                ? `linear-gradient(180deg, #1c1c2a 0%, ${ACTIVE_BG} 60%, ${ACTIVE_BG} 100%)`
+                : INACTIVE_BG,
+              border: `1px solid ${RIM}`,
+              // Bottom of active tab merges into the content surface
+              borderBottomColor: active ? ACTIVE_BG : RIM,
+              // Folder-top silhouette: rounded top, square bottom corners
+              borderTopLeftRadius: "9px",
+              borderTopRightRadius: "9px",
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              // Active "punches through" the drawer rim
               marginBottom: active ? "-1px" : "0",
               boxShadow: active
                 ? [
-                    `0 -14px 28px -16px ${accentColor}33`,
-                    "inset 0 1px 0 rgba(255,255,255,0.06)",
+                    // Soft elevation lift — folder pulled out toward viewer
+                    "0 -1px 0 rgba(255,255,255,0.04) inset",
+                    "0 10px 22px -14px rgba(0,0,0,0.6)",
+                    "0 2px 0 rgba(0,0,0,0.35) inset",
                   ].join(", ")
-                : undefined,
+                : [
+                    // Inactive folders sit slightly recessed
+                    "0 1px 0 rgba(0,0,0,0.25) inset",
+                  ].join(", "),
               zIndex: active ? 2 : 1,
             }}
           >
-            {/* Inactive hover surface — soft top fade */}
+            {/* Inactive hover surface — paper brightens slightly */}
             {!active && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-x-1 top-1 bottom-0 rounded-t-[10px] opacity-0 transition-opacity duration-200 ease-out group-hover/tab:opacity-100"
+                className="pointer-events-none absolute inset-0 rounded-t-[9px] opacity-0 transition-opacity duration-200 ease-out group-hover/tab:opacity-100"
                 style={{
                   background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)",
+                    "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 60%, transparent 100%)",
                 }}
               />
             )}
