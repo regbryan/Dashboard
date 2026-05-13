@@ -260,7 +260,14 @@ function DayCell({
 }
 
 function PostPill({ post, brandId }: { post: Post; brandId: string }) {
-  const thumb = getImageUrl(brandId, post.file_path, post.updated_at);
+  // Videos (.mp4/.mov/.webm) can't render in <img>. Detect by extension
+  // and show a labeled placeholder for those file types.
+  const isVideo = post.file_path
+    ? /\.(mp4|mov|webm|m4v)$/i.test(post.file_path)
+    : false;
+  const thumb = !isVideo
+    ? getImageUrl(brandId, post.file_path, post.updated_at)
+    : null;
   return (
     <Link
       href={`/dashboard/brand/${brandId}/post/${post.id}`}
@@ -295,6 +302,52 @@ function PostPill({ post, brandId }: { post: Post; brandId: string }) {
               objectFit: "cover",
             }}
           />
+        </div>
+      ) : isVideo ? (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            background:
+              "linear-gradient(135deg, rgba(192,132,252,0.12) 0%, rgba(15,15,26,0.6) 70%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px",
+            padding: "8px",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "26px",
+              height: "26px",
+              borderRadius: "50%",
+              background: "rgba(192,132,252,0.18)",
+              border: "1px solid rgba(192,132,252,0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#d9b4ff",
+              fontSize: "11px",
+              paddingLeft: "2px",
+            }}
+          >
+            ▶
+          </div>
+          <div
+            style={{
+              fontSize: "9px",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "#c084fc",
+              fontWeight: 600,
+            }}
+          >
+            {post.post_type ?? "Video"}
+          </div>
         </div>
       ) : (
         <div
