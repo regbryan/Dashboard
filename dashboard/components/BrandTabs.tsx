@@ -19,8 +19,8 @@ const SECTIONS = [
   { label: "Assets", suffix: "/assets" },
 ] as const;
 
-export const TAB_CARD_BG = "#15151f";
-const FLARE = 14;
+export const TAB_CARD_BG = "#1e1e30";
+const FLARE = 20;
 
 export default function BrandTabs({ slug }: { slug: string }) {
   const pathname = usePathname() ?? "";
@@ -62,14 +62,14 @@ export default function BrandTabs({ slug }: { slug: string }) {
                 : "text-[#8a8a96] hover:text-[#dcdce4]")
             }
             style={{
-              padding: active ? "13px 26px 16px" : "10px 22px 14px",
-              fontSize: "13px",
+              padding: active ? "14px 28px 18px" : "10px 22px 14px",
+              fontSize: "14px",
               fontWeight: active ? 600 : 500,
               letterSpacing: active ? "-0.005em" : "0.005em",
               textDecoration: "none",
               background: active ? TAB_CARD_BG : "transparent",
-              borderTopLeftRadius: "14px",
-              borderTopRightRadius: "14px",
+              borderTopLeftRadius: "16px",
+              borderTopRightRadius: "16px",
               marginBottom: active ? "0" : "0",
               zIndex: active ? 2 : 1,
             }}

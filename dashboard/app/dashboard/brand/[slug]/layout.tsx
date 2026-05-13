@@ -157,9 +157,9 @@ export default async function BrandLayout({
         <div
           style={{
             background: TAB_CARD_BG,
-            borderRadius: "20px",
-            borderTopLeftRadius: "20px",
-            borderTopRightRadius: "20px",
+            borderRadius: "24px",
+            borderTopLeftRadius: "24px",
+            borderTopRightRadius: "24px",
             boxShadow: [
               // Inner top highlight — paper-like sheen
               "0 1px 0 rgba(255,255,255,0.05) inset",
