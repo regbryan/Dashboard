@@ -14,7 +14,7 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
   const primaryHex = colors[0]?.hex ?? null;
 
   return (
-    <div style={{ display: "grid", gap: "32px" }}>
+    <div style={{ display: "grid", gap: "24px" }}>
       {/* Hero — what defines this brand at a glance */}
       <Hero
         brand={brand}
@@ -67,52 +67,42 @@ function Hero({
   logoCount: number;
 }) {
   return (
-    <div style={{ display: "grid", gap: "28px" }}>
+    <div style={{ display: "grid", gap: "16px" }}>
       <div
         style={{
           display: "flex",
-          alignItems: "flex-end",
-          gap: "24px",
+          alignItems: "center",
+          gap: "18px",
           flexWrap: "wrap",
         }}
       >
         {logoUrl ? (
-          /* White tile so logos designed for light backgrounds read
-             cleanly on the dark dashboard. */
           <div
             style={{
-              width: "96px",
-              height: "96px",
-              borderRadius: "16px",
+              width: "72px",
+              height: "72px",
+              borderRadius: "12px",
               background: "white",
-              padding: "12px",
+              padding: "10px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              alignSelf: "center",
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logoUrl}
               alt={`${brand.name} logo`}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-              }}
+              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
             />
           </div>
         ) : primaryHex ? (
-          /* No logo on file — thin color rule reads as a vertical
-             accent bar next to the name. Not a decorative chip. */
           <div
             style={{
               width: "3px",
-              height: "56px",
+              height: "44px",
               background: primaryHex,
-              alignSelf: "center",
               flexShrink: 0,
             }}
           />
@@ -121,7 +111,7 @@ function Hero({
           {kit?.archetype && (
             <div
               style={{
-                fontSize: "11px",
+                fontSize: "10px",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
                 color: LABEL,
@@ -133,8 +123,8 @@ function Hero({
           )}
           <div
             style={{
-              marginTop: kit?.archetype ? "6px" : 0,
-              fontSize: "32px",
+              marginTop: kit?.archetype ? "2px" : 0,
+              fontSize: "26px",
               fontWeight: 600,
               color: "white",
               letterSpacing: "-0.025em",
@@ -144,14 +134,7 @@ function Hero({
             {brand.name}
           </div>
           {kit?.tagline && (
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "15px",
-                color: VALUE,
-                lineHeight: 1.5,
-              }}
-            >
+            <div style={{ marginTop: "4px", fontSize: "13px", color: VALUE, lineHeight: 1.45 }}>
               {kit.tagline}
             </div>
           )}
@@ -180,15 +163,10 @@ function Hero({
 
 function StatTile({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div
-      style={{
-        background: "#0c0c14",
-        padding: "16px 18px",
-      }}
-    >
+    <div style={{ background: "#0c0c14", padding: "10px 14px" }}>
       <div
         style={{
-          fontSize: "10px",
+          fontSize: "9px",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: LABEL,
@@ -199,8 +177,8 @@ function StatTile({ label, value }: { label: string; value: string | null | unde
       </div>
       <div
         style={{
-          marginTop: "6px",
-          fontSize: "15px",
+          marginTop: "3px",
+          fontSize: "13px",
           color: value ? "white" : MUTED,
           fontWeight: 500,
           textTransform: value && value.length < 16 ? "capitalize" : "none",
@@ -247,14 +225,14 @@ function Quote({ label, body, accent }: { label: string; body: string; accent?: 
       style={{
         background: accent ? "rgba(192,132,252,0.04)" : "rgba(255,255,255,0.02)",
         border: `1px solid ${accent ? "rgba(192,132,252,0.18)" : "rgba(255,255,255,0.06)"}`,
-        borderRadius: "12px",
-        padding: "16px 18px",
+        borderRadius: "10px",
+        padding: "12px 14px",
       }}
     >
       <div
         style={{
-          fontSize: "10px",
-          letterSpacing: "0.1em",
+          fontSize: "9px",
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: accent ? ACCENT : LABEL,
           fontWeight: 600,
@@ -262,7 +240,7 @@ function Quote({ label, body, accent }: { label: string; body: string; accent?: 
       >
         {label}
       </div>
-      <p style={{ marginTop: "8px", fontSize: "14px", lineHeight: 1.55, color: VALUE }}>
+      <p style={{ marginTop: "5px", fontSize: "13px", lineHeight: 1.5, color: VALUE }}>
         {body}
       </p>
     </div>
@@ -286,7 +264,7 @@ function VisualIdentity({
 
   return (
     <SectionFrame title="Visual identity">
-      <div style={{ display: "grid", gap: "20px" }}>
+      <div style={{ display: "grid", gap: "12px" }}>
         {colors.length > 0 ? (
           <ColorRibbon colors={colors} />
         ) : (
@@ -296,8 +274,8 @@ function VisualIdentity({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "16px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: "10px",
             alignItems: "start",
           }}
         >
@@ -334,33 +312,28 @@ function VisualIdentity({
 
 function ColorRibbon({ colors }: { colors: { label: string; hex: string }[] }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
       {colors.map((c) => (
         <div
           key={c.hex + c.label}
           style={{
-            flex: "1 1 140px",
-            minWidth: "140px",
-            borderRadius: "12px",
+            flex: "1 1 120px",
+            minWidth: "120px",
+            borderRadius: "8px",
             overflow: "hidden",
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <div style={{ height: "64px", background: c.hex }} />
-          <div
-            style={{
-              padding: "8px 12px",
-              background: "rgba(255,255,255,0.02)",
-            }}
-          >
-            <div style={{ fontSize: "11px", color: LABEL, textTransform: "capitalize" }}>
+          <div style={{ height: "44px", background: c.hex }} />
+          <div style={{ padding: "6px 10px", background: "rgba(255,255,255,0.02)" }}>
+            <div style={{ fontSize: "10px", color: LABEL, textTransform: "capitalize" }}>
               {c.label}
             </div>
             <div
               style={{
-                marginTop: "2px",
+                marginTop: "1px",
                 fontFamily: "ui-monospace, SF Mono, Menlo, monospace",
-                fontSize: "12px",
+                fontSize: "11px",
                 color: VALUE,
                 letterSpacing: "0.02em",
               }}
@@ -444,7 +417,7 @@ function Voice({ kit }: { kit: BrandKitView["kit"] }) {
 
   return (
     <SectionFrame title="Voice & personality">
-      <div style={{ display: "grid", gap: "16px" }}>
+      <div style={{ display: "grid", gap: "12px" }}>
         {keywords.length > 0 && (
           <div>
             <SubLabel>Tone keywords</SubLabel>
@@ -496,8 +469,8 @@ function DoDontList({ items, kind }: { items: string[]; kind: "do" | "dont" }) {
       style={{
         background: bg,
         border: `1px solid ${border}`,
-        borderRadius: "12px",
-        padding: "14px 16px",
+        borderRadius: "10px",
+        padding: "10px 12px",
       }}
     >
       <div
@@ -573,7 +546,7 @@ function ContentStrategy({ kit }: { kit: BrandKitView["kit"] }) {
 
   return (
     <SectionFrame title="Content strategy">
-      <div style={{ display: "grid", gap: "20px" }}>
+      <div style={{ display: "grid", gap: "14px" }}>
         {pillars.length > 0 && <PillarBars pillars={pillars} />}
         {audiences.length > 0 && <Audiences audiences={audiences} />}
         {hashtagBuckets.some((b) => b.tags.length > 0) && (
@@ -653,18 +626,18 @@ function Audiences({
   return (
     <div>
       <SubLabel>Audiences</SubLabel>
-      <div style={{ display: "grid", gap: "10px", marginTop: "10px" }}>
+      <div style={{ display: "grid", gap: "6px", marginTop: "8px" }}>
         {sorted.map((a, i) => (
           <div
             key={i}
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(100px, 130px) 1fr",
-              gap: "16px",
-              padding: "12px 14px",
+              gridTemplateColumns: "minmax(90px, 110px) 1fr",
+              gap: "14px",
+              padding: "8px 12px",
               background: "rgba(255,255,255,0.02)",
               border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "10px",
+              borderRadius: "8px",
               alignItems: "baseline",
             }}
           >
@@ -929,12 +902,12 @@ function SectionFrame({ title, children }: { title: string; children: React.Reac
     <div>
       <div
         style={{
-          fontSize: "11px",
-          letterSpacing: "0.1em",
+          fontSize: "10px",
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: LABEL,
           fontWeight: 600,
-          marginBottom: "14px",
+          marginBottom: "10px",
         }}
       >
         {title}
