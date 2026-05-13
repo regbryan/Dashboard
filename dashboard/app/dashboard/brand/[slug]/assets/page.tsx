@@ -1,9 +1,13 @@
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * Brand Assets — surfaces uploaded logos from `brand_logos`. Acts as a
  * lightweight gallery for now; upload + delete UI lands in a follow-up
  * once we agree on the auth posture for asset mutations.
+ *
+ * Uses the service-role client (matching lib/brand-kit.ts) so the page
+ * is unaffected by RLS on brand_logos. The page is admin-gated
+ * upstream by the dashboard layout.
  */
 export const dynamic = "force-dynamic";
 
@@ -29,7 +33,7 @@ export default async function BrandAssetsPage({
 }) {
   const { slug } = await params;
 
-  const { data: logoRows } = await supabase
+  const { data: logoRows } = await supabaseAdmin()
     .from("brand_logos")
     .select("id, storage_path, label, is_default")
     .eq("brand_id", slug)
