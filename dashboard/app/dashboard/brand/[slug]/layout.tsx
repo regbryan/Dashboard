@@ -35,7 +35,6 @@ export default async function BrandLayout({
           background: "rgba(7,7,14,0.92)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
-          borderBottom: "1px solid #1a1a2e",
         }}
       >
         <div

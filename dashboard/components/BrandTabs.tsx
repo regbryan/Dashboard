@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * Sticky tab strip rendered above every page inside a brand. Keeps
- * Designs / Calendar / Brand Kit / Assets one click away no matter how
- * far the operator has scrolled.
+ * File-folder tabs above every brand sub-route. The active tab sits
+ * forward — same fill as the content surface below — with rounded top
+ * corners and a 1px negative margin-bottom so its lower edge overlaps
+ * the container's separator line, visually merging tab + content into
+ * a single folder.
  *
- * Active state computed from usePathname() with longest-suffix match so
- * nested routes (e.g. /calendar/foo) keep the right tab highlighted.
+ * Active state via longest-suffix pathname match so nested routes keep
+ * the right tab highlighted (e.g. /post/[id] still reads as Designs).
  */
 const SECTIONS = [
   { label: "Designs", suffix: "" },
@@ -17,6 +19,10 @@ const SECTIONS = [
   { label: "Brand Kit", suffix: "/kit" },
   { label: "Assets", suffix: "/assets" },
 ] as const;
+
+const FOLDER_BG = "#0f0f1a"; // matches PostCard / BrandKitPanel surface
+const FOLDER_BORDER = "#1a1a2e";
+const MUTED_FILL = "#0a0a14";
 
 export default function BrandTabs({
   slug,
@@ -42,15 +48,17 @@ export default function BrandTabs({
   })();
 
   return (
-    <nav
+    <div
       role="tablist"
       aria-label="Brand sections"
       style={{
         display: "flex",
-        alignItems: "stretch",
-        gap: 0,
+        alignItems: "flex-end",
+        gap: "4px",
+        borderBottom: `1px solid ${FOLDER_BORDER}`,
+        marginBottom: "-1px", // sits flush over the next surface's top edge
         overflowX: "auto",
-        borderBottom: "1px solid #1a1a2e",
+        paddingTop: "6px",
       }}
     >
       {SECTIONS.map((s) => {
@@ -64,34 +72,32 @@ export default function BrandTabs({
             aria-selected={active}
             style={{
               position: "relative",
-              padding: "12px 18px",
-              fontSize: "14px",
+              padding: active ? "11px 20px 12px" : "9px 18px 10px",
+              fontSize: "13px",
               fontWeight: active ? 600 : 500,
               color: active ? "white" : "#9999a6",
               textDecoration: "none",
               whiteSpace: "nowrap",
-              transition: "color 0.15s ease",
+              background: active ? FOLDER_BG : MUTED_FILL,
+              border: `1px solid ${FOLDER_BORDER}`,
+              borderTop: active
+                ? `2px solid ${accentColor}`
+                : `1px solid ${FOLDER_BORDER}`,
+              borderBottomColor: active ? FOLDER_BG : FOLDER_BORDER,
+              borderTopLeftRadius: "9px",
+              borderTopRightRadius: "9px",
+              marginBottom: active ? "-1px" : "0",
+              boxShadow: active
+                ? `0 -6px 14px -8px ${accentColor}40`
+                : undefined,
+              transition: "color 0.15s ease, background 0.15s ease",
+              zIndex: active ? 2 : 1,
             }}
           >
             {s.label}
-            <span
-              aria-hidden
-              style={{
-                position: "absolute",
-                left: "14px",
-                right: "14px",
-                bottom: "-1px",
-                height: "2px",
-                borderRadius: "2px 2px 0 0",
-                background: accentColor,
-                opacity: active ? 1 : 0,
-                boxShadow: active ? `0 0 12px ${accentColor}80` : undefined,
-                transition: "opacity 0.15s ease",
-              }}
-            />
           </Link>
         );
       })}
-    </nav>
+    </div>
   );
 }
