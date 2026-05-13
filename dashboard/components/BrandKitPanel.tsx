@@ -233,14 +233,13 @@ function VisualIdentity({
 }) {
   const photography = kit?.photography_direction;
   const donts = kit?.visual_donts ?? [];
-  const roles = extractColorRoles(kit?.colors);
   const fonts = kit?.fonts;
 
   return (
     <SectionFrame title="Visual identity">
       <div style={{ display: "grid", gap: "20px" }}>
         {colors.length > 0 ? (
-          <ColorRibbon colors={colors} roles={roles} />
+          <ColorRibbon colors={colors} />
         ) : (
           <MissingCard label="No palette yet" hint="Derivation samples colors from approved post images." />
         )}
@@ -284,87 +283,44 @@ function VisualIdentity({
   );
 }
 
-function ColorRibbon({
-  colors,
-  roles,
-}: {
-  colors: { label: string; hex: string }[];
-  roles: Array<[string, string]>;
-}) {
+function ColorRibbon({ colors }: { colors: { label: string; hex: string }[] }) {
   return (
-    <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-        {colors.map((c) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+      {colors.map((c) => (
+        <div
+          key={c.hex + c.label}
+          style={{
+            flex: "1 1 140px",
+            minWidth: "140px",
+            borderRadius: "12px",
+            overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <div style={{ height: "64px", background: c.hex }} />
           <div
-            key={c.hex + c.label}
             style={{
-              flex: "1 1 140px",
-              minWidth: "140px",
-              borderRadius: "12px",
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.08)",
+              padding: "8px 12px",
+              background: "rgba(255,255,255,0.02)",
             }}
           >
-            <div style={{ height: "64px", background: c.hex }} />
+            <div style={{ fontSize: "11px", color: LABEL, textTransform: "capitalize" }}>
+              {c.label}
+            </div>
             <div
               style={{
-                padding: "8px 12px",
-                background: "rgba(255,255,255,0.02)",
+                marginTop: "2px",
+                fontFamily: "ui-monospace, SF Mono, Menlo, monospace",
+                fontSize: "12px",
+                color: VALUE,
+                letterSpacing: "0.02em",
               }}
             >
-              <div style={{ fontSize: "11px", color: LABEL, textTransform: "capitalize" }}>
-                {c.label}
-              </div>
-              <div
-                style={{
-                  marginTop: "2px",
-                  fontFamily: "ui-monospace, SF Mono, Menlo, monospace",
-                  fontSize: "12px",
-                  color: VALUE,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                {c.hex.toUpperCase()}
-              </div>
+              {c.hex.toUpperCase()}
             </div>
           </div>
-        ))}
-      </div>
-
-      {roles.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "12px" }}>
-          {roles.map(([role, val]) => (
-            <span
-              key={role + val}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "4px 10px 4px 6px",
-                borderRadius: "999px",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                fontSize: "11px",
-                color: VALUE,
-              }}
-            >
-              <span
-                style={{
-                  width: "14px",
-                  height: "14px",
-                  borderRadius: "4px",
-                  background: val,
-                  border: "1px solid rgba(0,0,0,0.4)",
-                }}
-              />
-              <span style={{ color: LABEL }}>{role}:</span>{" "}
-              <span style={{ fontFamily: "ui-monospace, SF Mono, Menlo, monospace" }}>
-                {val.toUpperCase()}
-              </span>
-            </span>
-          ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -1059,19 +1015,6 @@ function collectColors(
     }
   }
   return swatches;
-}
-
-function extractColorRoles(
-  colors: Record<string, unknown> | null | undefined
-): Array<[string, string]> {
-  if (!colors || typeof colors !== "object") return [];
-  const roles = (colors as { roles?: Record<string, unknown> }).roles;
-  if (!roles || typeof roles !== "object") return [];
-  const out: Array<[string, string]> = [];
-  for (const [k, v] of Object.entries(roles)) {
-    if (typeof v === "string" && v.length > 0) out.push([k, v]);
-  }
-  return out;
 }
 
 function toStringArray(value: unknown): string[] {
