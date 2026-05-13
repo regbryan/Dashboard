@@ -163,6 +163,31 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
+    // 4. Claim the pending_signup if this user was Stripe-staged.
+    // Looking by claimed_by_user_id (set by /api/onboarding/claim
+    // after the Stripe checkout redirect) is the strongest signal —
+    // it ties the row to this specific user even if their email later
+    // changes. Fall back to email match.
+    const { data: pending } = await admin
+      .from("pending_signups")
+      .select("id")
+      .or(
+        `claimed_by_user_id.eq.${ctx.user.id},email.eq.${(ctx.user.email ?? "").toLowerCase()}`
+      )
+      .is("claimed_at", null)
+      .limit(1)
+      .maybeSingle();
+    if (pending) {
+      await admin
+        .from("pending_signups")
+        .update({
+          claimed_at: new Date().toISOString(),
+          claimed_by_user_id: ctx.user.id,
+          claimed_brand_id: body.slug,
+        })
+        .eq("id", pending.id);
+    }
+
     return Response.json({
       ok: true,
       slug: body.slug,

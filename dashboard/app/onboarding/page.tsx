@@ -15,7 +15,12 @@ import OnboardingForm from "./OnboardingForm";
  */
 export const dynamic = "force-dynamic";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ paid?: string; pending?: string }>;
+}) {
+  const { paid, pending } = await searchParams;
   const supabase = await createSupabaseServer();
   const {
     data: { user },
@@ -66,6 +71,51 @@ export default async function OnboardingPage() {
         style={{ position: "relative", maxWidth: "760px" }}
       >
         <header style={{ marginBottom: "28px" }}>
+          {paid && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "8px 14px",
+                marginBottom: "16px",
+                borderRadius: "999px",
+                background: "rgba(126,231,135,0.08)",
+                border: "1px solid rgba(126,231,135,0.3)",
+                color: "#a7f3c4",
+                fontSize: "12px",
+                fontWeight: 500,
+              }}
+            >
+              <span style={{ color: "#7ee787", fontWeight: 700 }}>✓</span>
+              Payment received — you&apos;re on the{" "}
+              <strong style={{ textTransform: "capitalize", color: "white" }}>
+                {paid}
+              </strong>{" "}
+              plan. Let&apos;s set up your brand.
+            </div>
+          )}
+          {pending === "1" && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "8px 14px",
+                marginBottom: "16px",
+                borderRadius: "999px",
+                background: "rgba(251,191,36,0.06)",
+                border: "1px solid rgba(251,191,36,0.3)",
+                color: "#fbd38d",
+                fontSize: "12px",
+                fontWeight: 500,
+              }}
+            >
+              <span>⏳</span>
+              Stripe&apos;s confirmation is still processing. You can fill out
+              the form — we&apos;ll link your payment automatically.
+            </div>
+          )}
           <div
             style={{
               fontSize: "11px",
