@@ -73,73 +73,44 @@ export default async function BrandDetailPage({
   const clientEmails = await getBrandClientEmails(brand.id).catch(() => []);
 
   return (
-    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "32px clamp(20px, 4vw, 56px) 64px" }}>
-      <div className="mx-auto" style={{ maxWidth: "1280px" }}>
-        <Link
-          href="/dashboard"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "13px",
-            color: "#9999a6",
-            textDecoration: "none",
-            marginBottom: "24px",
-          }}
+    <div style={{ padding: "28px clamp(20px, 3vw, 36px) 48px" }}>
+      <div>
+        {/* Brand stats row (name + handle live in the layout chrome above) */}
+        <div
+          className="flex flex-wrap items-center"
+          style={{ gap: "16px", marginBottom: "24px", color: "#9999a6", fontSize: "13px" }}
         >
-          ← All brands
-        </Link>
-
-        {/* Header */}
-        <div style={{ marginBottom: "32px" }}>
-          <div className="flex items-center" style={{ gap: "12px" }}>
+          <div className="flex items-center" style={{ gap: "8px" }}>
             <div
               style={{
-                width: "12px",
-                height: "12px",
+                width: "10px",
+                height: "10px",
                 borderRadius: "50%",
                 backgroundColor: accentColor,
-                boxShadow: `0 0 14px ${accentColor}`,
+                boxShadow: `0 0 10px ${accentColor}80`,
                 flexShrink: 0,
               }}
             />
-            <span className="eyebrow" style={{ color: "#c084fc" }}>
+            <span style={{ color: "#c084fc", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>
               {brand.platform || "Brand"} · {dateRange}
             </span>
           </div>
-          <div className="flex flex-wrap items-baseline" style={{ gap: "12px", marginTop: "10px" }}>
-            <h1
-              className="display-heading"
-              style={{ fontSize: "clamp(40px, 5vw, 64px)" }}
-            >
-              {brand.name}
-            </h1>
-            {brand.handle && (
-              <span style={{ fontSize: "16px", color: "#7a7a88", fontWeight: 400 }}>
-                {brand.handle.startsWith("@") ? brand.handle : `@${brand.handle}`}
-              </span>
-            )}
-          </div>
-          <div
-            className="flex flex-wrap"
-            style={{ gap: "20px", marginTop: "16px", fontSize: "13px", color: "#9999a6" }}
-          >
-            <span>
-              <strong style={{ color: "white", fontWeight: 600 }}>{allPosts.length}</strong> posts
-            </span>
-            {brand.cadence && (
-              <>
-                <span style={{ color: "#4a4a55" }}>•</span>
-                <span>Cadence: {brand.cadence}</span>
-              </>
-            )}
-          </div>
-          {brand.compliance && (
-            <p style={{ marginTop: "12px", fontSize: "11px", color: "#6f6f7e", letterSpacing: "0.04em" }}>
-              {brand.compliance}
-            </p>
+          <span style={{ color: "#3a3a45" }}>·</span>
+          <span>
+            <strong style={{ color: "white", fontWeight: 600 }}>{allPosts.length}</strong> posts
+          </span>
+          {brand.cadence && (
+            <>
+              <span style={{ color: "#3a3a45" }}>·</span>
+              <span>Cadence: {brand.cadence}</span>
+            </>
           )}
         </div>
+        {brand.compliance && (
+          <p style={{ marginTop: "-12px", marginBottom: "20px", fontSize: "11px", color: "#6f6f7e", letterSpacing: "0.04em" }}>
+            {brand.compliance}
+          </p>
+        )}
 
         <div style={{ marginBottom: "28px" }}>
           <ClientReviewLink

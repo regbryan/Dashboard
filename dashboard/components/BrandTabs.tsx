@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * File-drawer tabs. Each section reads as the top edge of a manila
- * folder sitting in a drawer — inactive folders are recessed slightly,
- * the active one is pulled forward with a clear elevation shadow and
- * sits flush against the content surface below.
+ * Premium folder tabs that flow into a content card via concave corner
+ * flares — the active tab's bottom-left and bottom-right curves spread
+ * outward and merge into the rounded top of the surface below. Done
+ * with radial-gradient pseudo-elements (cheap, no SVG, no JS).
  *
- * No colored accent — depth alone communicates which folder is open.
- * Active state computed via longest-suffix pathname match.
+ * Inactive tabs are quiet text on the page background with a subtle
+ * hover. No color accent.
  */
 const SECTIONS = [
   { label: "Designs", suffix: "" },
@@ -19,9 +19,8 @@ const SECTIONS = [
   { label: "Assets", suffix: "/assets" },
 ] as const;
 
-const ACTIVE_BG = "#15151f";
-const INACTIVE_BG = "#0c0c14";
-const RIM = "rgba(255,255,255,0.06)";
+export const TAB_CARD_BG = "#15151f";
+const FLARE = 14;
 
 export default function BrandTabs({ slug }: { slug: string }) {
   const pathname = usePathname() ?? "";
@@ -44,13 +43,8 @@ export default function BrandTabs({ slug }: { slug: string }) {
     <div
       role="tablist"
       aria-label="Brand sections"
-      className="flex items-end overflow-x-auto"
-      style={{
-        gap: "2px",
-        borderBottom: `1px solid ${RIM}`,
-        marginBottom: "-1px",
-        paddingTop: "16px",
-      }}
+      className="flex items-end justify-center overflow-x-auto"
+      style={{ gap: "2px", paddingTop: "8px", marginBottom: "-1px" }}
     >
       {SECTIONS.map((s) => {
         const href = `${base}${s.suffix}`;
@@ -62,58 +56,63 @@ export default function BrandTabs({ slug }: { slug: string }) {
             role="tab"
             aria-selected={active}
             className={
-              "group/tab relative whitespace-nowrap transition-all duration-200 ease-out " +
+              "group/tab relative whitespace-nowrap transition-colors duration-200 ease-out " +
               (active
                 ? "text-white"
-                : "text-[#8a8a96] hover:text-[#cfcfd8]")
+                : "text-[#8a8a96] hover:text-[#dcdce4]")
             }
             style={{
-              // Active sits ~5px taller so it reads as pulled forward
-              padding: active ? "13px 22px 14px" : "8px 20px 10px",
+              padding: active ? "13px 26px 16px" : "10px 22px 14px",
               fontSize: "13px",
               fontWeight: active ? 600 : 500,
               letterSpacing: active ? "-0.005em" : "0.005em",
               textDecoration: "none",
-              // Subtle vertical gradient on active for a paper-like sheen;
-              // flat muted fill on inactive so they recede.
-              background: active
-                ? `linear-gradient(180deg, #1c1c2a 0%, ${ACTIVE_BG} 60%, ${ACTIVE_BG} 100%)`
-                : INACTIVE_BG,
-              border: `1px solid ${RIM}`,
-              // Bottom of active tab merges into the content surface
-              borderBottomColor: active ? ACTIVE_BG : RIM,
-              // Folder-top silhouette: rounded top, square bottom corners
-              borderTopLeftRadius: "9px",
-              borderTopRightRadius: "9px",
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              // Active "punches through" the drawer rim
-              marginBottom: active ? "-1px" : "0",
-              boxShadow: active
-                ? [
-                    // Soft elevation lift — folder pulled out toward viewer
-                    "0 -1px 0 rgba(255,255,255,0.04) inset",
-                    "0 10px 22px -14px rgba(0,0,0,0.6)",
-                    "0 2px 0 rgba(0,0,0,0.35) inset",
-                  ].join(", ")
-                : [
-                    // Inactive folders sit slightly recessed
-                    "0 1px 0 rgba(0,0,0,0.25) inset",
-                  ].join(", "),
+              background: active ? TAB_CARD_BG : "transparent",
+              borderTopLeftRadius: "14px",
+              borderTopRightRadius: "14px",
+              marginBottom: active ? "0" : "0",
               zIndex: active ? 2 : 1,
             }}
           >
-            {/* Inactive hover surface — paper brightens slightly */}
+            {/* Active flares — concave corners that merge into the card */}
+            {active && (
+              <>
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: -FLARE,
+                    width: FLARE,
+                    height: FLARE,
+                    background: `radial-gradient(circle at top left, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
+                    pointerEvents: "none",
+                  }}
+                />
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: -FLARE,
+                    width: FLARE,
+                    height: FLARE,
+                    background: `radial-gradient(circle at top right, transparent ${FLARE}px, ${TAB_CARD_BG} ${FLARE + 0.5}px)`,
+                    pointerEvents: "none",
+                  }}
+                />
+              </>
+            )}
+
+            {/* Inactive hover surface */}
             {!active && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-t-[9px] opacity-0 transition-opacity duration-200 ease-out group-hover/tab:opacity-100"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 60%, transparent 100%)",
-                }}
+                className="pointer-events-none absolute inset-x-1 top-1 bottom-0 rounded-t-[12px] opacity-0 transition-opacity duration-200 ease-out group-hover/tab:opacity-100"
+                style={{ background: "rgba(255,255,255,0.04)" }}
               />
             )}
+
             <span className="relative">{s.label}</span>
           </Link>
         );

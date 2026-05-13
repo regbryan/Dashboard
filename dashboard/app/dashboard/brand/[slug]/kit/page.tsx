@@ -18,11 +18,8 @@ export default async function BrandKitPage({
   const view = await loadBrandKit(slug).catch(() => null);
 
   return (
-    <div
-      className="min-h-[calc(100vh-64px)]"
-      style={{ padding: "24px clamp(20px, 4vw, 56px) 64px" }}
-    >
-      <div className="mx-auto" style={{ maxWidth: "1280px" }}>
+    <div style={{ padding: "28px clamp(20px, 3vw, 36px) 48px" }}>
+      <div>
         <div style={{ marginBottom: "20px" }}>
           <h2
             style={{
