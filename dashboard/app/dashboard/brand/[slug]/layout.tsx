@@ -4,8 +4,10 @@ import BrandTabs, { TAB_CARD_BG } from "@/components/BrandTabs";
 
 /**
  * Per-brand layout. Tabs sit above a rounded content card that the
- * active tab visually flows into — premium folder feel. Auth is
- * handled upstream; we only fetch what the header needs.
+ * active tab visually flows into. The whole scene sits under a soft
+ * violet aurora — a radial glow descending from above plus two faint
+ * vertical light streaks — to give the page a premium, atmospheric
+ * feel without distracting from content.
  */
 export default async function BrandLayout({
   children,
@@ -23,66 +25,157 @@ export default async function BrandLayout({
     .single();
 
   return (
-    <div
-      className="mx-auto"
-      style={{
-        maxWidth: "1280px",
-        padding: "16px clamp(16px, 3vw, 40px) 64px",
-      }}
-    >
+    <div style={{ position: "relative", isolation: "isolate" }}>
+      {/* Atmospheric glow stack — fixed so it stays present on scroll */}
       <div
-        className="flex flex-wrap items-baseline"
+        aria-hidden
         style={{
-          gap: "12px",
-          rowGap: "4px",
-          marginBottom: "20px",
-          padding: "0 8px",
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: -1,
+          overflow: "hidden",
         }}
       >
-        <Link
-          href="/dashboard"
+        {/* Primary downward aurora — broad violet wash from the top */}
+        <div
           style={{
-            color: "#9999a6",
-            fontSize: "12px",
-            textDecoration: "none",
+            position: "absolute",
+            top: "-30%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "120%",
+            height: "85%",
+            background:
+              "radial-gradient(ellipse 50% 60% at 50% 0%, rgba(139,92,255,0.22) 0%, rgba(139,92,255,0.10) 35%, rgba(139,92,255,0.02) 60%, transparent 80%)",
+            filter: "blur(6px)",
           }}
-          title="All brands"
-        >
-          ← All brands
-        </Link>
-        <span style={{ color: "#3a3a45" }}>·</span>
-        <span
+        />
+        {/* Soft secondary halo for color depth */}
+        <div
           style={{
-            fontSize: "20px",
-            fontWeight: 600,
-            color: "white",
-            letterSpacing: "-0.015em",
+            position: "absolute",
+            top: "-10%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "70%",
+            height: "55%",
+            background:
+              "radial-gradient(ellipse 60% 55% at 50% 0%, rgba(177,139,255,0.18) 0%, rgba(120,80,220,0.05) 50%, transparent 75%)",
+            filter: "blur(8px)",
           }}
-        >
-          {brand?.name ?? slug}
-        </span>
-        {brand?.handle && (
-          <span style={{ fontSize: "12px", color: "#7a7a88" }}>
-            {brand.handle.startsWith("@") ? brand.handle : `@${brand.handle}`}
-          </span>
-        )}
+        />
+        {/* Vertical light streak — left, tilted slightly inward */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "22%",
+            width: "180px",
+            height: "70%",
+            background:
+              "linear-gradient(180deg, rgba(177,139,255,0.12) 0%, rgba(139,92,255,0.06) 30%, transparent 70%)",
+            filter: "blur(36px)",
+            transform: "rotate(-8deg)",
+            transformOrigin: "top center",
+          }}
+        />
+        {/* Vertical light streak — right, mirrored */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: "22%",
+            width: "180px",
+            height: "70%",
+            background:
+              "linear-gradient(180deg, rgba(177,139,255,0.12) 0%, rgba(139,92,255,0.06) 30%, transparent 70%)",
+            filter: "blur(36px)",
+            transform: "rotate(8deg)",
+            transformOrigin: "top center",
+          }}
+        />
+        {/* Bottom vignette — pulls the eye toward content */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0,0,0,0.45) 0%, transparent 60%)",
+          }}
+        />
       </div>
 
-      <BrandTabs slug={slug} />
-
       <div
+        className="mx-auto"
         style={{
-          background: TAB_CARD_BG,
-          borderRadius: "20px",
-          borderTopLeftRadius: "20px",
-          borderTopRightRadius: "20px",
-          boxShadow:
-            "0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px -30px rgba(0,0,0,0.6)",
-          overflow: "hidden",
-          minHeight: "calc(100vh - 220px)",
+          maxWidth: "1280px",
+          padding: "16px clamp(16px, 3vw, 40px) 64px",
+          position: "relative",
         }}
       >
-        {children}
+        <div
+          className="flex flex-wrap items-baseline"
+          style={{
+            gap: "12px",
+            rowGap: "4px",
+            marginBottom: "20px",
+            padding: "0 8px",
+          }}
+        >
+          <Link
+            href="/dashboard"
+            style={{
+              color: "#9999a6",
+              fontSize: "12px",
+              textDecoration: "none",
+            }}
+            title="All brands"
+          >
+            ← All brands
+          </Link>
+          <span style={{ color: "#3a3a45" }}>·</span>
+          <span
+            style={{
+              fontSize: "20px",
+              fontWeight: 600,
+              color: "white",
+              letterSpacing: "-0.015em",
+            }}
+          >
+            {brand?.name ?? slug}
+          </span>
+          {brand?.handle && (
+            <span style={{ fontSize: "12px", color: "#7a7a88" }}>
+              {brand.handle.startsWith("@") ? brand.handle : `@${brand.handle}`}
+            </span>
+          )}
+        </div>
+
+        <BrandTabs slug={slug} />
+
+        <div
+          style={{
+            background: TAB_CARD_BG,
+            borderRadius: "20px",
+            borderTopLeftRadius: "20px",
+            borderTopRightRadius: "20px",
+            boxShadow: [
+              // Inner top highlight — paper-like sheen
+              "0 1px 0 rgba(255,255,255,0.05) inset",
+              // Soft violet rim that catches the aurora above
+              "0 0 0 1px rgba(177,139,255,0.05)",
+              // Deep drop for elevation
+              "0 24px 80px -28px rgba(0,0,0,0.7)",
+              // Faint violet glow under the card lifts it off the bg
+              "0 30px 90px -40px rgba(139,92,255,0.18)",
+            ].join(", "),
+            overflow: "hidden",
+            minHeight: "calc(100vh - 220px)",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
