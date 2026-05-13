@@ -1,9 +1,27 @@
 import { createSupabaseServer } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 import SignOutButton from "@/components/SignOutButton";
 
 export default async function NoAccessPage() {
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // If the user actually has access by now (race after sign-in), forward
+  // them. If they don't, surface the self-serve onboarding path so they
+  // can create their own brand instead of dead-ending here.
+  if (user) {
+    const { data: access } = await supabaseAdmin()
+      .from("user_brand_access")
+      .select("brand_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (access?.brand_id) {
+      redirect(`/dashboard/brand/${access.brand_id}`);
+    }
+  }
 
   return (
     <div
@@ -67,9 +85,22 @@ export default async function NoAccessPage() {
             color: "#9999a6",
           }}
         >
-          Contact your account manager to get access to your content.
+          Set up your brand now to start using the dashboard, or sign out
+          and reach out to your account manager if you were expecting
+          existing access.
         </p>
-        <div style={{ marginTop: "28px" }}>
+        <div
+          style={{
+            marginTop: "28px",
+            display: "flex",
+            justifyContent: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <Link href="/onboarding" className="sp-shiny">
+            Set up your brand →
+          </Link>
           <SignOutButton />
         </div>
       </div>
