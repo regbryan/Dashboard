@@ -61,9 +61,16 @@ test.describe("SocialPilot routes — auth gating", () => {
   });
 });
 
-test.describe("SocialPilot cron route — secret gating", () => {
+test.describe("SocialPilot cron routes — secret gating", () => {
   test("GET /api/cron/socialpilot-refresh (no secret) → 401", async ({ baseURL }) => {
     const res = await fetch(`${baseURL}/api/cron/socialpilot-refresh`);
+    expect(res.status).toBe(401);
+  });
+
+  test("GET /api/cron/socialpilot-retry-failed (no secret) → 401", async ({
+    baseURL,
+  }) => {
+    const res = await fetch(`${baseURL}/api/cron/socialpilot-retry-failed`);
     expect(res.status).toBe(401);
   });
 });

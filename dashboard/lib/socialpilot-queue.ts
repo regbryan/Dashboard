@@ -166,6 +166,7 @@ export async function autoQueueApprovedPost(
         socialpilot_queue_status: "queued",
         socialpilot_queued_at: new Date().toISOString(),
         socialpilot_error: null,
+        socialpilot_retry_count: 0,
       })
       .eq("id", postId);
     return {
@@ -193,12 +194,25 @@ function isRetryable(status: number): boolean {
 }
 
 async function markFailure(postId: string | number, message: string) {
-  await supabaseAdmin()
+  const admin = supabaseAdmin();
+  // Read current count so we can increment. RPC-free for simplicity;
+  // a couple of stray increments in a race are harmless (the cap is
+  // soft — operator can see the count and bump manually).
+  const { data: row } = await admin
+    .from("posts")
+    .select("socialpilot_retry_count")
+    .eq("id", postId)
+    .maybeSingle();
+  const prev =
+    (row as { socialpilot_retry_count?: number | null } | null)
+      ?.socialpilot_retry_count ?? 0;
+  await admin
     .from("posts")
     .update({
       socialpilot_queue_status: "failed",
       socialpilot_error: message.slice(0, 500),
       socialpilot_queued_at: new Date().toISOString(),
+      socialpilot_retry_count: prev + 1,
     })
     .eq("id", postId);
 }

@@ -210,6 +210,7 @@ export default async function PostDetailPage({
                     socialpilotPostId={post.socialpilot_post_id ?? null}
                     error={post.socialpilot_error ?? null}
                     queuedAt={post.socialpilot_queued_at ?? null}
+                    retryCount={post.socialpilot_retry_count ?? 0}
                     isAdmin={true}
                   />
                 </div>

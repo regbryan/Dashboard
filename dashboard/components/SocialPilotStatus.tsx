@@ -20,9 +20,12 @@ type Props = {
   socialpilotPostId: string | null;
   error: string | null;
   queuedAt: string | null;
+  retryCount?: number;
   /** Whether to show the admin "Retry" button. */
   isAdmin: boolean;
 };
+
+const MAX_RETRIES = 5;
 
 export default function SocialPilotStatus({
   postId,
@@ -30,6 +33,7 @@ export default function SocialPilotStatus({
   socialpilotPostId,
   error,
   queuedAt,
+  retryCount = 0,
   isAdmin,
 }: Props) {
   const [retrying, setRetrying] = useState(false);
@@ -96,6 +100,17 @@ export default function SocialPilotStatus({
         {queuedAt && (
           <span style={{ fontSize: 11, color: "#7a7a88" }}>
             {new Date(queuedAt).toLocaleString()}
+          </span>
+        )}
+        {status === "failed" && retryCount > 0 && (
+          <span
+            style={{
+              fontSize: 11,
+              color: retryCount >= MAX_RETRIES ? "#fca5a5" : "#7a7a88",
+            }}
+          >
+            attempt {retryCount}/{MAX_RETRIES}
+            {retryCount >= MAX_RETRIES && " — auto-retry stopped"}
           </span>
         )}
       </div>
