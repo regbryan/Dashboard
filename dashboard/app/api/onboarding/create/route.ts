@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { requireUser, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWelcomeEmail } from "@/lib/emails/welcome";
@@ -76,37 +77,8 @@ export async function POST(req: Request): Promise<Response> {
 
     const admin = supabaseAdmin();
 
-    // Reject duplicates upfront with a friendlier error than a UNIQUE
-    // constraint violation.
-    const { data: existing } = await admin
-      .from("brands")
-      .select("id")
-      .eq("id", body.slug)
-      .maybeSingle();
-    if (existing) {
-      throw new AuthError(409, {
-        error: `The slug "${body.slug}" is already taken. Pick a different one.`,
-      });
-    }
-
-    // 1. brands row — the public-facing record
-    const { error: brandErr } = await admin.from("brands").insert({
-      id: body.slug,
-      name: body.name.trim(),
-      handle: body.handle?.trim() || null,
-      platform: body.platform?.trim() || "instagram",
-      cadence: body.cadence?.trim() || null,
-      color_primary: body.colorPrimary || null,
-      color_secondary: body.colorSecondary || null,
-      color_accent: body.colorAccent || null,
-    });
-    if (brandErr) {
-      throw new AuthError(500, {
-        error: `Failed to create brand: ${brandErr.message}`,
-      });
-    }
-
-    // 2. brand_kits row — voice + content metadata
+    // Build the brand_kits payload as JSON for the RPC. Fields that
+    // came in empty stay omitted; the SQL function coalesces them.
     const tone: Record<string, unknown> = {};
     if (body.toneKeywords?.length) tone.keywords = body.toneKeywords;
     if (body.dos?.length) tone.dos = body.dos;
@@ -123,8 +95,7 @@ export async function POST(req: Request): Promise<Response> {
     if (body.hashtagsService?.length) hashtags.service = body.hashtagsService;
     if (body.hashtagsCommunity?.length) hashtags.community = body.hashtagsCommunity;
 
-    const { error: kitErr } = await admin.from("brand_kits").insert({
-      slug: body.slug,
+    const kitPayload: Record<string, unknown> = {
       tagline: body.tagline?.trim() || null,
       positioning: body.positioning?.trim() || null,
       mission: body.mission?.trim() || null,
@@ -141,28 +112,38 @@ export async function POST(req: Request): Promise<Response> {
       hashtags: Object.keys(hashtags).length > 0 ? hashtags : null,
       visual_donts: body.visualDonts?.length ? body.visualDonts : null,
       onboarding_status: "completed_self_serve",
-    });
-    if (kitErr) {
-      // Rollback the brand insert so a partial provision doesn't strand
-      // the user in an inconsistent state.
-      await admin.from("brands").delete().eq("id", body.slug);
-      throw new AuthError(500, {
-        error: `Failed to create brand kit: ${kitErr.message}`,
-      });
-    }
+    };
 
-    // 3. user_brand_access — tie the signed-in user to the new brand
-    const { error: accessErr } = await admin.from("user_brand_access").insert({
-      user_id: ctx.user.id,
-      brand_id: body.slug,
-      role: "owner",
-    });
-    if (accessErr) {
-      // Rollback both prior inserts
-      await admin.from("brand_kits").delete().eq("slug", body.slug);
-      await admin.from("brands").delete().eq("id", body.slug);
-      throw new AuthError(500, {
-        error: `Failed to grant access: ${accessErr.message}`,
+    // Atomic insert: brands + brand_kits + user_brand_access in one
+    // Postgres transaction. If any of the three fails, Postgres rolls
+    // back automatically — no half-provisioned brand stranded.
+    const { data: rpcResult, error: rpcErr } = await admin.rpc(
+      "provision_brand",
+      {
+        p_slug: body.slug,
+        p_name: body.name.trim(),
+        p_handle: body.handle?.trim() || null,
+        p_platform: body.platform?.trim() || "instagram",
+        p_cadence: body.cadence?.trim() || null,
+        p_color_primary: body.colorPrimary || null,
+        p_color_secondary: body.colorSecondary || null,
+        p_color_accent: body.colorAccent || null,
+        p_kit_payload: kitPayload,
+        p_user_id: ctx.user.id,
+      }
+    );
+
+    if (rpcErr) {
+      console.error("[onboarding/create] RPC transport error", rpcErr);
+      throw new AuthError(500, { error: "Failed to create brand." });
+    }
+    const result = rpcResult as
+      | { ok: true; slug: string }
+      | { ok: false; code: string; error: string; sqlstate?: string };
+    if (!result.ok) {
+      console.warn("[onboarding/create] provision rejected", result);
+      throw new AuthError(result.code === "slug_taken" ? 409 : 500, {
+        error: result.error,
       });
     }
 
@@ -181,16 +162,10 @@ export async function POST(req: Request): Promise<Response> {
       .limit(1)
       .maybeSingle();
     if (pending) {
-      await admin
-        .from("pending_signups")
-        .update({
-          claimed_at: new Date().toISOString(),
-          claimed_by_user_id: ctx.user.id,
-          claimed_brand_id: body.slug,
-        })
-        .eq("id", pending.id);
-
-      await admin
+      // Copy Stripe state onto the brand FIRST — if this fails the
+      // webhook can still recover via stripe_customer_id matching, so
+      // leave pending_signups un-claimed until the brand update lands.
+      const { error: brandUpdateErr } = await admin
         .from("brands")
         .update({
           subscription_status: "active",
@@ -199,6 +174,30 @@ export async function POST(req: Request): Promise<Response> {
           stripe_subscription_id: pending.stripe_subscription_id,
         })
         .eq("id", body.slug);
+      if (brandUpdateErr) {
+        console.error(
+          "[onboarding/create] failed to copy Stripe state onto brand",
+          { brand: body.slug, pending: pending.id, err: brandUpdateErr }
+        );
+        // Don't claim the pending row — let the webhook/operator
+        // recover. The brand still works, just without subscription
+        // metadata until reconciliation.
+      } else {
+        const { error: claimErr } = await admin
+          .from("pending_signups")
+          .update({
+            claimed_at: new Date().toISOString(),
+            claimed_by_user_id: ctx.user.id,
+            claimed_brand_id: body.slug,
+          })
+          .eq("id", pending.id);
+        if (claimErr) {
+          console.error("[onboarding/create] failed to claim pending_signup", {
+            pending: pending.id,
+            err: claimErr,
+          });
+        }
+      }
     }
 
     // 5. Seed the calendar — create ~14 days of placeholder posts so
@@ -212,17 +211,25 @@ export async function POST(req: Request): Promise<Response> {
       return null;
     });
     if (seed && !seed.skipped && seed.postsCreated > 0) {
-      void runBrandAutopilot(body.slug, { limit: 2, lookaheadDays: 14 }).then(
-        (summary) => {
+      // after() keeps the work alive on Vercel after the response is
+      // sent — otherwise the serverless container can be frozen mid-
+      // generation and the customer's first posts never finish.
+      after(async () => {
+        try {
+          const summary = await runBrandAutopilot(body.slug, {
+            limit: 2,
+            lookaheadDays: 14,
+          });
           if (summary.failed > 0) {
             console.warn(
               "[onboarding/create] first-batch autopilot had failures",
               summary.errors
             );
           }
-        },
-        (err) => console.warn("[onboarding/create] autopilot kickoff failed", err)
-      );
+        } catch (err) {
+          console.warn("[onboarding/create] autopilot kickoff failed", err);
+        }
+      });
     }
 
     // 6. Welcome email — fire-and-forget so a transient Resend outage
@@ -233,13 +240,17 @@ export async function POST(req: Request): Promise<Response> {
         process.env.NEXT_PUBLIC_DASHBOARD_ORIGIN ||
         new URL(req.url).origin;
       const tier = pending?.tier ?? null;
-      void sendWelcomeEmail({
-        to: ctx.user.email,
-        brandName: body.name.trim(),
-        brandSlug: body.slug,
-        tier,
-        dashboardUrl: dashboardOrigin,
-      }).then((res) => {
+      const userEmail = ctx.user.email;
+      const brandName = body.name.trim();
+      const brandSlug = body.slug;
+      after(async () => {
+        const res = await sendWelcomeEmail({
+          to: userEmail,
+          brandName,
+          brandSlug,
+          tier,
+          dashboardUrl: dashboardOrigin,
+        });
         if (!res.ok) {
           console.warn("[onboarding/create] welcome email failed", res.error);
         }
