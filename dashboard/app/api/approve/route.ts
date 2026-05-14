@@ -1,5 +1,7 @@
+import { after } from "next/server";
 import { requirePostAccess, handleAuthError, type AuthedClient } from "@/lib/api-auth";
 import { sendEmail } from "@/lib/send-email";
+import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
 import type { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -56,6 +58,28 @@ export async function POST(request: NextRequest) {
     }).catch((e) => {
       console.error("[approve] reviewer confirmation failed", e);
     });
+
+    // Auto-queue to SocialPilot when an approval lands. Gated on Growth
+    // tier + brand having a bound SP profile. Wrapped in after() so the
+    // SP roundtrip never holds up the client's approval response.
+    // autoQueueApprovedPost handles all skip + failure branches and
+    // writes status onto the post row — never re-throws.
+    if (status === "approved") {
+      after(async () => {
+        try {
+          const outcome = await autoQueueApprovedPost(post_id);
+          if (outcome.status === "failed") {
+            console.warn("[approve] socialpilot auto-queue failed", {
+              post_id,
+              error: outcome.error,
+              recoverable: outcome.recoverable,
+            });
+          }
+        } catch (e) {
+          console.error("[approve] socialpilot auto-queue crashed", e);
+        }
+      });
+    }
 
     return Response.json(approval);
   } catch (err) {
