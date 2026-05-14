@@ -1,6 +1,8 @@
 import { requireUser, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWelcomeEmail } from "@/lib/emails/welcome";
+import { seedFirstBatch } from "@/lib/autopilot/seed-first-batch";
+import { runBrandAutopilot } from "@/lib/autopilot";
 
 /**
  * Self-serve provisioning endpoint.
@@ -199,7 +201,31 @@ export async function POST(req: Request): Promise<Response> {
         .eq("id", body.slug);
     }
 
-    // 5. Welcome email — fire-and-forget so a transient Resend outage
+    // 5. Seed the calendar — create ~14 days of placeholder posts so
+    // the customer's Designs / Calendar tabs aren't empty when they
+    // first land. Synchronous because we want the calendar populated
+    // BEFORE the redirect. Then fire-and-forget kick off image
+    // generation for the first 2 posts so they see content within
+    // a minute or two without waiting for tomorrow's cron tick.
+    const seed = await seedFirstBatch(body.slug).catch((err) => {
+      console.warn("[onboarding/create] seed failed", err);
+      return null;
+    });
+    if (seed && !seed.skipped && seed.postsCreated > 0) {
+      void runBrandAutopilot(body.slug, { limit: 2, lookaheadDays: 14 }).then(
+        (summary) => {
+          if (summary.failed > 0) {
+            console.warn(
+              "[onboarding/create] first-batch autopilot had failures",
+              summary.errors
+            );
+          }
+        },
+        (err) => console.warn("[onboarding/create] autopilot kickoff failed", err)
+      );
+    }
+
+    // 6. Welcome email — fire-and-forget so a transient Resend outage
     // doesn't block the redirect to the user's brand new dashboard.
     // We pull tier from the just-claimed pending_signup if present.
     if (ctx.user.email) {
