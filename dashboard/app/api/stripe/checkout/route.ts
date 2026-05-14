@@ -32,25 +32,34 @@ const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_MARKETING_ORIGIN,
 ].filter(Boolean) as string[];
 
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Vercel preview deploys — restrict to our project's preview pattern
+  // (looser pattern previously let any *.vercel.app probe the endpoint).
+  if (/^https:\/\/(?:dashboard|social-media-website)-[a-z0-9-]+\.vercel\.app$/.test(origin)) {
+    return true;
+  }
+  if (/^http:\/\/localhost(?::\d+)?$/.test(origin)) return true;
+  return false;
+}
+
 function corsHeaders(origin: string | null): Record<string, string> {
-  // Default to the configured marketing origin so CDN-cached preflights
-  // don't accidentally permit a different origin later.
-  const fallback = ALLOWED_ORIGINS[0] ?? "https://socialpulse.media";
-  // Also let any *.vercel.app preview through so branch deploys work.
-  const allow =
-    origin &&
-    (ALLOWED_ORIGINS.includes(origin) ||
-      /^https:\/\/[a-z0-9-]+(?:--[a-z0-9-]+)?\.vercel\.app$/.test(origin) ||
-      /^http:\/\/localhost(?::\d+)?$/.test(origin))
-      ? origin
-      : fallback;
-  return {
-    "Access-Control-Allow-Origin": allow,
+  const allowed = isAllowedOrigin(origin);
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "content-type",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
+  // Only echo the origin back when it's actually allowed. Returning a
+  // fixed fallback for foreign origins is harmless (browser still
+  // rejects on mismatch) but cleaner to omit ACAO entirely so the
+  // browser-side error is unambiguous.
+  if (allowed && origin) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
 }
 
 export async function OPTIONS(req: Request) {

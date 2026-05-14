@@ -140,10 +140,14 @@ export async function seedFirstBatch(
 
 // ─── helpers ──────────────────────────────────────────────────────────
 
-/** Parse "3 per week" / "5/wk" / "weekly" / etc. → posts per week. */
+/** Parse "3 per week" / "5/wk" / "weekly" / "biweekly" / etc. → posts per week. */
 function parsePostsPerWeek(input: string | null | undefined): number {
   if (!input) return DEFAULT_POSTS_PER_WEEK;
   const lower = input.toLowerCase().trim();
+  // Order matters: 'biweekly' contains 'weekly' as a substring, so check
+  // it first. Same for 'semi-weekly' (= twice a week).
+  if (lower.includes("biweekly") || lower.includes("bi-weekly")) return 0.5;
+  if (lower.includes("semi-weekly") || lower.includes("semiweekly")) return 2;
   if (lower.includes("daily")) return 7;
   if (lower.includes("weekly")) return 1;
   if (lower.includes("twice")) return 2;

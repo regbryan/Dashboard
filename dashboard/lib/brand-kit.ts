@@ -111,7 +111,10 @@ const BRAND_RULES: Record<string, AutopilotRule[]> = {
 };
 
 export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
-  const { data: brand } = await supabaseAdmin()
+  const admin = supabaseAdmin();
+
+  // brands is the existence gate — short-circuit if not found.
+  const { data: brand } = await admin
     .from("brands")
     .select(
       "id, name, handle, platform, color_primary, color_secondary, color_accent, cadence, compliance, has_brand_doc, subscription_status, subscription_tier, stripe_customer_id, subscription_current_period_end, subscription_cancel_at, socialpilot_account_id, publishing_overlays"
@@ -121,29 +124,35 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
 
   if (!brand) return null;
 
-  const { data: kit } = await supabaseAdmin()
-    .from("brand_kits")
-    .select(
-      "positioning, mission, tagline, description, photography_direction, compliance_footer, colors, fonts, tone, content_pillars, hashtags, audiences, primary_platform, hq_location, service_area, onboarding_status, archetype, industry, visual_donts, website_url"
-    )
-    .eq("slug", slug)
-    .maybeSingle();
+  // The remaining three queries are independent; fan out in parallel
+  // so the Brand Kit page builds in 1 RTT instead of 3.
+  const [kitRes, logoCountRes, defaultLogoRes] = await Promise.all([
+    admin
+      .from("brand_kits")
+      .select(
+        "positioning, mission, tagline, description, photography_direction, compliance_footer, colors, fonts, tone, content_pillars, hashtags, audiences, primary_platform, hq_location, service_area, onboarding_status, archetype, industry, visual_donts, website_url"
+      )
+      .eq("slug", slug)
+      .maybeSingle(),
+    admin
+      .from("brand_logos")
+      .select("id", { count: "exact", head: true })
+      .eq("brand_id", slug),
+    // Default logo for the hero. Prefer is_default=true, fall back to
+    // the first row alphabetically by label.
+    admin
+      .from("brand_logos")
+      .select("storage_path")
+      .eq("brand_id", slug)
+      .order("is_default", { ascending: false })
+      .order("label", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  const { count: logoCount } = await supabaseAdmin()
-    .from("brand_logos")
-    .select("id", { count: "exact", head: true })
-    .eq("brand_id", slug);
-
-  // Pull the default logo for the hero. Prefer is_default=true, fall
-  // back to the first row alphabetically by label.
-  const { data: defaultLogoRow } = await supabaseAdmin()
-    .from("brand_logos")
-    .select("storage_path")
-    .eq("brand_id", slug)
-    .order("is_default", { ascending: false })
-    .order("label", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const kit = kitRes.data;
+  const logoCount = logoCountRes.count;
+  const defaultLogoRow = defaultLogoRes.data;
 
   const defaultLogoUrl = buildLogoUrl(
     (defaultLogoRow as { storage_path?: string | null } | null)?.storage_path ?? null
