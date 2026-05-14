@@ -1,47 +1,37 @@
 import path from "node:path";
-import fs from "node:fs";
 
-// Resolve PROJECT_ROOT reliably regardless of where Next.js sets cwd.
-// We know the dashboard/ folder contains this file's source, and PROJECT_ROOT
-// is the parent of dashboard/. Use __dirname (works in Turbopack server bundles)
-// or fall back to walking up from cwd looking for our known marker files.
-function findProjectRoot(): string {
-  // Strategy 1: This file is at dashboard/lib/paths.ts — go up 2 levels
-  // But __dirname may not be reliable in bundled environments.
-
-  // Strategy 2: Walk up from cwd looking for the calendar file or brand folders
-  let dir = process.cwd();
-  for (let i = 0; i < 5; i++) {
-    // Check if this looks like the Instagram Automation root
-    if (
-      fs.existsSync(path.join(dir, "remotion")) &&
-      fs.existsSync(path.join(dir, "overlay_logo.py"))
-    ) {
-      return dir;
-    }
-    // Check if dashboard/ is here (meaning we're at the project root)
-    if (
-      fs.existsSync(path.join(dir, "dashboard")) &&
-      fs.existsSync(path.join(dir, "overlay_logo.py"))
-    ) {
-      return dir;
-    }
-    // Go up one level
-    const parent = path.dirname(dir);
-    if (parent === dir) break; // reached filesystem root
-    dir = parent;
+/**
+ * Resolve the Instagram Automation project root for local-only
+ * filesystem ops (logo serving, hyperframes templates, .renders).
+ *
+ * Strictly env-driven — NO process.cwd() fallback. Previously we
+ * had one, but Turbopack's NFT tracer treats any process.cwd() in a
+ * module that's imported by a route as a signal to bundle the entire
+ * project. The result was a multi-megabyte serverless function for
+ * every route that touched this file.
+ *
+ * Set PROJECT_ROOT in .env.local for development. Routes that depend
+ * on this are all dev-gated (NODE_ENV !== 'production' or
+ * ENABLE_LOCAL_SCRIPTS !== '1'), so production deploys never hit this
+ * code path — a missing env in production correctly throws on first
+ * call rather than silently bundling the wrong root.
+ */
+export function getProjectRoot(): string {
+  const root = process.env.PROJECT_ROOT;
+  if (!root) {
+    throw new Error(
+      "PROJECT_ROOT env var is not set. Add it to .env.local — these " +
+        "filesystem-backed routes are dev-only and need an absolute path " +
+        "to the Instagram Automation checkout."
+    );
   }
-
-  // Fallback: assume cwd is the project root (works when cwd is Instagram Automation/)
-  return process.cwd();
+  return root;
 }
 
-export const PROJECT_ROOT = findProjectRoot();
-
 export function brandFolderPath(folderPath: string): string {
-  return path.join(PROJECT_ROOT, folderPath);
+  return path.join(getProjectRoot(), folderPath);
 }
 
 export function postImagePath(folderPath: string, filePath: string): string {
-  return path.join(PROJECT_ROOT, folderPath, filePath);
+  return path.join(getProjectRoot(), folderPath, filePath);
 }

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { PROJECT_ROOT } from "./paths";
+import { getProjectRoot } from "./paths";
 import { supabaseAdmin } from "./supabase-admin";
 
 export type HyperFramesVars = Record<string, string>;
@@ -35,7 +35,8 @@ export async function startHyperFramesRender(
     if (error || !post) throw new Error(`post ${postId} not found`);
 
     const archetype = String(post.archetype || "RB").toUpperCase();
-    const templateDir = path.join(PROJECT_ROOT, "hyperframes-templates", archetype);
+    const projectRoot = getProjectRoot();
+    const templateDir = path.join(projectRoot, "hyperframes-templates", archetype);
     if (!fs.existsSync(path.join(templateDir, "index.html"))) {
       throw new Error(
         `No HyperFrames template for archetype "${archetype}". ` +
@@ -48,7 +49,7 @@ export async function startHyperFramesRender(
 
     // 2. Prepare work dir — .renders/hyperframes/<postId>/
     const workRoot = path.join(
-      PROJECT_ROOT,
+      projectRoot,
       ".renders",
       "hyperframes",
       String(postId)

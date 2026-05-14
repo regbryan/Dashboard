@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { parseRenderedMp4Path } from "@/lib/hyperframes";
-import { PROJECT_ROOT } from "@/lib/paths";
 import { requireAdmin, AuthError } from "@/lib/api-auth";
 
 export async function GET(
@@ -48,9 +47,13 @@ export async function GET(
     return new Response("no render yet", { status: 404 });
   }
 
-  // Path-traversal guard: rendered files must live under PROJECT_ROOT/.renders
+  // Path-traversal guard: rendered files must live under <root>/.renders.
+  // This route is dev-only (gated above) so cwd resolution is safe; the
+  // turbopackIgnore comment stops the NFT tracer from pulling the whole
+  // project into this route's bundle.
   const normalized = path.resolve(mp4Path);
-  const rendersRoot = path.resolve(PROJECT_ROOT, ".renders");
+  const projectRoot = process.env.PROJECT_ROOT ?? /*turbopackIgnore: true*/ process.cwd();
+  const rendersRoot = path.resolve(projectRoot, ".renders");
   if (!normalized.startsWith(rendersRoot + path.sep) && normalized !== rendersRoot) {
     return new Response("forbidden", { status: 403 });
   }
