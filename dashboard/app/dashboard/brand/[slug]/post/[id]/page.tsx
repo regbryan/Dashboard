@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { getImageUrl } from "@/lib/image-url";
 import StatusBadge from "@/components/StatusBadge";
 import ApprovalHistory from "@/components/ApprovalHistory";
+import SocialPilotStatus from "@/components/SocialPilotStatus";
 import ClientReviewLink from "@/components/ClientReviewLink";
 import PostImageViewer from "@/components/PostImageViewer";
 import Link from "next/link";
@@ -200,6 +201,18 @@ export default async function PostDetailPage({
                 </p>
               ) : (
                 <ApprovalHistory approvals={approvals || []} />
+              )}
+              {post.socialpilot_queue_status && (
+                <div style={{ marginTop: 16 }}>
+                  <SocialPilotStatus
+                    postId={post.id}
+                    status={post.socialpilot_queue_status}
+                    socialpilotPostId={post.socialpilot_post_id ?? null}
+                    error={post.socialpilot_error ?? null}
+                    queuedAt={post.socialpilot_queued_at ?? null}
+                    isAdmin={true}
+                  />
+                </div>
               )}
               {(() => {
                 const lastChangeRequest = (approvals || [])
