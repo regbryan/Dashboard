@@ -2,6 +2,7 @@ import type { BrandKitView, AutopilotRule } from "@/lib/brand-kit";
 import RefreshBrandKitButton from "./RefreshBrandKitButton";
 import EditBrandKitForm from "./EditBrandKitForm";
 import ManageBillingButton from "./ManageBillingButton";
+import SocialPilotBinding from "./SocialPilotBinding";
 
 const MUTED = "#7a7a88";
 const LABEL = "#9999a6";
@@ -875,6 +876,12 @@ function OperatorPanel({
       </summary>
       <div style={{ marginTop: "14px", display: "grid", gap: "20px" }}>
         <BillingBlock brand={brand} brandId={brandId} />
+        {brand.subscription_tier === "growth" && (
+          <SocialPilotBinding
+            brandId={brandId}
+            initialAccountId={brand.socialpilot_account_id ?? null}
+          />
+        )}
         <div>
           <RefreshBrandKitButton brandId={brandId} />
           <p style={{ marginTop: "8px", fontSize: "11px", color: MUTED, lineHeight: 1.55 }}>

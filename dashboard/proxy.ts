@@ -46,6 +46,7 @@ export async function proxy(request: NextRequest) {
     "/api/cron/", // Vercel Cron — gated by CRON_SECRET inside the route
     "/api/stripe/webhook", // Stripe — gated by webhook signature
     "/api/stripe/checkout", // unauthenticated buyers from marketing site
+    "/api/socialpilot/callback", // SP OAuth bounce — admin already authed at /connect
   ];
   const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
 

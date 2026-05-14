@@ -35,6 +35,7 @@ export type BrandRow = {
   stripe_customer_id: string | null;
   subscription_current_period_end: string | null;
   subscription_cancel_at: string | null;
+  socialpilot_account_id: string | null;
 };
 
 export type BrandKitRow = {
@@ -112,7 +113,7 @@ export async function loadBrandKit(slug: string): Promise<BrandKitView | null> {
   const { data: brand } = await supabaseAdmin()
     .from("brands")
     .select(
-      "id, name, handle, platform, color_primary, color_secondary, color_accent, cadence, compliance, has_brand_doc, subscription_status, subscription_tier, stripe_customer_id, subscription_current_period_end, subscription_cancel_at"
+      "id, name, handle, platform, color_primary, color_secondary, color_accent, cadence, compliance, has_brand_doc, subscription_status, subscription_tier, stripe_customer_id, subscription_current_period_end, subscription_cancel_at, socialpilot_account_id"
     )
     .eq("id", slug)
     .maybeSingle();
