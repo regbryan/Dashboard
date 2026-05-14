@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/refresh-brand-kits",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/socialpilot-refresh",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
