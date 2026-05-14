@@ -1,6 +1,7 @@
 import type { BrandKitView, AutopilotRule } from "@/lib/brand-kit";
 import RefreshBrandKitButton from "./RefreshBrandKitButton";
 import EditBrandKitForm from "./EditBrandKitForm";
+import ManageBillingButton from "./ManageBillingButton";
 
 const MUTED = "#7a7a88";
 const LABEL = "#9999a6";
@@ -42,10 +43,11 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
       {/* Autopilot rules — supporting reference */}
       <Rules rules={rules} />
 
-      {/* Operator surface — refresh + edit at the bottom */}
+      {/* Operator surface — refresh + edit + billing at the bottom */}
       <OperatorPanel
         brandId={brand.id}
         kit={kit}
+        brand={brand}
       />
     </div>
   );
@@ -843,9 +845,11 @@ function Rules({ rules }: { rules: AutopilotRule[] }) {
 function OperatorPanel({
   brandId,
   kit,
+  brand,
 }: {
   brandId: string;
   kit: BrandKitView["kit"];
+  brand: BrandKitView["brand"];
 }) {
   return (
     <details
@@ -867,9 +871,10 @@ function OperatorPanel({
           listStyle: "none",
         }}
       >
-        Operator controls — refresh & edit
+        Operator controls — refresh, edit & billing
       </summary>
-      <div style={{ marginTop: "14px", display: "grid", gap: "18px" }}>
+      <div style={{ marginTop: "14px", display: "grid", gap: "20px" }}>
+        <BillingBlock brand={brand} brandId={brandId} />
         <div>
           <RefreshBrandKitButton brandId={brandId} />
           <p style={{ marginTop: "8px", fontSize: "11px", color: MUTED, lineHeight: 1.55 }}>
@@ -892,6 +897,123 @@ function OperatorPanel({
         />
       </div>
     </details>
+  );
+}
+
+function BillingBlock({
+  brand,
+  brandId,
+}: {
+  brand: BrandKitView["brand"];
+  brandId: string;
+}) {
+  const status = brand.subscription_status;
+  const tier = brand.subscription_tier;
+  const hasStripe = Boolean(brand.stripe_customer_id);
+  const renewsAt = brand.subscription_current_period_end
+    ? new Date(brand.subscription_current_period_end)
+    : null;
+  const cancelAt = brand.subscription_cancel_at
+    ? new Date(brand.subscription_cancel_at)
+    : null;
+
+  // Manually-provisioned brands have no Stripe customer; show a quiet
+  // note rather than nothing so the operator knows why "Manage billing"
+  // isn't here.
+  if (!hasStripe) {
+    return (
+      <div>
+        <SubLabel>Billing</SubLabel>
+        <p style={{ marginTop: "8px", fontSize: "12px", color: MUTED, lineHeight: 1.55 }}>
+          This brand was provisioned without a Stripe customer (legacy or
+          manual setup). To attach billing, the customer needs to complete
+          a checkout — contact support to migrate.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <SubLabel>Billing</SubLabel>
+      <div
+        style={{
+          marginTop: "10px",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <StatusPill status={status} />
+        {tier && (
+          <span
+            style={{
+              fontSize: "12px",
+              color: VALUE,
+              textTransform: "capitalize",
+            }}
+          >
+            {tier} plan
+          </span>
+        )}
+        {renewsAt && status === "active" && (
+          <span style={{ fontSize: "12px", color: MUTED }}>
+            Renews {renewsAt.toLocaleDateString()}
+          </span>
+        )}
+        {cancelAt && (
+          <span style={{ fontSize: "12px", color: "#fbb27a" }}>
+            Cancels {cancelAt.toLocaleDateString()}
+          </span>
+        )}
+      </div>
+      <div style={{ marginTop: "12px" }}>
+        <ManageBillingButton brandId={brandId} />
+      </div>
+      <p style={{ marginTop: "8px", fontSize: "11px", color: MUTED, lineHeight: 1.55 }}>
+        Opens the Stripe portal where you can update card on file, view
+        invoices, change plan, or cancel.
+      </p>
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: string | null }) {
+  const style = (() => {
+    switch (status) {
+      case "active":
+      case "trialing":
+        return { bg: "rgba(126,231,135,0.08)", border: "rgba(126,231,135,0.3)", color: "#a7f3c4" };
+      case "past_due":
+      case "unpaid":
+        return { bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.3)", color: "#fbd38d" };
+      case "canceled":
+      case "incomplete_expired":
+        return { bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.3)", color: "#fca5a5" };
+      default:
+        return { bg: "rgba(255,255,255,0.04)", border: "rgba(255,255,255,0.12)", color: "#bfbfcc" };
+    }
+  })();
+  const label = status ? status.replace(/_/g, " ") : "unknown";
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "3px 10px",
+        borderRadius: "999px",
+        background: style.bg,
+        border: `1px solid ${style.border}`,
+        color: style.color,
+        fontSize: "10px",
+        fontWeight: 600,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+      }}
+    >
+      {label}
+    </span>
   );
 }
 

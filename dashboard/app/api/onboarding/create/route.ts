@@ -1,5 +1,6 @@
 import { requireUser, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendWelcomeEmail } from "@/lib/emails/welcome";
 
 /**
  * Self-serve provisioning endpoint.
@@ -163,14 +164,14 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
-    // 4. Claim the pending_signup if this user was Stripe-staged.
-    // Looking by claimed_by_user_id (set by /api/onboarding/claim
-    // after the Stripe checkout redirect) is the strongest signal —
-    // it ties the row to this specific user even if their email later
-    // changes. Fall back to email match.
+    // 4. Claim the pending_signup if this user was Stripe-staged, and
+    // copy the subscription state onto the new brand row so the
+    // autopilot gate has something to check.
     const { data: pending } = await admin
       .from("pending_signups")
-      .select("id")
+      .select(
+        "id, tier, stripe_customer_id, stripe_subscription_id"
+      )
       .or(
         `claimed_by_user_id.eq.${ctx.user.id},email.eq.${(ctx.user.email ?? "").toLowerCase()}`
       )
@@ -186,6 +187,37 @@ export async function POST(req: Request): Promise<Response> {
           claimed_brand_id: body.slug,
         })
         .eq("id", pending.id);
+
+      await admin
+        .from("brands")
+        .update({
+          subscription_status: "active",
+          subscription_tier: pending.tier,
+          stripe_customer_id: pending.stripe_customer_id,
+          stripe_subscription_id: pending.stripe_subscription_id,
+        })
+        .eq("id", body.slug);
+    }
+
+    // 5. Welcome email — fire-and-forget so a transient Resend outage
+    // doesn't block the redirect to the user's brand new dashboard.
+    // We pull tier from the just-claimed pending_signup if present.
+    if (ctx.user.email) {
+      const dashboardOrigin =
+        process.env.NEXT_PUBLIC_DASHBOARD_ORIGIN ||
+        new URL(req.url).origin;
+      const tier = pending?.tier ?? null;
+      void sendWelcomeEmail({
+        to: ctx.user.email,
+        brandName: body.name.trim(),
+        brandSlug: body.slug,
+        tier,
+        dashboardUrl: dashboardOrigin,
+      }).then((res) => {
+        if (!res.ok) {
+          console.warn("[onboarding/create] welcome email failed", res.error);
+        }
+      });
     }
 
     return Response.json({
