@@ -141,7 +141,15 @@ export async function POST(req: Request) {
 
     return Response.json({ url: session.url }, { headers: cors });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Stripe error";
-    return Response.json({ error: message }, { status: 500, headers: cors });
+    // Log the full Stripe error server-side; never echo internals
+    // (parameter names, account IDs, request IDs) to the browser.
+    console.error("[stripe/checkout] session create failed", {
+      tier,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return Response.json(
+      { error: "checkout_failed" },
+      { status: 502, headers: cors }
+    );
   }
 }

@@ -35,12 +35,17 @@ export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!sig || !secret) {
+    // 4xx, not 5xx — Stripe retries 5xx for up to 3 days, which would
+    // hammer a misconfigured endpoint. 400 makes it give up quickly so
+    // an operator can fix the env and reattach. Log loud so the miss
+    // surfaces in the deploy logs.
+    console.error(
+      "[stripe webhook] misconfigured: missing STRIPE_WEBHOOK_SECRET or signature header",
+      { has_sig: !!sig, has_secret: !!secret }
+    );
     return Response.json(
-      {
-        error:
-          "Stripe webhook misconfigured. Set STRIPE_WEBHOOK_SECRET in Vercel and configure the endpoint in Stripe dashboard.",
-      },
-      { status: 500 }
+      { error: "webhook_misconfigured" },
+      { status: 400 }
     );
   }
 

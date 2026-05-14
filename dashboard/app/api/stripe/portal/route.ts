@@ -78,7 +78,14 @@ export async function POST(req: Request): Promise<Response> {
   } catch (err) {
     const res = handleAuthError(err);
     if (res) return res;
-    const message = err instanceof Error ? err.message : "Stripe error";
-    return Response.json({ error: message }, { status: 500 });
+    // Log internals; return a generic error so we don't leak Stripe
+    // request IDs / parameter names to the browser.
+    console.error("[stripe/portal] session create failed", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return Response.json(
+      { error: "portal_unavailable" },
+      { status: 502 }
+    );
   }
 }
