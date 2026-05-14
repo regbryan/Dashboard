@@ -1,11 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-const ADMIN_EMAILS = [
-  "reggie@inspiredideationstrategies.com",
-  "reggieebryant@gmail.com",
-  "courtney@workbyccmarketing.com",
-];
+import { isAdminEmail } from "@/lib/admin-emails";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -63,7 +58,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const isAdmin = !!user.email && ADMIN_EMAILS.includes(user.email);
+  const isAdmin = isAdminEmail(user.email);
 
   // Admin-only routes
   if (pathname.startsWith("/dashboard") && !isAdmin) {

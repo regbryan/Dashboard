@@ -1,12 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-
-const ADMIN_EMAILS = [
-  "reggie@inspiredideationstrategies.com",
-  "reggieebryant@gmail.com",
-  "courtney@workbyccmarketing.com",
-];
+import { isAdminEmail } from "./admin-emails";
 
 export type AuthedClient = SupabaseClient;
 
@@ -54,7 +49,7 @@ export async function requireUser(): Promise<AuthContext> {
   if (!user) {
     throw new AuthError(401, { error: "unauthorized" });
   }
-  const isAdmin = !!user.email && ADMIN_EMAILS.includes(user.email);
+  const isAdmin = isAdminEmail(user.email);
   return { user, supabase, isAdmin };
 }
 
