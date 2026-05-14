@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase-admin";
 import { getImageUrl } from "./image-url";
+import { applyPublishingOverlays } from "./publishing-pipeline";
 import {
   queuePost,
   isSocialPilotConfigured,
@@ -112,7 +113,40 @@ export async function autoQueueApprovedPost(
     return { status: "skipped", reason: "past_date" };
   }
 
-  const imageUrl = getImageUrl(post.brand_id, post.file_path, post.updated_at);
+  // Branded-overlay automation. If the brand has publishing_overlays
+  // configured (e.g. OMG navy footer, CSC logo with clean-band), apply
+  // them onto the stored image BEFORE we send SP the URL. The overlay
+  // functions update posts.file_path in place (idempotent via snapshots).
+  // Skipped silently when the brand has no rules.
+  const overlayResult = await applyPublishingOverlays(post.id);
+  if (!overlayResult.ok) {
+    await markFailure(
+      postId,
+      `overlay pipeline failed: ${overlayResult.error}`
+    );
+    return {
+      status: "failed",
+      error: overlayResult.error,
+      recoverable: false,
+    };
+  }
+
+  // Re-read updated_at so the cache-bust query string on the image
+  // URL reflects the just-composited overlays. Without this, SP could
+  // pull a CDN-cached pre-overlay image.
+  let imageVersion: string | null = post.updated_at;
+  if (overlayResult.applied > 0) {
+    const { data: refreshed } = await supabaseAdmin()
+      .from("posts")
+      .select("updated_at")
+      .eq("id", post.id)
+      .maybeSingle();
+    imageVersion =
+      (refreshed as { updated_at?: string | null } | null)?.updated_at ??
+      post.updated_at;
+  }
+
+  const imageUrl = getImageUrl(post.brand_id, post.file_path, imageVersion);
   if (!imageUrl) {
     await markFailure(postId, "could not build public image URL");
     return { status: "failed", error: "image_url_failed", recoverable: false };

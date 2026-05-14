@@ -3,6 +3,7 @@ import RefreshBrandKitButton from "./RefreshBrandKitButton";
 import EditBrandKitForm from "./EditBrandKitForm";
 import ManageBillingButton from "./ManageBillingButton";
 import SocialPilotBinding from "./SocialPilotBinding";
+import PublishingOverlaysEditor from "./PublishingOverlaysEditor";
 
 const MUTED = "#7a7a88";
 const LABEL = "#9999a6";
@@ -882,6 +883,11 @@ function OperatorPanel({
             initialAccountId={brand.socialpilot_account_id ?? null}
           />
         )}
+        <PublishingOverlaysEditor
+          brandId={brandId}
+          initial={brand.publishing_overlays ?? null}
+        />
+
         <div>
           <RefreshBrandKitButton brandId={brandId} />
           <p style={{ marginTop: "8px", fontSize: "11px", color: MUTED, lineHeight: 1.55 }}>
