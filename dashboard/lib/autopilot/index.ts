@@ -98,10 +98,3 @@ export async function runAllBrandsAutopilot(
   return { summaries };
 }
 
-// Backwards compatibility for the IEC-only cron call site. Deprecated —
-// new callers should use runBrandAutopilot or runAllBrandsAutopilot.
-export async function runIECAutopilot(
-  opts: { lookaheadDays?: number; limit?: number; dryRun?: boolean } = {}
-): Promise<AutopilotRunSummary> {
-  return runBrandAutopilot("iec", opts);
-}

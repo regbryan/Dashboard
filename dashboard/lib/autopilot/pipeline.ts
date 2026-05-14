@@ -133,8 +133,4 @@ export async function generateBrandPost(
   };
 }
 
-// Backwards-compatible alias — older callers can keep using this name.
-export const generateIECPost = generateBrandPost;
-
 export type { PostRow as AutopilotPostRow };
-export const AUTOPILOT_BUCKET = BUCKET;
