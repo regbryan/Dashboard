@@ -180,37 +180,69 @@ body {
  * at once. The dashboard's three glass surfaces (tab bar + operator
  * panel + chips) are well under that.
  */
+/* Cues that have to be visible AT REST (not just on scroll):
+ *
+ * - background gradient (not flat color) — gives the surface depth
+ *   even before backdrop-filter has anything behind it to blur.
+ * - 1px inset top highlight at 18% white — reads as the specular edge
+ *   of a curved glass piece catching light.
+ * - 1px ring border at 14% white — visible edge, not a subtle hint.
+ * - drop shadow — separates the surface from the page beneath it.
+ *
+ * `backdrop-filter` adds the blur effect when scrolled content passes
+ * behind, but the surface should look like glass even without that. */
 .lg-surface {
-  background-color: rgba(15, 15, 26, 0.55);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    );
+  background-color: rgba(20, 18, 38, 0.62);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 8px 32px -16px rgba(0, 0, 0, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 12px 40px -16px rgba(0, 0, 0, 0.7);
 }
 
-/* Variant for inset panels (operator <details>) — slightly more
- * tinted toward the brand purple so the panel reads as "different
- * layer" rather than just "darker rectangle". */
+/* Inset variant for nested panels — slight violet shift so it reads
+ * as a layer above the kit content rather than just "darker rectangle". */
 .lg-surface--inset {
-  background-color: rgba(15, 13, 30, 0.55);
-  backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
-  border: 1px solid rgba(139, 92, 255, 0.12);
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(192, 132, 252, 0.05) 0%,
+      rgba(139, 92, 255, 0.01) 100%
+    );
+  background-color: rgba(22, 18, 42, 0.6);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  border: 1px solid rgba(139, 92, 255, 0.22);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 12px 40px -20px rgba(139, 92, 255, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(139, 92, 255, 0.08),
+    0 14px 44px -18px rgba(139, 92, 255, 0.25);
 }
 
-/* Small floating chip — status badges, queue indicators, toasts.
- * Lighter blur (the chip is small, more blur is wasted paint). */
+/* Small floating chip — lighter blur (the chip is small, more blur
+ * would be wasted paint), but still clearly readable as glass. */
 .lg-chip {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    );
   background-color: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 16px -8px rgba(0, 0, 0, 0.5);
 }
 
 /* Reduced-transparency fallback. Drop the blur (gone) and bump the
