@@ -154,3 +154,78 @@ body {
 .sp-input::placeholder {
   color: rgba(255, 255, 255, 0.3);
 }
+
+/* ─── Liquid Glass surface tokens ──────────────────────────────────────
+ *
+ * Subtle backdrop-blur + tint + thin top-edge highlight + bottom rim.
+ * Used on floating surfaces only (sticky tab bar, operator panel,
+ * status chips) — never on the main content slab, never on form
+ * inputs.
+ *
+ * Two layered effects make the "glass" read:
+ *   1. backdrop-filter blur picks up whatever's behind, slightly
+ *      desaturated to keep it from competing with foreground text.
+ *   2. inset top highlight (1px white at 12% opacity) catches the
+ *      eye like glass picking up ambient light.
+ *
+ * Accessibility: any user with `prefers-reduced-transparency: reduce`
+ * (System Settings → Accessibility on macOS/iOS, Settings →
+ * Accessibility → Visual effects on Windows) gets a solid opaque
+ * fallback. Same content, no see-through, no blur cost on low-power
+ * devices. Browser support for the media query is universal as of
+ * 2026 (Safari 17+, Chrome 119+, Firefox 113+).
+ *
+ * Performance: backdrop-filter is GPU-accelerated in all modern
+ * browsers but does cost a paint. Don't apply to >5 surfaces visible
+ * at once. The dashboard's three glass surfaces (tab bar + operator
+ * panel + chips) are well under that.
+ */
+.lg-surface {
+  background-color: rgba(15, 15, 26, 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px -16px rgba(0, 0, 0, 0.6);
+}
+
+/* Variant for inset panels (operator <details>) — slightly more
+ * tinted toward the brand purple so the panel reads as "different
+ * layer" rather than just "darker rectangle". */
+.lg-surface--inset {
+  background-color: rgba(15, 13, 30, 0.55);
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  border: 1px solid rgba(139, 92, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 40px -20px rgba(139, 92, 255, 0.18);
+}
+
+/* Small floating chip — status badges, queue indicators, toasts.
+ * Lighter blur (the chip is small, more blur is wasted paint). */
+.lg-chip {
+  background-color: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Reduced-transparency fallback. Drop the blur (gone) and bump the
+ * opacity (visible). Border + shadow stay so the surface still has
+ * edges; just no longer see-through. */
+@media (prefers-reduced-transparency: reduce) {
+  .lg-surface,
+  .lg-surface--inset {
+    background-color: var(--bg-card);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .lg-chip {
+    background-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

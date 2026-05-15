@@ -91,9 +91,8 @@ export default function PublishingOverlaysEditor({ brandId, initial }: Props) {
 
   return (
     <div
+      className="lg-chip"
       style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.08)",
         borderRadius: 10,
         padding: "12px 14px",
         display: "grid",

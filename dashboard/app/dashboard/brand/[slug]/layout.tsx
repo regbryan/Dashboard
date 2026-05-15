@@ -152,8 +152,27 @@ export default async function BrandLayout({
           )}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "28px" }}>
-          <BrandTabs slug={slug} />
+        {/* Sticky liquid-glass tab bar. The negative inset on each side
+            cancels the page-container padding so the glass extends to
+            the viewport edges, and the rounded pill inside it floats
+            centered. Tab bar follows you down Kit/Calendar/Designs/
+            Assets — fits with the SP queue status the operator wants
+            visible at all times. */}
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            marginLeft: "calc(-1 * clamp(16px, 3vw, 40px))",
+            marginRight: "calc(-1 * clamp(16px, 3vw, 40px))",
+            marginBottom: "28px",
+            padding: "14px clamp(16px, 3vw, 40px)",
+          }}
+          className="lg-surface"
+        >
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <BrandTabs slug={slug} />
+          </div>
         </div>
 
         <div style={{ minHeight: "calc(100vh - 260px)" }}>{children}</div>
