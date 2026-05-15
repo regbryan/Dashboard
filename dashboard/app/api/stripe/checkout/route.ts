@@ -123,9 +123,6 @@ export async function POST(req: Request) {
     const session = await stripe().checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      // Pull the email so we can match the customer back to their
-      // signup later without asking them to retype it.
-      customer_creation: "always",
       // After success, send them to the dashboard's claim handler with
       // the session id; that route will redirect to login if they're
       // not signed in, then resume and provision their brand.

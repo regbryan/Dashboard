@@ -17,6 +17,22 @@ import path from "node:path";
  * call rather than silently bundling the wrong root.
  */
 export function getProjectRoot(): string {
+  // Production guard: these routes are dev-only by design (logos +
+  // hyperframes templates live on disk in the local checkout, not on
+  // Vercel). Refuse to operate in prod even if someone sets the env —
+  // the data won't be where it claims to be, and silent fallthrough
+  // would mask the misconfiguration.
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ENABLE_LOCAL_SCRIPTS !== "1"
+  ) {
+    throw new Error(
+      "Filesystem-backed paths are dev-only. Set ENABLE_LOCAL_SCRIPTS=1 " +
+        "only if you've mounted the Instagram Automation checkout at " +
+        "PROJECT_ROOT on the deployment host."
+    );
+  }
+
   const root = process.env.PROJECT_ROOT;
   if (!root) {
     throw new Error(
