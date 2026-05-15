@@ -32,7 +32,7 @@ export default function PostCard({
   return (
     <Link
       href={`/dashboard/brand/${brandSlug}/post/${post.id}`}
-      className="surface-card overflow-hidden flex flex-col"
+      className="lg-surface--card overflow-hidden flex flex-col"
       style={{
         borderRadius: "16px",
         textDecoration: "none",
