@@ -153,10 +153,11 @@ function StatTile({
         overflow: "hidden",
         padding: "20px 22px",
         borderRadius: "16px",
-        backgroundColor: "rgba(22, 20, 42, 0.62)",
-        backdropFilter: "blur(14px) saturate(160%)",
-        WebkitBackdropFilter: "blur(14px) saturate(160%)",
-        border: "1px solid rgba(255, 255, 255, 0.14)",
+        // Solid surface — no backdrop blur. Same treatment as BrandCard
+        // so the StatTiles + brand grid below read as one consistent
+        // language across /dashboard.
+        backgroundColor: "#13121f",
+        border: "1px solid rgba(255, 255, 255, 0.18)",
         boxShadow: [
           "inset 0 1px 0 rgba(255,255,255,0.30)",
           "inset 0 -1px 0 rgba(0,0,0,0.4)",

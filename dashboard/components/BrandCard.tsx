@@ -47,12 +47,14 @@ export default function BrandCard({ brand }: { brand: Brand }) {
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
-        // Base tinted surface — slightly luminous so the card pops off
-        // the page even before the highlights stack on top.
-        backgroundColor: "rgba(22, 20, 42, 0.62)",
-        backdropFilter: "blur(14px) saturate(160%)",
-        WebkitBackdropFilter: "blur(14px) saturate(160%)",
-        border: "1px solid rgba(255, 255, 255, 0.14)",
+        // Solid tinted surface (no backdrop blur). Slightly more opaque
+        // since we're no longer relying on the blur to give the card
+        // material presence — and slightly more luminous than the page
+        // bg so it reads as a layered surface.
+        backgroundColor: "#13121f",
+        // Visible border ring so the card has a defined edge before
+        // the inset shadows do their work.
+        border: "1px solid rgba(255, 255, 255, 0.18)",
         // Multi-layer box-shadow does most of the "glass" reading:
         //   1) inset top highlight — specular edge catching ambient light
         //   2) inset bottom dim — defines back rim, gives the slab thickness
