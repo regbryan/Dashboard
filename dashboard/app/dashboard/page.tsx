@@ -162,7 +162,7 @@ function StatTile({
           fontWeight: 600,
           letterSpacing: "0.14em",
           textTransform: "uppercase",
-          color: "#6f6f7e",
+          color: "#8a8a98",
         }}
       >
         {label}

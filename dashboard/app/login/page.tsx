@@ -147,7 +147,7 @@ export default function LoginPage() {
             marginTop: "28px",
             fontSize: "12px",
             // #8a8a98 on #0f0f1a → 5.4:1, comfortably above WCAG AA 4.5:1.
-            // #6f6f7e was 3.85:1.
+            // The previous #6f6f7e was only 3.85:1.
             color: "#8a8a98",
             textAlign: "center",
             lineHeight: 1.6,

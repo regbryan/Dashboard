@@ -96,7 +96,7 @@ export default function PostCard({
           style={{
             marginTop: "4px",
             fontSize: "11px",
-            color: "#6f6f7e",
+            color: "#8a8a98",
             letterSpacing: "0.04em",
           }}
         >

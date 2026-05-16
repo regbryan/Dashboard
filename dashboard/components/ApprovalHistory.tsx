@@ -19,7 +19,7 @@ function formatTimestamp(iso: string): string {
 function accentColor(status: string): string {
   if (status === "approved") return "#7de29c";
   if (status === "changes_requested") return "#fbb27a";
-  return "#6f6f7e";
+  return "#8a8a98";
 }
 
 export default function ApprovalHistory({
@@ -55,7 +55,7 @@ export default function ApprovalHistory({
             >
               {entry.status.replace(/_/g, " ")}
             </span>
-            <span style={{ fontSize: "11px", color: "#6f6f7e" }}>
+            <span style={{ fontSize: "11px", color: "#8a8a98" }}>
               {formatTimestamp(entry.created_at)}
             </span>
           </div>

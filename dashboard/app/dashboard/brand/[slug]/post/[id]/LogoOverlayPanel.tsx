@@ -358,7 +358,7 @@ export default function LogoOverlayPanel({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#6f6f7e",
+            color: "#8a8a98",
             fontSize: "12px",
           }}
         >

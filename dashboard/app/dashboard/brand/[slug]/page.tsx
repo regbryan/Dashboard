@@ -107,7 +107,7 @@ export default async function BrandDetailPage({
           )}
         </div>
         {brand.compliance && (
-          <p style={{ marginTop: "-12px", marginBottom: "20px", fontSize: "11px", color: "#6f6f7e", letterSpacing: "0.04em" }}>
+          <p style={{ marginTop: "-12px", marginBottom: "20px", fontSize: "11px", color: "#8a8a98", letterSpacing: "0.04em" }}>
             {brand.compliance}
           </p>
         )}

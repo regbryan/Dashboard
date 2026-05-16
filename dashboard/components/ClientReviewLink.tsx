@@ -139,6 +139,7 @@ export default function ClientReviewLink({
           type="text"
           value={fullUrl}
           readOnly
+          aria-label="Client review link (copy to share)"
           onFocus={(e) => e.target.select()}
           className="sp-input"
           style={{ flex: 1, fontSize: "13px" }}

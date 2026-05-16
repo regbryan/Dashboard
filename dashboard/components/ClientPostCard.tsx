@@ -172,7 +172,7 @@ export default function ClientPostCard({
           <p
             style={{
               fontSize: "11px",
-              color: "#6f6f7e",
+              color: "#8a8a98",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               fontWeight: 600,

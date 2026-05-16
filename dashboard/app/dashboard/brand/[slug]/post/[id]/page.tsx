@@ -195,7 +195,7 @@ export default async function PostDetailPage({
                 </span>
               </div>
               {(approvals || []).length === 0 ? (
-                <p style={{ fontSize: "13px", color: "#6f6f7e", margin: 0 }}>
+                <p style={{ fontSize: "13px", color: "#8a8a98", margin: 0 }}>
                   No feedback yet. Use the action panel below to leave a note,
                   or share the post with the client for them to review.
                 </p>

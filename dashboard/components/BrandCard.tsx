@@ -166,7 +166,7 @@ function ProgressRow({
           marginBottom: "6px",
         }}
       >
-        <span style={{ textTransform: "uppercase", fontWeight: 600, color: "#6f6f7e" }}>
+        <span style={{ textTransform: "uppercase", fontWeight: 600, color: "#8a8a98" }}>
           {label}
         </span>
         <span style={{ color: "#bfbfcc" }}>
