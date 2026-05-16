@@ -859,6 +859,8 @@ function OperatorPanel({
       style={{
         borderRadius: "12px",
         padding: "14px 18px",
+        backdropFilter: "blur(18px) saturate(145%)",
+        WebkitBackdropFilter: "blur(18px) saturate(145%)",
       }}
     >
       <summary

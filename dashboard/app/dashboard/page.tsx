@@ -149,7 +149,12 @@ function StatTile({
   return (
     <div
       className="lg-surface--card"
-      style={{ padding: "20px 22px", borderRadius: "16px" }}
+      style={{
+        padding: "20px 22px",
+        borderRadius: "16px",
+        backdropFilter: "blur(10px) saturate(145%)",
+        WebkitBackdropFilter: "blur(10px) saturate(145%)",
+      }}
     >
       <p
         style={{

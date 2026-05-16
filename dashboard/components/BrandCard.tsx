@@ -38,6 +38,11 @@ export default function BrandCard({ brand }: { brand: Brand }) {
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
+        // Inline because LightningCSS in Tailwind v4 collapses
+        // backdrop-filter to a -webkit- prefix that Chrome 148+ no
+        // longer recognizes. Inline styles bypass the optimizer.
+        backdropFilter: "blur(10px) saturate(145%)",
+        WebkitBackdropFilter: "blur(10px) saturate(145%)",
       }}
     >
       {/* Brand header */}

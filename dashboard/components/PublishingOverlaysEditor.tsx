@@ -97,6 +97,8 @@ export default function PublishingOverlaysEditor({ brandId, initial }: Props) {
         padding: "12px 14px",
         display: "grid",
         gap: 8,
+        backdropFilter: "blur(12px) saturate(150%)",
+        WebkitBackdropFilter: "blur(12px) saturate(150%)",
       }}
     >
       <div

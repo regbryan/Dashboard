@@ -167,6 +167,8 @@ export default async function BrandLayout({
             marginRight: "calc(-1 * clamp(16px, 3vw, 40px))",
             marginBottom: "28px",
             padding: "14px clamp(16px, 3vw, 40px)",
+            backdropFilter: "blur(24px) saturate(150%)",
+            WebkitBackdropFilter: "blur(24px) saturate(150%)",
           }}
           className="lg-surface"
         >

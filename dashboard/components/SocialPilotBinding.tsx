@@ -185,6 +185,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       style={{
         borderRadius: 10,
         padding: "12px 14px",
+        backdropFilter: "blur(12px) saturate(150%)",
+        WebkitBackdropFilter: "blur(12px) saturate(150%)",
       }}
     >
       <div
