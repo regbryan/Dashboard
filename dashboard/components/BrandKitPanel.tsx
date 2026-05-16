@@ -228,8 +228,23 @@ function Quote({ label, body, accent }: { label: string; body: string; accent?: 
   return (
     <div
       style={{
-        background: accent ? "rgba(192,132,252,0.04)" : "rgba(255,255,255,0.02)",
-        border: `1px solid ${accent ? "rgba(192,132,252,0.18)" : "rgba(255,255,255,0.06)"}`,
+        // Slightly darker base + visible border + recessed-lip inset
+        // shadow. The top highlight reads as the curve of the card
+        // catching ambient light; the inset bottom dim defines the
+        // back rim so the card has visible thickness.
+        background: accent ? "rgba(192,132,252,0.05)" : "rgba(255,255,255,0.025)",
+        border: `1px solid ${accent ? "rgba(192,132,252,0.22)" : "rgba(255,255,255,0.10)"}`,
+        boxShadow: accent
+          ? [
+              "inset 0 1px 0 rgba(255,255,255,0.05)",
+              "inset 0 -1px 0 rgba(0,0,0,0.30)",
+              "0 1px 2px rgba(0,0,0,0.25)",
+            ].join(", ")
+          : [
+              "inset 0 1px 0 rgba(255,255,255,0.05)",
+              "inset 0 -1px 0 rgba(0,0,0,0.30)",
+              "0 1px 2px rgba(0,0,0,0.25)",
+            ].join(", "),
         borderRadius: "10px",
         padding: "14px 16px",
         // height: 100% lets the card fill its grid cell when row is
@@ -1089,8 +1104,15 @@ function MissingCard({ label, hint }: { label: string; hint: string }) {
     <div
       style={{
         padding: "14px 16px",
-        background: "rgba(255,255,255,0.02)",
-        border: "1px dashed rgba(255,255,255,0.08)",
+        background: "rgba(255,255,255,0.025)",
+        // Dashed border bumped to match the solid cards' new alpha.
+        border: "1px dashed rgba(255,255,255,0.12)",
+        // Same recessed-lip treatment so missing/present cards have
+        // matching chrome — only the dashed border distinguishes them.
+        boxShadow: [
+          "inset 0 1px 0 rgba(255,255,255,0.04)",
+          "inset 0 -1px 0 rgba(0,0,0,0.25)",
+        ].join(", "),
         borderRadius: "10px",
         height: "100%",
       }}
@@ -1116,8 +1138,13 @@ function KeyValueCard({
     <div
       style={{
         padding: "14px 16px",
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.10)",
+        boxShadow: [
+          "inset 0 1px 0 rgba(255,255,255,0.05)",
+          "inset 0 -1px 0 rgba(0,0,0,0.30)",
+          "0 1px 2px rgba(0,0,0,0.25)",
+        ].join(", "),
         borderRadius: "10px",
         height: "100%",
         display: "flex",
