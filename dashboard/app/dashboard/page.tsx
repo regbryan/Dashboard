@@ -148,36 +148,62 @@ function StatTile({
 }) {
   return (
     <div
-      className="lg-surface--card"
       style={{
+        position: "relative",
+        overflow: "hidden",
         padding: "20px 22px",
         borderRadius: "16px",
-        backdropFilter: "blur(10px) saturate(145%)",
-        WebkitBackdropFilter: "blur(10px) saturate(145%)",
+        backgroundColor: "rgba(22, 20, 42, 0.62)",
+        backdropFilter: "blur(14px) saturate(160%)",
+        WebkitBackdropFilter: "blur(14px) saturate(160%)",
+        border: "1px solid rgba(255, 255, 255, 0.14)",
+        boxShadow: [
+          "inset 0 1px 0 rgba(255,255,255,0.30)",
+          "inset 0 -1px 0 rgba(0,0,0,0.4)",
+          "inset 1px 0 0 rgba(255,255,255,0.06)",
+          "inset -1px 0 0 rgba(255,255,255,0.06)",
+          "0 12px 36px -16px rgba(0,0,0,0.65)",
+        ].join(", "),
       }}
     >
-      <p
+      {/* Specular highlight at the top — the "shine" character */}
+      <span
+        aria-hidden
         style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "#6f6f7e",
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          pointerEvents: "none",
+          background:
+            "radial-gradient(ellipse 110% 50% at 50% -10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 28%, transparent 55%)",
+          mixBlendMode: "screen",
         }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          marginTop: "8px",
-          fontFamily: "var(--font-anton), 'Anton', sans-serif",
-          fontSize: "44px",
-          lineHeight: 1,
-          color: accent || "white",
-        }}
-      >
-        {value}
-      </p>
+      />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <p
+          style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "#6f6f7e",
+          }}
+        >
+          {label}
+        </p>
+        <p
+          style={{
+            marginTop: "8px",
+            fontFamily: "var(--font-anton), 'Anton', sans-serif",
+            fontSize: "44px",
+            lineHeight: 1,
+            color: accent || "white",
+          }}
+        >
+          {value}
+        </p>
+      </div>
     </div>
   );
 }

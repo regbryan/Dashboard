@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 interface BrandStats {
   not_started: number;
@@ -29,22 +32,88 @@ export default function BrandCard({ brand }: { brand: Brand }) {
   const approvedPct = stats.total > 0 ? Math.round((approved / stats.total) * 100) : 0;
   const needsReview = stats.in_review;
 
+  const [hovered, setHovered] = useState(false);
+
   return (
     <Link
       href={`/dashboard/brand/${brand.id}`}
-      className="lg-surface--card block"
+      className="block"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
+        position: "relative",
+        overflow: "hidden",
         padding: "20px 22px",
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
-        // Inline because LightningCSS in Tailwind v4 collapses
-        // backdrop-filter to a -webkit- prefix that Chrome 148+ no
-        // longer recognizes. Inline styles bypass the optimizer.
-        backdropFilter: "blur(10px) saturate(145%)",
-        WebkitBackdropFilter: "blur(10px) saturate(145%)",
+        // Base tinted surface — slightly luminous so the card pops off
+        // the page even before the highlights stack on top.
+        backgroundColor: "rgba(22, 20, 42, 0.62)",
+        backdropFilter: "blur(14px) saturate(160%)",
+        WebkitBackdropFilter: "blur(14px) saturate(160%)",
+        border: "1px solid rgba(255, 255, 255, 0.14)",
+        // Multi-layer box-shadow does most of the "glass" reading:
+        //   1) inset top highlight — specular edge catching ambient light
+        //   2) inset bottom dim — defines back rim, gives the slab thickness
+        //   3) inset side hints — soft vertical edge gloss
+        //   4) outer drop — separates the card from the page
+        // On hover, multiplies the specular and adds a violet rim glow.
+        boxShadow: hovered
+          ? [
+              "inset 0 1px 0 rgba(255,255,255,0.45)",
+              "inset 0 -1px 0 rgba(0,0,0,0.45)",
+              "inset 1px 0 0 rgba(255,255,255,0.08)",
+              "inset -1px 0 0 rgba(255,255,255,0.08)",
+              "0 20px 50px -16px rgba(0,0,0,0.75)",
+              "0 0 32px rgba(139,92,255,0.30)",
+            ].join(", ")
+          : [
+              "inset 0 1px 0 rgba(255,255,255,0.30)",
+              "inset 0 -1px 0 rgba(0,0,0,0.4)",
+              "inset 1px 0 0 rgba(255,255,255,0.06)",
+              "inset -1px 0 0 rgba(255,255,255,0.06)",
+              "0 12px 36px -16px rgba(0,0,0,0.65)",
+            ].join(", "),
+        transition: "box-shadow 0.3s ease, transform 0.3s ease",
+        transform: hovered ? "translateY(-1px)" : "translateY(0)",
       }}
     >
+      {/* Specular curved highlight — radial halo at the top edge that
+          reads as ambient light catching the curved top of a glass piece.
+          Always visible. */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          pointerEvents: "none",
+          background:
+            "radial-gradient(ellipse 110% 50% at 50% -10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 28%, transparent 55%)",
+          mixBlendMode: "screen",
+        }}
+      />
+
+      {/* Sheen sweep — diagonal light streak that slides across on hover.
+          Off-screen at rest, slides in during 700ms when hovered. */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          pointerEvents: "none",
+          background:
+            "linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)",
+          backgroundSize: "250% 100%",
+          backgroundPosition: hovered ? "-30% 0" : "120% 0",
+          transition: "background-position 0.7s ease",
+        }}
+      />
+
+      {/* Card content sits above both highlight layers */}
+      <div style={{ position: "relative", zIndex: 1 }}>
       {/* Brand header */}
       <div className="flex items-center justify-between" style={{ marginBottom: "18px" }}>
         <div className="flex items-center" style={{ gap: "10px" }}>
@@ -91,6 +160,7 @@ export default function BrandCard({ brand }: { brand: Brand }) {
       <div className="flex flex-col" style={{ gap: "14px" }}>
         <ProgressRow label="Generated" value={generated} total={stats.total} pct={genPct} color="#3b81ff" />
         <ProgressRow label="Approved" value={approved} total={stats.total} pct={approvedPct} color="#7de29c" />
+      </div>
       </div>
     </Link>
   );
