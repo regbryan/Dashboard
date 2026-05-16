@@ -153,9 +153,11 @@ export default async function BrandDetailPage({
         {/* Grid */}
         {filteredPosts.length === 0 ? (
           <div
-            className="text-center lg-surface--card"
+            className="text-center"
             style={{
               padding: "80px 24px",
+              background: "#0f0f1a",
+              border: "1px solid #1a1a2e",
               borderRadius: "16px",
               color: "#7a7a88",
               fontSize: "14px",
