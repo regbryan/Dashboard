@@ -79,17 +79,31 @@ export default function QuickActions() {
   const isError = status?.startsWith("Error");
 
   return (
-    <div style={{ marginTop: "40px" }}>
+    <div style={{ marginTop: "40px", textAlign: "center" }}>
       <h2 className="eyebrow" style={{ marginBottom: "16px" }}>Quick Actions</h2>
 
-      <div className="flex flex-wrap" style={{ gap: "12px" }}>
-        <ShinyButton onClick={handleImport} disabled={isBusy}>
+      {/* 4-column grid keeps every button the exact same width regardless
+          of label length. Centered + max-width caps the row on wide
+          screens so the buttons don't stretch into giant pills. On
+          mobile (<640px) collapses to a 2-column grid; on tiny screens
+          stacks single-column. */}
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
+        style={{
+          gap: "12px",
+          maxWidth: "880px",
+          margin: "0 auto",
+          justifyItems: "stretch",
+        }}
+      >
+        <ShinyButton onClick={handleImport} disabled={isBusy} fullWidth>
           {loading === "import" ? "Running…" : "Import Calendar"}
         </ShinyButton>
         <ShinyButton
           variant="secondary"
           onClick={() => handleScript("extract_captions", "Extract All Captions")}
           disabled={isBusy}
+          fullWidth
         >
           {loading === "extract_captions" ? "Running…" : "Extract All Captions"}
         </ShinyButton>
@@ -97,6 +111,7 @@ export default function QuickActions() {
           variant="secondary"
           onClick={() => handleScript("run_all_overlays", "Run All Overlays")}
           disabled={isBusy}
+          fullWidth
         >
           {loading === "run_all_overlays" ? "Running…" : "Run All Overlays"}
         </ShinyButton>
@@ -104,6 +119,7 @@ export default function QuickActions() {
           variant="secondary"
           onClick={handleSendDigest}
           disabled={isBusy}
+          fullWidth
         >
           {loading === "send_digest" ? "Sending…" : "Send Feedback Digest"}
         </ShinyButton>
