@@ -148,7 +148,7 @@ function StatTile({
 }) {
   return (
     <div
-      className="surface-card"
+      className="lg-surface--card"
       style={{ padding: "20px 22px", borderRadius: "16px" }}
     >
       <p

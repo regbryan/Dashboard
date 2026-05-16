@@ -32,7 +32,7 @@ export default function BrandCard({ brand }: { brand: Brand }) {
   return (
     <Link
       href={`/dashboard/brand/${brand.id}`}
-      className="surface-card block"
+      className="lg-surface--card block"
       style={{
         padding: "20px 22px",
         borderRadius: "16px",
