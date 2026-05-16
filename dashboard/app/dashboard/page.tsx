@@ -109,7 +109,7 @@ export default async function DashboardPage() {
 
         {/* Brand grid */}
         <div style={{ marginTop: "40px" }}>
-          <h2 className="eyebrow" style={{ marginBottom: "16px" }}>Brands</h2>
+          <h2 className="eyebrow" style={{ marginBottom: "16px", textAlign: "center" }}>Brands</h2>
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
             style={{ gap: "20px" }}
