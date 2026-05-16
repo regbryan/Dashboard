@@ -155,6 +155,39 @@ body {
   color: rgba(255, 255, 255, 0.3);
 }
 
+/* Tailwind v4 / LightningCSS strips `backdrop-filter` from plain custom
+ * rules below the @import line. Putting the property inside @layer
+ * utilities forces Tailwind to treat it as a custom utility and
+ * preserves it through the build. Each rule pairs the standard +
+ * -webkit prefix for Safari ≤17. */
+@layer utilities {
+  .lg-surface {
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+  }
+  .lg-surface--inset {
+    backdrop-filter: blur(18px) saturate(145%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+  }
+  .lg-surface--card {
+    backdrop-filter: blur(10px) saturate(145%);
+    -webkit-backdrop-filter: blur(10px) saturate(145%);
+  }
+  .lg-chip {
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .lg-surface,
+    .lg-surface--inset,
+    .lg-surface--card,
+    .lg-chip {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+}
+
 /* ─── Liquid Glass surface tokens ──────────────────────────────────────
  *
  * Subtle backdrop-blur + tint + thin top-edge highlight + bottom rim.
