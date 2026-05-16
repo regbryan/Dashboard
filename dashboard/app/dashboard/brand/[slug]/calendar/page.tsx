@@ -21,6 +21,8 @@ type Post = {
   post_type: string | null;
   content_pillar: string | null;
   concept: string | null;
+  visual_direction: string | null;
+  caption: string | null;
   status: string;
   file_path: string | null;
   updated_at: string | null;
@@ -42,7 +44,7 @@ export default async function BrandCalendarPage({
   const { data: postRows } = await supabase
     .from("posts")
     .select(
-      "id, post_number, date, day, post_type, content_pillar, concept, status, file_path, updated_at"
+      "id, post_number, date, day, post_type, content_pillar, concept, visual_direction, caption, status, file_path, updated_at"
     )
     .eq("brand_id", slug)
     .order("date", { ascending: true });
@@ -350,19 +352,60 @@ function PostPill({ post, brandId }: { post: Post; brandId: string }) {
           </div>
         </div>
       ) : (
+        // Pre-generation state: show the prompt of what's going to be
+        // designed. Concept is the primary line, visual_direction the
+        // fallback, caption a last resort. Content pillar shows as the
+        // eyebrow above so the operator can tell at a glance what
+        // bucket this post is from. Pill flips to <img> once file_path
+        // is set (generation complete).
         <div
           style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            background: "#0a0a14",
+            padding: "8px 9px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "44px",
-            fontSize: "10px",
-            color: "#7a7a88",
-            padding: "6px",
-            textAlign: "center",
+            flexDirection: "column",
+            gap: "5px",
           }}
         >
-          {post.content_pillar ?? post.post_type ?? "Empty"}
+          {post.content_pillar && (
+            <div
+              style={{
+                fontSize: "8px",
+                letterSpacing: "0.10em",
+                textTransform: "uppercase",
+                color: "#9999a6",
+                fontWeight: 600,
+                lineHeight: 1.2,
+              }}
+            >
+              {post.content_pillar}
+            </div>
+          )}
+          <p
+            style={{
+              margin: 0,
+              fontSize: "10px",
+              lineHeight: 1.4,
+              color: "#bfbfcc",
+              // Clamp the preview to fit the square cell — long
+              // concepts truncate with an ellipsis rather than push
+              // the cell taller.
+              display: "-webkit-box",
+              WebkitLineClamp: 6,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              wordBreak: "break-word",
+            }}
+          >
+            {post.concept ||
+              post.visual_direction ||
+              post.caption ||
+              post.post_type ||
+              "Awaiting prompt"}
+          </p>
         </div>
       )}
       <div
