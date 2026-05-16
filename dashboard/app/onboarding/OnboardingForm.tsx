@@ -491,7 +491,7 @@ function Select({
         {options.map((o) =>
           o === "" ? (
             <option key="__empty" value="">
-              {placeholder ?? "—"}
+              {placeholder ?? "Pick one"}
             </option>
           ) : (
             <option key={o} value={o}>

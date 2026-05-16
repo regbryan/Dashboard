@@ -68,7 +68,7 @@ export async function POST(req: Request): Promise<Response> {
     if (!body.slug || !SLUG_RE.test(body.slug)) {
       throw new AuthError(400, {
         error:
-          "Slug must be lowercase letters, numbers, or hyphens — 2–32 chars, no leading/trailing hyphen.",
+          "Slug must be lowercase letters, numbers, or hyphens. 2 to 32 characters, no leading or trailing hyphen.",
       });
     }
     if (!body.name || body.name.trim().length === 0) {

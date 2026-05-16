@@ -88,7 +88,7 @@ export default async function OnboardingPage({
               }}
             >
               <span style={{ color: "#7ee787", fontWeight: 700 }}>✓</span>
-              Payment received — you&apos;re on the{" "}
+              Payment received. You&apos;re on the{" "}
               <strong style={{ textTransform: "capitalize", color: "white" }}>
                 {paid}
               </strong>{" "}
@@ -113,7 +113,7 @@ export default async function OnboardingPage({
             >
               <span>⏳</span>
               Stripe&apos;s confirmation is still processing. You can fill out
-              the form — we&apos;ll link your payment automatically.
+              the form. We&apos;ll link your payment automatically.
             </div>
           )}
           <div
@@ -149,7 +149,7 @@ export default async function OnboardingPage({
             }}
           >
             We&apos;ll use this to shape every post the autopilot generates
-            for you. Fill in what you know now — anything blank can be filled
+            for you. Fill in what you know now. Anything blank can be filled
             in later from the Brand Kit tab.
           </p>
         </header>
