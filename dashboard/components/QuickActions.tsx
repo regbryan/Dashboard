@@ -96,7 +96,12 @@ export default function QuickActions() {
           justifyItems: "stretch",
         }}
       >
-        <ShinyButton onClick={handleImport} disabled={isBusy} fullWidth>
+        <ShinyButton
+          variant="secondary"
+          onClick={handleImport}
+          disabled={isBusy}
+          fullWidth
+        >
           {loading === "import" ? "Running…" : "Import Calendar"}
         </ShinyButton>
         <ShinyButton
