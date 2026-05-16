@@ -8,9 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "remotion:studio": "remotion studio",
+    "remotion:render": "remotion render"
   },
   "dependencies": {
+    "@remotion/bundler": "^4.0.462",
+    "@remotion/cli": "^4.0.462",
+    "@remotion/google-fonts": "^4.0.462",
+    "@remotion/renderer": "^4.0.462",
+    "@remotion/shapes": "^4.0.462",
+    "@remotion/transitions": "^4.0.462",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "clsx": "^2.1.1",
@@ -18,6 +26,7 @@
     "postcss": "^8.5.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "remotion": "^4.0.462",
     "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "stripe": "^22.1.1",
