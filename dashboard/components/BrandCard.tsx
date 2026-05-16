@@ -61,12 +61,16 @@ export default function BrandCard({ brand }: { brand: Brand }) {
         // On hover, multiplies the specular and adds a violet rim glow.
         boxShadow: hovered
           ? [
-              "inset 0 1px 0 rgba(255,255,255,0.45)",
-              "inset 0 -1px 0 rgba(0,0,0,0.45)",
-              "inset 1px 0 0 rgba(255,255,255,0.08)",
-              "inset -1px 0 0 rgba(255,255,255,0.08)",
-              "0 20px 50px -16px rgba(0,0,0,0.75)",
-              "0 0 32px rgba(139,92,255,0.30)",
+              // Slightly brighter top edge (35% vs rest's 30%) — subtle
+              // "catches a bit more light" on hover without flashing.
+              "inset 0 1px 0 rgba(255,255,255,0.36)",
+              "inset 0 -1px 0 rgba(0,0,0,0.42)",
+              "inset 1px 0 0 rgba(255,255,255,0.07)",
+              "inset -1px 0 0 rgba(255,255,255,0.07)",
+              // Soft drop shadow lift — was 20px 50px -16px @75%.
+              "0 16px 40px -16px rgba(0,0,0,0.65)",
+              // Violet rim glow toned down (was 0.30 @ 32px).
+              "0 0 22px rgba(139,92,255,0.14)",
             ].join(", ")
           : [
               "inset 0 1px 0 rgba(255,255,255,0.30)",
