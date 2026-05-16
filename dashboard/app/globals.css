@@ -155,12 +155,12 @@ body {
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* Tailwind v4 / LightningCSS strips `backdrop-filter` from plain custom
- * rules below the @import line. Putting the property inside @layer
- * utilities forces Tailwind to treat it as a custom utility and
- * preserves it through the build. Each rule pairs the standard +
- * -webkit prefix for Safari ≤17. */
-@layer utilities {
+/* Tailwind v4 + LightningCSS strips backdrop-filter from plain custom
+ * rules. @layer utilities tries to interpret each rule as a Tailwind
+ * utility and emits empty declarations. The only escape hatch that
+ * survives the optimizer is @supports — LightningCSS treats it as
+ * opaque and passes declarations through verbatim. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .lg-surface {
     backdrop-filter: blur(24px) saturate(150%);
     -webkit-backdrop-filter: blur(24px) saturate(150%);
