@@ -41,85 +41,18 @@ export default function BrandCard({ brand }: { brand: Brand }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        position: "relative",
-        overflow: "hidden",
         padding: "20px 22px",
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
-        // Solid tinted surface (no backdrop blur). Slightly more opaque
-        // since we're no longer relying on the blur to give the card
-        // material presence — and slightly more luminous than the page
-        // bg so it reads as a layered surface.
+        // Solid card. No specular, no halo, no sheen, no colored glow.
         backgroundColor: "#13121f",
-        // Visible border ring so the card has a defined edge before
-        // the inset shadows do their work.
-        border: "1px solid rgba(255, 255, 255, 0.18)",
-        // Multi-layer box-shadow does most of the "glass" reading:
-        //   1) inset top highlight — specular edge catching ambient light
-        //   2) inset bottom dim — defines back rim, gives the slab thickness
-        //   3) inset side hints — soft vertical edge gloss
-        //   4) outer drop — separates the card from the page
-        // On hover, multiplies the specular and adds a violet rim glow.
-        boxShadow: hovered
-          ? [
-              // Slightly brighter top edge (35% vs rest's 30%) — subtle
-              // "catches a bit more light" on hover without flashing.
-              "inset 0 1px 0 rgba(255,255,255,0.36)",
-              "inset 0 -1px 0 rgba(0,0,0,0.42)",
-              "inset 1px 0 0 rgba(255,255,255,0.07)",
-              "inset -1px 0 0 rgba(255,255,255,0.07)",
-              // Soft drop shadow lift — was 20px 50px -16px @75%.
-              "0 16px 40px -16px rgba(0,0,0,0.65)",
-              // Violet rim glow toned down (was 0.30 @ 32px).
-              "0 0 22px rgba(139,92,255,0.14)",
-            ].join(", ")
-          : [
-              "inset 0 1px 0 rgba(255,255,255,0.30)",
-              "inset 0 -1px 0 rgba(0,0,0,0.4)",
-              "inset 1px 0 0 rgba(255,255,255,0.06)",
-              "inset -1px 0 0 rgba(255,255,255,0.06)",
-              "0 12px 36px -16px rgba(0,0,0,0.65)",
-            ].join(", "),
-        transition: "box-shadow 0.3s ease, transform 0.3s ease",
-        transform: hovered ? "translateY(-1px)" : "translateY(0)",
+        // Border brightens slightly on hover so the card still reads
+        // as interactive without any glow / glass effects.
+        border: `1px solid ${hovered ? "rgba(255,255,255,0.32)" : "rgba(255,255,255,0.18)"}`,
+        transition: "border-color 0.2s ease",
       }}
     >
-      {/* Specular curved highlight — radial halo at the top edge that
-          reads as ambient light catching the curved top of a glass piece.
-          Always visible. */}
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          background:
-            "radial-gradient(ellipse 110% 50% at 50% -10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 28%, transparent 55%)",
-          mixBlendMode: "screen",
-        }}
-      />
-
-      {/* Sheen sweep — diagonal light streak that slides across on hover.
-          Off-screen at rest, slides in during 700ms when hovered. */}
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          background:
-            "linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)",
-          backgroundSize: "250% 100%",
-          backgroundPosition: hovered ? "-30% 0" : "120% 0",
-          transition: "background-position 0.7s ease",
-        }}
-      />
-
-      {/* Card content sits above both highlight layers */}
-      <div style={{ position: "relative", zIndex: 1 }}>
       {/* Brand header */}
       <div className="flex items-center justify-between" style={{ marginBottom: "18px" }}>
         <div className="flex items-center" style={{ gap: "10px" }}>
@@ -130,7 +63,6 @@ export default function BrandCard({ brand }: { brand: Brand }) {
               borderRadius: "50%",
               backgroundColor: brand.colorPrimary || "#8b5cff",
               flexShrink: 0,
-              boxShadow: `0 0 12px ${brand.colorPrimary || "#8b5cff"}`,
             }}
           />
           <span
@@ -166,7 +98,6 @@ export default function BrandCard({ brand }: { brand: Brand }) {
       <div className="flex flex-col" style={{ gap: "14px" }}>
         <ProgressRow label="Generated" value={generated} total={stats.total} pct={genPct} color="#3b81ff" />
         <ProgressRow label="Approved" value={approved} total={stats.total} pct={approvedPct} color="#7de29c" />
-      </div>
       </div>
     </Link>
   );
@@ -217,7 +148,6 @@ function ProgressRow({
             background: color,
             borderRadius: "999px",
             transition: "width 0.4s ease",
-            boxShadow: `0 0 10px ${color}55`,
           }}
         />
       </div>

@@ -149,62 +149,35 @@ function StatTile({
   return (
     <div
       style={{
-        position: "relative",
-        overflow: "hidden",
         padding: "20px 22px",
         borderRadius: "16px",
-        // Solid surface — no backdrop blur. Same treatment as BrandCard
-        // so the StatTiles + brand grid below read as one consistent
-        // language across /dashboard.
+        // Solid card — no specular, no halo, no inset highlights, no glow.
         backgroundColor: "#13121f",
         border: "1px solid rgba(255, 255, 255, 0.18)",
-        boxShadow: [
-          "inset 0 1px 0 rgba(255,255,255,0.30)",
-          "inset 0 -1px 0 rgba(0,0,0,0.4)",
-          "inset 1px 0 0 rgba(255,255,255,0.06)",
-          "inset -1px 0 0 rgba(255,255,255,0.06)",
-          "0 12px 36px -16px rgba(0,0,0,0.65)",
-        ].join(", "),
       }}
     >
-      {/* Specular highlight at the top — the "shine" character */}
-      <span
-        aria-hidden
+      <p
         style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          background:
-            "radial-gradient(ellipse 110% 50% at 50% -10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 28%, transparent 55%)",
-          mixBlendMode: "screen",
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#6f6f7e",
         }}
-      />
-
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <p
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "#6f6f7e",
-          }}
-        >
-          {label}
-        </p>
-        <p
-          style={{
-            marginTop: "8px",
-            fontFamily: "var(--font-anton), 'Anton', sans-serif",
-            fontSize: "44px",
-            lineHeight: 1,
-            color: accent || "white",
-          }}
-        >
-          {value}
-        </p>
-      </div>
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          marginTop: "8px",
+          fontFamily: "var(--font-anton), 'Anton', sans-serif",
+          fontSize: "44px",
+          lineHeight: 1,
+          color: accent || "white",
+        }}
+      >
+        {value}
+      </p>
     </div>
   );
 }
