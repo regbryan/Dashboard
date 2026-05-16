@@ -41,63 +41,102 @@ export default function BrandCard({ brand }: { brand: Brand }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        position: "relative",
+        overflow: "hidden",
         padding: "20px 22px",
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
-        // Solid card. No specular, no halo, no sheen, no colored glow.
-        backgroundColor: "#13121f",
-        // Border brightens slightly on hover so the card still reads
-        // as interactive without any glow / glass effects.
+        // Liquid Glass — Shiny/Specular variant.
+        // Semi-transparent base so backdrop-filter has something to
+        // refract; lets the page bg show subtly through the card.
+        backgroundColor: "rgba(19, 18, 31, 0.7)",
+        backdropFilter: "blur(12px) saturate(140%)",
+        WebkitBackdropFilter: "blur(12px) saturate(140%)",
+        // Hover ONLY changes border color — no lift, no sheen sweep,
+        // no colored glow. Just a brighter ring to signal clickable.
         border: `1px solid ${hovered ? "rgba(255,255,255,0.32)" : "rgba(255,255,255,0.18)"}`,
         transition: "border-color 0.2s ease",
       }}
     >
-      {/* Brand header */}
-      <div className="flex items-center justify-between" style={{ marginBottom: "18px" }}>
-        <div className="flex items-center" style={{ gap: "10px" }}>
-          <div
-            style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              backgroundColor: brand.colorPrimary || "#8b5cff",
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontSize: "15px",
-              fontWeight: 600,
-              color: "white",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {brand.name}
-          </span>
-        </div>
-        {needsReview > 0 && (
-          <span
-            style={{
-              padding: "3px 8px",
-              borderRadius: "999px",
-              fontSize: "10px",
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              background: "rgba(192,132,252,0.14)",
-              color: "#e9d5ff",
-              border: "1px solid rgba(192,132,252,0.3)",
-            }}
-          >
-            {needsReview} TO REVIEW
-          </span>
-        )}
-      </div>
+      {/* Specular curved highlight at the top edge — the "shine"
+          character of Liquid Glass. Stays static, always visible. */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          pointerEvents: "none",
+          background:
+            "radial-gradient(ellipse 110% 50% at 50% -10%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 28%, transparent 55%)",
+          mixBlendMode: "screen",
+        }}
+      />
 
-      {/* Progress bars */}
-      <div className="flex flex-col" style={{ gap: "14px" }}>
-        <ProgressRow label="Generated" value={generated} total={stats.total} pct={genPct} color="#3b81ff" />
-        <ProgressRow label="Approved" value={approved} total={stats.total} pct={approvedPct} color="#7de29c" />
+      {/* Card content above the highlight layer */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {/* Brand header */}
+        <div
+          className="flex items-center justify-between"
+          style={{ marginBottom: "18px" }}
+        >
+          <div className="flex items-center" style={{ gap: "10px" }}>
+            <div
+              style={{
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: brand.colorPrimary || "#8b5cff",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: "15px",
+                fontWeight: 600,
+                color: "white",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {brand.name}
+            </span>
+          </div>
+          {needsReview > 0 && (
+            <span
+              style={{
+                padding: "3px 8px",
+                borderRadius: "999px",
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                background: "rgba(192,132,252,0.14)",
+                color: "#e9d5ff",
+                border: "1px solid rgba(192,132,252,0.3)",
+              }}
+            >
+              {needsReview} TO REVIEW
+            </span>
+          )}
+        </div>
+
+        {/* Progress bars */}
+        <div className="flex flex-col" style={{ gap: "14px" }}>
+          <ProgressRow
+            label="Generated"
+            value={generated}
+            total={stats.total}
+            pct={genPct}
+            color="#3b81ff"
+          />
+          <ProgressRow
+            label="Approved"
+            value={approved}
+            total={stats.total}
+            pct={approvedPct}
+            color="#7de29c"
+          />
+        </div>
       </div>
     </Link>
   );
@@ -127,7 +166,9 @@ function ProgressRow({
           marginBottom: "6px",
         }}
       >
-        <span style={{ textTransform: "uppercase", fontWeight: 600, color: "#6f6f7e" }}>{label}</span>
+        <span style={{ textTransform: "uppercase", fontWeight: 600, color: "#6f6f7e" }}>
+          {label}
+        </span>
         <span style={{ color: "#bfbfcc" }}>
           <strong style={{ color: "white", fontWeight: 600 }}>{value}</strong> / {total}
         </span>
