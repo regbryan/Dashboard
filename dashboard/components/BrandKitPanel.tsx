@@ -1,3 +1,4 @@
+import React from "react";
 import type { BrandKitView, AutopilotRule } from "@/lib/brand-kit";
 import RefreshBrandKitButton from "./RefreshBrandKitButton";
 import EditBrandKitForm from "./EditBrandKitForm";
@@ -230,7 +231,13 @@ function Quote({ label, body, accent }: { label: string; body: string; accent?: 
         background: accent ? "rgba(192,132,252,0.04)" : "rgba(255,255,255,0.02)",
         border: `1px solid ${accent ? "rgba(192,132,252,0.18)" : "rgba(255,255,255,0.06)"}`,
         borderRadius: "10px",
-        padding: "12px 14px",
+        padding: "14px 16px",
+        // height: 100% lets the card fill its grid cell when row is
+        // stretched. Eyebrow stays pinned to the top, body fills the
+        // remaining space, both cards in a row read as equal-height.
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <div
@@ -240,11 +247,12 @@ function Quote({ label, body, accent }: { label: string; body: string; accent?: 
           textTransform: "uppercase",
           color: accent ? ACCENT : LABEL,
           fontWeight: 600,
+          marginBottom: "8px",
         }}
       >
         {label}
       </div>
-      <p style={{ marginTop: "5px", fontSize: "13px", lineHeight: 1.5, color: VALUE }}>
+      <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.55, color: VALUE }}>
         {body}
       </p>
     </div>
@@ -280,7 +288,10 @@ function VisualIdentity({
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
             gap: "10px",
-            alignItems: "start",
+            // stretch so all three cards in the row share a height
+            // regardless of content length — Photography prose no
+            // longer towers over single-line Assets.
+            alignItems: "stretch",
           }}
         >
           {photography ? (
@@ -1077,10 +1088,11 @@ function MissingCard({ label, hint }: { label: string; hint: string }) {
   return (
     <div
       style={{
-        padding: "12px 14px",
+        padding: "14px 16px",
         background: "rgba(255,255,255,0.02)",
         border: "1px dashed rgba(255,255,255,0.08)",
         borderRadius: "10px",
+        height: "100%",
       }}
     >
       <SubLabel>{label}</SubLabel>
@@ -1096,24 +1108,75 @@ function KeyValueCard({
   label: string;
   entries: Array<[string, string]>;
 }) {
+  // True definition-list layout: each row is a 2-column grid
+  // (label column auto-sized to longest key, value column 1fr). A
+  // hairline divider between rows keeps long multiline values from
+  // visually bleeding into the next row.
   return (
     <div
       style={{
-        padding: "12px 14px",
+        padding: "14px 16px",
         background: "rgba(255,255,255,0.02)",
         border: "1px solid rgba(255,255,255,0.06)",
         borderRadius: "10px",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <SubLabel>{label}</SubLabel>
-      <div style={{ marginTop: "8px", display: "grid", gap: "4px" }}>
-        {entries.map(([k, v]) => (
-          <div key={k} style={{ fontSize: "12px", color: VALUE, lineHeight: 1.5 }}>
-            <span style={{ color: LABEL }}>{k}: </span>
-            {v}
-          </div>
-        ))}
-      </div>
+      <dl
+        style={{
+          margin: "10px 0 0",
+          display: "grid",
+          // Auto column for the labels, 1fr for the values. All rows
+          // share the column tracks so labels align vertically across
+          // every row. Padding pulls double duty as row separator
+          // surface.
+          gridTemplateColumns: "auto 1fr",
+          columnGap: "12px",
+          rowGap: 0,
+        }}
+      >
+        {entries.map(([k, v], i) => {
+          const isLast = i === entries.length - 1;
+          const cellStyle: React.CSSProperties = {
+            paddingTop: i === 0 ? 0 : "8px",
+            paddingBottom: isLast ? 0 : "8px",
+            borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.05)",
+            fontSize: "12px",
+            lineHeight: 1.55,
+          };
+          return (
+            <React.Fragment key={k}>
+              <dt
+                style={{
+                  ...cellStyle,
+                  color: LABEL,
+                  textTransform: "lowercase",
+                  fontWeight: 500,
+                  // Stops a wide label from breaking the table layout.
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {k}
+              </dt>
+              <dd
+                style={{
+                  ...cellStyle,
+                  margin: 0,
+                  color: VALUE,
+                  // Long values wrap inside their own column rather
+                  // than pushing the label out of alignment.
+                  wordBreak: "break-word",
+                }}
+              >
+                {v}
+              </dd>
+            </React.Fragment>
+          );
+        })}
+      </dl>
     </div>
   );
 }
