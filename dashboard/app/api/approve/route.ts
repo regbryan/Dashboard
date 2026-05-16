@@ -123,7 +123,7 @@ async function sendReviewerConfirmation(args: {
     : `Your change request was sent`;
   const body = isApproved
     ? `Thanks for approving "${concept}" for ${brandName}. The team has been notified and will move it into scheduling.`
-    : `Thanks — your change request on "${concept}" for ${brandName} has been sent to the team. We'll review your notes and get back to you within 1 business day.`;
+    : `Thanks. Your change request on "${concept}" for ${brandName} has been sent to the team. We'll review your notes and get back to you within 1 business day.`;
   const commentBlock = comment?.trim()
     ? `<div style="margin-top:14px;padding:12px 14px;background:#f6f6f7;border-left:3px solid ${
         isApproved ? "#22c55e" : "#c084fc"
@@ -152,8 +152,8 @@ async function sendReviewerConfirmation(args: {
   await sendEmail({
     to: reviewerEmail,
     subject: isApproved
-      ? `Approved: Post #${postNumber} — ${concept}`
-      : `Change request received — Post #${postNumber}`,
+      ? `Approved: Post #${postNumber} · ${concept}`
+      : `Change request received: Post #${postNumber}`,
     html,
     text,
   });

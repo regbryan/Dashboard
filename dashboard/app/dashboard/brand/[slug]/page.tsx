@@ -51,7 +51,7 @@ export default async function BrandDetailPage({
 
   const allPosts = posts || [];
   const dates = allPosts.map((p) => p.date).filter(Boolean).sort();
-  const dateRange = dates.length > 0 ? `${dates[0]} — ${dates[dates.length - 1]}` : "No dates";
+  const dateRange = dates.length > 0 ? `${dates[0]} to ${dates[dates.length - 1]}` : "No dates";
 
   const statusCounts: Record<string, number> = {};
   for (const post of allPosts) {
@@ -116,7 +116,7 @@ export default async function BrandDetailPage({
           <ClientReviewLink
             path={`/client/${slug}`}
             label={`Share with ${brand.name}`}
-            emailSubject={`${brand.name} — Content calendar ready for review`}
+            emailSubject={`${brand.name}: Content calendar ready for review`}
             emailBody={`Hi,\n\nYour content calendar is ready for review. You can see every post, approve the ones you love, and request changes on anything you'd like tweaked here:\n\n`}
             to={clientEmails}
             brandId={brand.id}

@@ -59,7 +59,7 @@ export async function POST(req: Request): Promise<Response> {
       throw new AuthError(409, {
         error: `"${
           (brand as { name?: string } | null)?.name ?? brandId
-        }" was manually provisioned without a Stripe customer. Billing portal isn't available — contact support to migrate.`,
+        }" was manually provisioned without a Stripe customer. Billing portal isn't available. Contact support to migrate.`,
       });
     }
 

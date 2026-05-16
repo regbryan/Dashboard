@@ -78,7 +78,7 @@ const UNIVERSAL_RULES: AutopilotRule[] = [
   {
     label: "No image-burned footer",
     detail:
-      "Compliance text is appended to the caption, not painted onto the image (except where the brand explicitly requires it — e.g. OMG navy footer).",
+      "Compliance text is appended to the caption, not painted onto the image (except where the brand explicitly requires it, e.g. OMG navy footer).",
     source: "universal",
   },
 ];
@@ -88,7 +88,7 @@ const BRAND_RULES: Record<string, AutopilotRule[]> = {
     {
       label: "Caption footer required",
       detail:
-        "Every IEC IG caption must end with #InlandEmpireComfort + License No.: 1053697 + 📞: 951.789.3238 — enforced by autopilot.",
+        "Every IEC IG caption must end with #InlandEmpireComfort + License No.: 1053697 + 📞: 951.789.3238. Enforced by autopilot.",
       source: "brand",
     },
   ],

@@ -283,7 +283,7 @@ function renderHtml(args: {
     <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;margin:0 auto;color:#111;">
       <h1 style="font-size:20px;font-weight:600;margin:0 0 6px;">${escapeHtml(
         brandName
-      )} — ${headline}</h1>
+      )}: ${headline}</h1>
       <p style="font-size:14px;color:#666;margin:0 0 20px;">
         The client just finished reviewing. Here's the full update.
       </p>
@@ -321,7 +321,7 @@ function renderText(args: {
       : `${approvedCount} approved`;
 
   const lines = [
-    `${brandName} — ${headline}`,
+    `${brandName}: ${headline}`,
     "",
     ...group.map((g) => {
       const num = g.posts?.post_number ?? "?";
@@ -332,7 +332,7 @@ function renderText(args: {
         comment || g.status === "changes_requested"
           ? `\n  ${comment || "(no comment)"}`
           : "";
-      return `${label} Post #${num} — ${concept}${commentLine}`;
+      return `${label} Post #${num}: ${concept}${commentLine}`;
     }),
     ...(dashboardBase
       ? ["", `Dashboard: ${dashboardBase}/dashboard/brand/${brandId}`]

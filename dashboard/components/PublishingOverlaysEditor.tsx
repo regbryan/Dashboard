@@ -110,7 +110,7 @@ export default function PublishingOverlaysEditor({ brandId, initial }: Props) {
           fontWeight: 600,
         }}
       >
-        Publishing overlays — auto-apply before SocialPilot
+        Publishing overlays: auto-apply before SocialPilot
       </div>
       <p style={{ margin: 0, fontSize: 12, color: "#7a7a88", lineHeight: 1.5 }}>
         Array of overlay rules applied to every approved post just before it

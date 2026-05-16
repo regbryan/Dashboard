@@ -72,7 +72,7 @@ export default function ClientReviewLink({
       if (data?.skipped === "no_recipients") {
         setSendStatus("No reviewers configured for this brand");
       } else if (data?.skipped === "wrong_status") {
-        setSendStatus("Post is no longer in review — nothing sent");
+        setSendStatus("Post is no longer in review. Nothing sent.");
       } else if (data?.sent) {
         setSendStatus(
           `Sent to ${data.recipients} recipient${

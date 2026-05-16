@@ -290,7 +290,7 @@ export default async function PostDetailPage({
             <ClientReviewLink
               path={`/client/${slug}/post/${post.id}`}
               label="Share this post with client"
-              emailSubject={`${brandData?.name || "Your brand"} — Post #${post.post_number} ready for review`}
+              emailSubject={`${brandData?.name || "Your brand"}: Post #${post.post_number} ready for review`}
               emailBody={`Hi,\n\nPost #${post.post_number} (${post.concept || "Untitled"}) is ready for your review. Tap the link below to approve or request changes:\n\n`}
               to={clientEmails}
               postId={post.id}

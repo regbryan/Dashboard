@@ -45,7 +45,7 @@ export async function sendWelcomeEmail({
               ${tierLine}
               <p style="margin:0 0 18px;color:#bfbfcc;font-size:14px;line-height:1.55;">
                 Your dashboard is ready. The autopilot will start drafting posts based on the
-                brand kit you submitted — your first batch lands on the calendar within a day.
+                brand kit you submitted. Your first batch lands on the calendar within a day.
               </p>
               <p style="margin:0 0 28px;color:#9999a6;font-size:13px;line-height:1.55;">
                 Anything you left blank during onboarding can be filled in later from the
@@ -76,7 +76,7 @@ export async function sendWelcomeEmail({
   const text =
     `Welcome, ${brandName}.\n\n` +
     `Your dashboard is ready. The autopilot will start drafting posts based on ` +
-    `the brand kit you submitted — your first batch lands on the calendar within a day.\n\n` +
+    `the brand kit you submitted. Your first batch lands on the calendar within a day.\n\n` +
     `Open your dashboard: ${brandUrl}\n\n` +
     `Anything you left blank during onboarding can be filled in later from the Brand Kit tab.`;
 

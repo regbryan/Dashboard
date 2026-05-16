@@ -120,7 +120,7 @@ export async function notifyOnePost(
 
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;color:#111;">
-      <h1 style="font-size:20px;font-weight:600;margin:0 0 6px;">${escapeHtml(brandName)} — Post #${num} ready for review</h1>
+      <h1 style="font-size:20px;font-weight:600;margin:0 0 6px;">${escapeHtml(brandName)}: Post #${num} ready for review</h1>
       <p style="font-size:14px;color:#444;margin:0 0 16px;line-height:1.55;">A new design is ready for your review:</p>
       <div style="border:1px solid #eaeaea;border-radius:8px;padding:14px 16px;">
         <div style="font-size:13px;color:#666;">Post #${num}${post.post_type ? ` · ${escapeHtml(post.post_type)}` : ""}${post.date ? ` · ${escapeHtml(post.date)}` : ""}</div>
@@ -134,7 +134,7 @@ export async function notifyOnePost(
   `;
 
   const text = [
-    `${brandName} — Post #${num} ready for review`,
+    `${brandName}: Post #${num} ready for review`,
     "",
     concept,
     "",
@@ -311,7 +311,7 @@ function renderBrandDigestHtml(args: {
 
   return `
     <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;margin:0 auto;color:#111;">
-      <h1 style="font-size:20px;font-weight:600;margin:0 0 6px;">${escapeHtml(brandName)} — ready for review</h1>
+      <h1 style="font-size:20px;font-weight:600;margin:0 0 6px;">${escapeHtml(brandName)}: ready for review</h1>
       <p style="font-size:14px;color:#666;margin:0 0 18px;">${escapeHtml(intro)}</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #eaeaea;border-radius:8px;border-collapse:separate;overflow:hidden;">
         ${itemsHtml}
@@ -330,13 +330,13 @@ function renderBrandDigestText(args: {
 }): string {
   const { brandId, brandName, posts } = args;
   const lines = [
-    `${brandName} — ${posts.length} ready for review`,
+    `${brandName}: ${posts.length} ready for review`,
     "",
     ...posts.map((p) => {
       const num = p.post_number ?? "?";
       const concept = p.concept ?? "Untitled";
       const link = reviewLink(brandId, p.id);
-      return `Post #${num} — ${concept}\n  ${link}`;
+      return `Post #${num}: ${concept}\n  ${link}`;
     }),
     "",
     `Review queue: ${reviewLink(brandId)}`,

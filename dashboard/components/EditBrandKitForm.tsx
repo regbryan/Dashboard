@@ -168,7 +168,7 @@ export default function EditBrandKitForm({
         <p style={{ fontSize: "11px", color: LABEL, lineHeight: 1.5, margin: 0 }}>
           Derivation handles positioning, tone, pillars, hashtags, photography
           direction, colors, and fonts. These fields need a human once per
-          brand — they shape every prompt afterward.
+          brand; they shape every prompt afterward.
         </p>
 
         <Block label="Website URL · bootstrap kit from site">
@@ -201,7 +201,7 @@ export default function EditBrandKitForm({
           </div>
           <p style={{ fontSize: "11px", color: LABEL, margin: "4px 0 0", lineHeight: 1.4 }}>
             Gemini reads the URL and fills tagline, description, positioning,
-            mission, audiences, HQ location, and service area — only fields
+            mission, audiences, HQ location, and service area. Only fields
             currently blank, so this never overwrites your edits.
           </p>
         </Block>
@@ -212,7 +212,7 @@ export default function EditBrandKitForm({
             onChange={(e) => setArchetype(e.target.value)}
             style={selectStyle}
           >
-            <option value="">— pick one —</option>
+            <option value="">Pick one</option>
             {ARCHETYPES.map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -256,7 +256,7 @@ export default function EditBrandKitForm({
             <RoleInput label="Neutral light" value={roles.neutral_light ?? ""} onChange={(v) => setRole("neutral_light", v)} />
           </div>
           <p style={{ fontSize: "11px", color: LABEL, margin: "4px 0 0", lineHeight: 1.4 }}>
-            Hex values like #104B94. Tells the AI which color does what — derivation
+            Hex values like #104B94. Tells the AI which color does what. Derivation
             can&apos;t infer this.
           </p>
         </Block>

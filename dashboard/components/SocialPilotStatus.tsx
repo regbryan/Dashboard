@@ -111,7 +111,7 @@ export default function SocialPilotStatus({
             }}
           >
             attempt {retryCount}/{MAX_RETRIES}
-            {retryCount >= MAX_RETRIES && " — auto-retry stopped"}
+            {retryCount >= MAX_RETRIES && ", auto-retry stopped"}
           </span>
         )}
       </div>

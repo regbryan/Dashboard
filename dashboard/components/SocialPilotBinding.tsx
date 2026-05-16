@@ -152,7 +152,7 @@ export default function SocialPilotBinding({ brandId, initialAccountId }: Props)
           </div>
         ) : (
           <p style={{ ...muted, margin: 0 }}>
-            No SocialPilot profile bound — approved posts won&apos;t auto-queue.
+            No SocialPilot profile bound. Approved posts won&apos;t auto-queue.
           </p>
         )}
         <select
@@ -161,7 +161,7 @@ export default function SocialPilotBinding({ brandId, initialAccountId }: Props)
           onChange={(e) => save(e.target.value || null)}
           style={selectStyle}
         >
-          <option value="">— Select a SocialPilot profile —</option>
+          <option value="">Select a SocialPilot profile</option>
           {accounts?.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name} ({a.type})

@@ -89,7 +89,7 @@ export default async function BrandCalendarPage({
             }}
           >
             Nothing on the calendar yet. Posts with a scheduled date will land
-            here automatically — start by uploading or generating content from
+            here automatically. Start by uploading or generating content from
             the Designs tab.
           </div>
         ) : (

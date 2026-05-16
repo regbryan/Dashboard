@@ -19,7 +19,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SocialPulse — Client Dashboard",
+  title: "SocialPulse · Client Dashboard",
   description: "Review and approve your content",
 };
 

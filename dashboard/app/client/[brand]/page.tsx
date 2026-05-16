@@ -45,7 +45,7 @@ export default async function ClientCalendarPage({
   const dates = allPosts.map((p) => p.date).filter(Boolean).sort() as string[];
   const dateRange =
     dates.length > 0
-      ? `${dates[0]} — ${dates[dates.length - 1]}`
+      ? `${dates[0]} to ${dates[dates.length - 1]}`
       : "No dates scheduled";
 
   return (

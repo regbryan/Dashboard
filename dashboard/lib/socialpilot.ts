@@ -53,7 +53,7 @@ export class SocialPilotNotConfiguredError extends Error {
 export class SocialPilotAuthError extends Error {
   constructor(public readonly cause: unknown) {
     super(
-      "SocialPilot refresh failed. The agency refresh token is dead — " +
+      "SocialPilot refresh failed. The agency refresh token is dead. " +
         "reconnect via /api/socialpilot/connect."
     );
     this.name = "SocialPilotAuthError";

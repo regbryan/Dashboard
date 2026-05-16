@@ -36,7 +36,7 @@ export function getProjectRoot(): string {
   const root = process.env.PROJECT_ROOT;
   if (!root) {
     throw new Error(
-      "PROJECT_ROOT env var is not set. Add it to .env.local — these " +
+      "PROJECT_ROOT env var is not set. Add it to .env.local; these " +
         "filesystem-backed routes are dev-only and need an absolute path " +
         "to the Instagram Automation checkout."
     );

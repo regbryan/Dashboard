@@ -189,7 +189,7 @@ function StatTile({ label, value }: { label: string; value: string | null | unde
           textTransform: value && value.length < 16 ? "capitalize" : "none",
         }}
       >
-        {value || "—"}
+        {value || "Not set"}
       </div>
     </div>
   );
@@ -631,7 +631,7 @@ function PillarBars({ pillars }: { pillars: { name: string; pct: number | null }
                     textAlign: "right",
                   }}
                 >
-                  {p.pct != null ? `${p.pct}%` : "—"}
+                  {p.pct != null ? `${p.pct}%` : ""}
                 </div>
               </>
             )}
@@ -680,7 +680,7 @@ function Audiences({
                 fontWeight: 600,
               }}
             >
-              {a.tier ?? "—"}
+              {a.tier ?? ""}
             </div>
             <div style={{ fontSize: "13px", color: VALUE, lineHeight: 1.5 }}>
               {a.description ?? <span style={{ color: MUTED }}>No description</span>}
@@ -900,7 +900,7 @@ function OperatorPanel({
           listStyle: "none",
         }}
       >
-        Operator controls — refresh, edit & billing
+        Operator controls: refresh, edit & billing
       </summary>
       <div style={{ marginTop: "14px", display: "grid", gap: "20px" }}>
         <BillingBlock brand={brand} brandId={brandId} />
@@ -967,7 +967,7 @@ function BillingBlock({
         <p style={{ marginTop: "8px", fontSize: "12px", color: MUTED, lineHeight: 1.55 }}>
           This brand was provisioned without a Stripe customer (legacy or
           manual setup). To attach billing, the customer needs to complete
-          a checkout — contact support to migrate.
+          a checkout. Contact support to migrate.
         </p>
       </div>
     );
