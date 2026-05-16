@@ -167,10 +167,11 @@ export default async function BrandLayout({
             marginRight: "calc(-1 * clamp(16px, 3vw, 40px))",
             marginBottom: "28px",
             padding: "14px clamp(16px, 3vw, 40px)",
-            backdropFilter: "blur(24px) saturate(150%)",
-            WebkitBackdropFilter: "blur(24px) saturate(150%)",
+            // Solid bar — no backdrop blur, no glass chrome. Tab pill
+            // sits inside this; the bar itself just needs to opaque
+            // the content scrolling beneath it.
+            background: "#07070e",
           }}
-          className="lg-surface"
         >
           <div style={{ display: "flex", justifyContent: "center" }}>
             <BrandTabs slug={slug} />

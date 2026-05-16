@@ -84,10 +84,7 @@ export default function BrandTabs({ slug }: { slug: string }) {
                 ? "1px solid rgba(139,92,255,0.35)"
                 : "1px solid transparent",
               boxShadow: active
-                ? [
-                    "inset 0 1px 0 rgba(255,255,255,0.12)",
-                    "0 6px 20px -10px rgba(139,92,255,0.4)",
-                  ].join(", ")
+                ? "inset 0 1px 0 rgba(255,255,255,0.12)"
                 : undefined,
               transition:
                 "color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.3s ease",
