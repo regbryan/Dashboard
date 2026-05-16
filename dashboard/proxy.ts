@@ -61,7 +61,10 @@ export async function proxy(request: NextRequest) {
   const isAdmin = isAdminEmail(user.email);
 
   // Admin-only routes
-  if (pathname.startsWith("/dashboard") && !isAdmin) {
+  if (
+    (pathname.startsWith("/dashboard") || pathname.startsWith("/dev")) &&
+    !isAdmin
+  ) {
     // Non-admin trying to reach /dashboard — redirect to their brand.
     // URL params are brand UUIDs (the pages query brands by id), so we route
     // straight to the brand_id without a slug indirection.
