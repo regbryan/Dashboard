@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import BrandTabs, { TAB_CARD_BG } from "@/components/BrandTabs";
+import BrandSectionTitle from "@/components/BrandSectionTitle";
 
 /**
  * Per-brand layout. Tabs sit above a rounded content card that the
@@ -18,11 +19,38 @@ export default async function BrandLayout({
 }) {
   const { slug } = await params;
 
-  const { data: brand } = await supabase
-    .from("brands")
-    .select("id, name, handle")
-    .eq("id", slug)
-    .single();
+  const [brandRes, postsRes, logosRes] = await Promise.all([
+    supabase.from("brands").select("id, name, handle").eq("id", slug).single(),
+    supabase.from("posts").select("date").eq("brand_id", slug),
+    supabase.from("brand_logos").select("id").eq("brand_id", slug),
+  ]);
+  const brand = brandRes.data;
+  const posts = postsRes.data ?? [];
+  const logosCount = (logosRes.data ?? []).length;
+
+  // Distinct Monday-aligned week count for the calendar subtitle.
+  const weekStarts = new Set<string>();
+  for (const p of posts) {
+    if (!p.date) continue;
+    const d = new Date(p.date + "T00:00:00Z");
+    const dow = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dow);
+    weekStarts.add(d.toISOString().slice(0, 10));
+  }
+  const postsWithDate = posts.filter((p) => p.date).length;
+
+  const subtitles = {
+    designs: `${posts.length} post${posts.length === 1 ? "" : "s"} total`,
+    calendar:
+      postsWithDate === 0
+        ? "No scheduled posts yet."
+        : `${postsWithDate} post${postsWithDate === 1 ? "" : "s"} across ${weekStarts.size} week${weekStarts.size === 1 ? "" : "s"}`,
+    kit: "Voice, colors, archetype, hashtags, and visual rules.",
+    assets:
+      logosCount === 0
+        ? "No logos on file."
+        : `${logosCount} logo${logosCount === 1 ? "" : "s"} on file.`,
+  };
 
   return (
     <div style={{ position: "relative", isolation: "isolate" }}>
@@ -173,7 +201,17 @@ export default async function BrandLayout({
             background: "#07070e",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            >
+              <BrandSectionTitle slug={slug} subtitles={subtitles} />
+            </div>
             <BrandTabs slug={slug} />
           </div>
         </div>

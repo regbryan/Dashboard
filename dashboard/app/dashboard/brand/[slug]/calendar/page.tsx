@@ -56,36 +56,19 @@ export default async function BrandCalendarPage({
   const today = todayUTC();
 
   return (
-    <div style={{ padding: "28px clamp(20px, 3vw, 36px) 48px" }}>
+    <div style={{ padding: "28px 0 48px" }}>
       <div>
-        <div style={{ marginBottom: "20px" }}>
-          <h2
-            style={{
-              fontSize: "20px",
-              fontWeight: 600,
-              color: "white",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Calendar
-          </h2>
-          <p style={{ marginTop: "4px", color: "#9999a6", fontSize: "13px" }}>
-            {posts.length === 0
-              ? "No scheduled posts yet."
-              : `${posts.length} post${posts.length === 1 ? "" : "s"} across ${weeks.length} week${weeks.length === 1 ? "" : "s"}`}
-          </p>
-        </div>
-
         {weeks.length === 0 ? (
           <div
+            className="lg-surface--card"
             style={{
-              background: "#0f0f1a",
-              border: "1px solid #1a1a2e",
               borderRadius: "16px",
               padding: "60px 24px",
               textAlign: "center",
               color: "#7a7a88",
               fontSize: "14px",
+              backdropFilter: "blur(10px) saturate(145%)",
+              WebkitBackdropFilter: "blur(10px) saturate(145%)",
             }}
           >
             Nothing on the calendar yet. Posts with a scheduled date will land

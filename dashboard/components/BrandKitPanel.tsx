@@ -28,11 +28,11 @@ export default function BrandKitPanel({ view }: { view: BrandKitView }) {
         logoCount={logoCount}
       />
 
-      {/* Positioning narrative — tagline → positioning → mission → description */}
-      <Positioning kit={kit} />
-
       {/* Visual identity */}
       <VisualIdentity kit={kit} colors={colors} logoCount={logoCount} />
+
+      {/* Positioning narrative — tagline → positioning → mission → description */}
+      <Positioning kit={kit} />
 
       {/* Voice & personality */}
       <Voice kit={kit} />

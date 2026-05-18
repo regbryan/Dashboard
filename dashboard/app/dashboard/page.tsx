@@ -85,6 +85,10 @@ export default async function DashboardPage() {
             Content <span className="accent">Overview</span>
           </h1>
 
+          <div style={{ marginTop: "32px" }}>
+            <QuickActions />
+          </div>
+
           {/* Stats row */}
           <div
             className="grid grid-cols-2 md:grid-cols-4"
@@ -104,8 +108,6 @@ export default async function DashboardPage() {
             />
           </div>
         </div>
-
-        <QuickActions />
 
         {/* Brand grid */}
         <div style={{ marginTop: "40px" }}>
@@ -148,12 +150,15 @@ function StatTile({
 }) {
   return (
     <div
+      className="lg-surface--card"
       style={{
         padding: "20px 22px",
         borderRadius: "16px",
-        // Solid card — no specular, no halo, no inset highlights, no glow.
-        backgroundColor: "#13121f",
-        border: "1px solid rgba(255, 255, 255, 0.18)",
+        // Inline because LightningCSS strips standard backdrop-filter
+        // from the .lg-surface--card rule when Safari is in browserslist
+        // (collapses to -webkit- only, which Chromium 146 no longer accepts).
+        backdropFilter: "blur(10px) saturate(145%)",
+        WebkitBackdropFilter: "blur(10px) saturate(145%)",
       }}
     >
       <p
