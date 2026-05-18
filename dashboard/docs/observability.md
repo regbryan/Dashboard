@@ -20,26 +20,33 @@ No application-level error tracking. A client-side `TypeError` in a React compon
 
 This is the single biggest observability gap. Until it's fixed, "is the dashboard healthy?" can only be answered by clicking around.
 
-## Install plan: Sentry
+## Sentry — installed, env-gated
 
-Sentry is the path of least resistance for a Next.js app — first-party SDK, free tier covers a single-tenant dashboard like this, ~10 minutes to wire up.
+The SDK is wired (`@sentry/nextjs ^10.53`). All Sentry behavior is gated by `NEXT_PUBLIC_SENTRY_DSN` — when unset (current state), the SDK is a complete no-op. No events ship, no source-maps upload, no build slowdown.
 
-```bash
-cd dashboard
-npx @sentry/wizard@latest -i nextjs
-# wizard creates sentry.client.config.ts, sentry.server.config.ts, sentry.edge.config.ts
-# and adds @sentry/nextjs to package.json, plus middleware integration
-```
+**To turn it on, set these env vars in Vercel** (Project → Settings → Environment Variables):
 
-After the wizard:
+| Var | Where | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SENTRY_DSN` | Production + Preview | Public DSN; toggles the SDK on |
+| `SENTRY_AUTH_TOKEN` | Production + Preview (build-time only) | Source-map upload to Sentry |
+| `SENTRY_ORG` | Production + Preview | Org slug (e.g. `socialpulse`) |
+| `SENTRY_PROJECT` | Production + Preview | Project slug (e.g. `dashboard`) |
 
-1. **Add env vars** to Vercel (Project → Settings → Environment Variables):
-   - `NEXT_PUBLIC_SENTRY_DSN` — public DSN from your Sentry project
-   - `SENTRY_AUTH_TOKEN` — for source-map upload during build
-   - `SENTRY_ORG`, `SENTRY_PROJECT` — for source-map upload
-2. **Set release tagging** — Sentry's webpack plugin auto-tags releases with `VERCEL_GIT_COMMIT_SHA`. Verify the first deploy after install shows up under that commit in the Sentry "Releases" tab.
-3. **Add a smoke test** — push a commit that includes `throw new Error("sentry smoke test")` in a low-traffic route, deploy, verify it shows up in Sentry within 60 seconds, then revert.
-4. **Configure alerts** in Sentry → Alerts. Minimum: notify on any new issue in production, notify on error rate > 1% over 5 minutes.
+Once the DSN is set:
+
+1. **Release tagging is automatic.** `withSentryConfig` reads `VERCEL_GIT_COMMIT_SHA` and tags every event so the Sentry "Releases" tab maps spikes to deploys.
+2. **Verify with the smoke route:** sign in as admin and hit `GET /api/dev/sentry-smoke` once. It throws deliberately; the error should land in Sentry within ~60 seconds. Delete the route or leave it as a passive health probe.
+3. **Configure alerts** in Sentry → Alerts. Minimum: notify on any new issue in production, notify on error rate > 1% over 5 minutes.
+
+**Files added by the install:**
+
+- `sentry.server.config.ts` — Node runtime SDK init
+- `sentry.edge.config.ts` — Edge runtime SDK init (proxy.ts + edge routes)
+- `instrumentation.ts` — Next.js entrypoint that loads the configs per runtime + forwards server-component errors via `onRequestError`
+- `instrumentation-client.ts` — Browser SDK init + router-transition trace hook
+- `app/api/dev/sentry-smoke/route.ts` — Admin-only deliberate-throw for verification
+- `next.config.ts` — Wrapped with `withSentryConfig` (source-map upload, tunnel route, release injection)
 
 ## Logging hygiene (before adding Sentry)
 
@@ -63,10 +70,11 @@ If that returns zero, the deploy is healthy. If it returns hits, you triage them
 
 | Task | Owner | Status |
 |---|---|---|
-| Sentry SDK install (`@sentry/nextjs`) | _(open)_ | Not started |
-| Sentry env vars in Vercel | _(open)_ | Not started |
-| First alert rule configured | _(open)_ | Not started |
-| Smoke test (deliberate error → verify in Sentry) | _(open)_ | Not started |
+| Sentry SDK install (`@sentry/nextjs`) | Branch `claude/angry-nash-94318d` | ✅ Done — env-gated no-op until DSN is set |
+| Sentry env vars in Vercel | Reggie | Pending |
+| First alert rule configured | Reggie | Pending |
+| Smoke test route exists | Branch `claude/angry-nash-94318d` | ✅ `/api/dev/sentry-smoke` |
+| Smoke test executed against a real DSN | Reggie | Pending (after env vars are set) |
 | Replace `console.*` with structured logger | _(open)_ | Not started |
 
-When all five rows flip to "done," delete this Status table and replace this doc with operational runbooks (querying issues, common triage paths, etc.).
+When all rows flip to "done," delete this Status table and replace this doc with operational runbooks (querying issues, common triage paths, etc.).

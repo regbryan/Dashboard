@@ -6,6 +6,7 @@ All notable changes to the SocialPulse dashboard are recorded here. Format follo
 
 ### Added
 
+- **Sentry error tracking — installed, env-gated.** `@sentry/nextjs ^10.53` wired through `instrumentation.ts`, `instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, and `withSentryConfig` in `next.config.ts`. Complete no-op until `NEXT_PUBLIC_SENTRY_DSN` is set in Vercel. New admin-only `GET /api/dev/sentry-smoke` route deliberately throws so the pipeline can be verified end-to-end after the DSN lands. See [docs/observability.md](docs/observability.md) for env-var checklist and alert config.
 - **Local-first lint + dep audit pipeline.** `npm run audit` runs biome (correctness/security/suspicious rules), knip (dead exports + unused deps), madge (circular deps), and `tsc --noEmit`. Configured in `biome.json` + `knip.json`. Pipeline exits 0 today; knip surfaces 14 unused exports and ~11 biome warnings as backlog.
 - **Interactive app map at `/dev/app-map`.** LiteGraph.js viewer with 12 nodes (User → Vercel → Middleware → Pages/API → Supabase DB/Storage/Stripe/Gemini/SocialPilot/Resend/Remotion). Each node opens a side panel with role/owner/summary/breaks. Auth-gated through the dev layout.
 - **Brand-page experience flow** at `docs/flows/brand-page-experience.md` — entry points, branches, error states, empty states, and notifications for the four brand tabs. `/dev/flows` now auto-includes every `.md` in `docs/flows/`.
@@ -38,7 +39,7 @@ All notable changes to the SocialPulse dashboard are recorded here. Format follo
 
 - **Knip backlog** — 14 unused exported types/functions across lib/. Surfaced by `npm run audit`; not blocking. Triage and either delete or `@public` annotate per export.
 - **Biome backlog** — 11 warnings (3× useExhaustiveDependencies, 3× noArrayIndexKey in BrandKitPanel, 1× noUnusedVariables in ClientPostCard, etc.). Pre-existing tech debt; address as a single sweep.
-- **No error-tracking SDK** installed yet (Sentry/Datadog gap). See [docs/observability.md](docs/observability.md).
+- **Sentry installed but unconfigured.** SDK is wired and no-ops until `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` are set in Vercel. Smoke route at `/api/dev/sentry-smoke` is ready to verify the pipeline once envs land.
 - **No rollback drill** has been performed against the current Vercel deploy. See [docs/rollback.md](docs/rollback.md) for the documented procedure; the drill is open.
 
 ---
