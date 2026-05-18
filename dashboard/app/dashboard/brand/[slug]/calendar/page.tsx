@@ -154,9 +154,9 @@ function WeekRow({
         className="flex items-baseline"
         style={{ justifyContent: "space-between", marginBottom: "8px" }}
       >
-        <h3 style={{ fontSize: "13px", fontWeight: 600, color: "white" }}>
+        <h2 style={{ fontSize: "13px", fontWeight: 600, color: "white" }}>
           {label}
-        </h3>
+        </h2>
         <span style={{ fontSize: "12px", color: "#7a7a88" }}>
           {weekCount} post{weekCount === 1 ? "" : "s"}
         </span>

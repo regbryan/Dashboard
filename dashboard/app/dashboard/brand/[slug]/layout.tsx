@@ -201,15 +201,11 @@ export default async function BrandLayout({
             background: "#07070e",
           }}
         >
-          <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: "50%",
-                transform: "translateY(-50%)",
-              }}
-            >
+          {/* Header row. Desktop: title pinned left, tabs centered.
+              Mobile (<md): stack vertically so the tab pill (~380px) and
+              the title don't collide on narrow viewports. */}
+          <div className="flex flex-col items-center gap-3 md:relative md:flex-row md:items-center md:justify-center md:gap-0">
+            <div className="w-full text-center md:absolute md:left-0 md:top-1/2 md:w-auto md:-translate-y-1/2 md:text-left">
               <BrandSectionTitle slug={slug} subtitles={subtitles} />
             </div>
             <BrandTabs slug={slug} />
