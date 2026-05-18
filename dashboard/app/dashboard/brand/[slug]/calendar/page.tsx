@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getImageUrl } from "@/lib/image-url";
+import EmptyState from "@/components/EmptyState";
 import StatusBadge from "@/components/StatusBadge";
 
 /**
@@ -59,22 +60,11 @@ export default async function BrandCalendarPage({
     <div style={{ padding: "28px 0 48px" }}>
       <div>
         {weeks.length === 0 ? (
-          <div
-            className="lg-surface--card"
-            style={{
-              borderRadius: "16px",
-              padding: "60px 24px",
-              textAlign: "center",
-              color: "#7a7a88",
-              fontSize: "14px",
-              backdropFilter: "blur(10px) saturate(145%)",
-              WebkitBackdropFilter: "blur(10px) saturate(145%)",
-            }}
-          >
+          <EmptyState>
             Nothing on the calendar yet. Posts with a scheduled date will land
             here automatically. Start by uploading or generating content from
             the Designs tab.
-          </div>
+          </EmptyState>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {weeks.map((week) => (

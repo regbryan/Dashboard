@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import BrandCard from "@/components/BrandCard";
 import QuickActions from "@/components/QuickActions";
+import { cardBackdropFilter } from "@/lib/glass-style";
 
 export const dynamic = "force-dynamic";
 
@@ -154,11 +155,7 @@ function StatTile({
       style={{
         padding: "20px 22px",
         borderRadius: "16px",
-        // Inline because LightningCSS strips standard backdrop-filter
-        // from the .lg-surface--card rule when Safari is in browserslist
-        // (collapses to -webkit- only, which Chromium 146 no longer accepts).
-        backdropFilter: "blur(10px) saturate(145%)",
-        WebkitBackdropFilter: "blur(10px) saturate(145%)",
+        ...cardBackdropFilter,
       }}
     >
       <p

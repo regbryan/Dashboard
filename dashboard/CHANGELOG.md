@@ -6,6 +6,12 @@ All notable changes to the SocialPulse dashboard are recorded here. Format follo
 
 ### Added
 
+- **Interactive app map at `/dev/app-map`.** LiteGraph.js viewer with 12 nodes (User → Vercel → Middleware → Pages/API → Supabase DB/Storage/Stripe/Gemini/SocialPilot/Resend/Remotion). Each node opens a side panel with role/owner/summary/breaks. Auth-gated through the dev layout.
+- **Brand-page experience flow** at `docs/flows/brand-page-experience.md` — entry points, branches, error states, empty states, and notifications for the four brand tabs. `/dev/flows` now auto-includes every `.md` in `docs/flows/`.
+- **`<EmptyState>` component** + `lib/glass-style.ts` — shared surface used by the four brand tabs' empty states. Replaces four ad-hoc inline style blocks.
+- **Playwright `brand-header.spec.ts`** — 9 tests covering title/subtitle swap across tabs, mobile responsive stack, and per-tab axe a11y. Opt-in via `DASHBOARD_TEST_SECRET` env var; skips silently in CI without the secret.
+- **Test-only auth bypass** in `proxy.ts` — checks an `X-Dashboard-Test-Auth` header against a per-run secret. Dead code unless `DASHBOARD_TEST_SECRET` is set on the server.
+
 - **Brand page header now shows the active section title + subtitle.** A new client component `BrandSectionTitle` derives the title from the pathname and reads pre-computed subtitles from the brand layout — one batched Supabase round-trip (`Promise.all` over `brands`, `posts`, `brand_logos`) per request instead of four per-tab queries.
 - **Liquid-glass surface treatment on StatTiles and BrandCards.** Inline `backdropFilter` paired with `.lg-surface--card` because LightningCSS collapses the standard `backdrop-filter` away when Safari is in browserslist (Chromium 146+ no longer accepts the `-webkit-` prefix on its own).
 - **Responsive header layout on brand pages.** Tailwind utilities switch the title/tabs row from stacked column (mobile) to side-by-side (md and up). Replaces the absolute-positioning approach that collided with the tab pill at 375px.
@@ -22,6 +28,8 @@ All notable changes to the SocialPulse dashboard are recorded here. Format follo
 
 ### Fixed
 
+- **Vercel build broken since the Remotion scaffold landed.** Externalized `@remotion/*` + `esbuild` via `serverExternalPackages` so Turbopack stops trying to bundle platform-specific binaries (macOS compositor on a Linux build host) and stops parsing `@esbuild/linux-x64/README.md` as a module. Local `npm run build` now succeeds.
+- Removed dead `TAB_CARD_BG` export from `BrandTabs.tsx` + matching import in the brand layout (Phase 1 audit finding).
 - Liquid-glass `.lg-surface--card` blur now visible — the standard `backdrop-filter` property was being stripped by the Tailwind v4 + LightningCSS pipeline, leaving only `-webkit-backdrop-filter` which Chromium 146+ no longer accepts. Backdrop blur applied inline as a workaround until LightningCSS targeting changes.
 - All `app-review` Phase 3 BLOCKERs cleared (axe-core 0 violations across the modified routes, mobile header no longer collides with the tab pill).
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import BrandTabs, { TAB_CARD_BG } from "@/components/BrandTabs";
+import BrandTabs from "@/components/BrandTabs";
 import BrandSectionTitle from "@/components/BrandSectionTitle";
 
 /**

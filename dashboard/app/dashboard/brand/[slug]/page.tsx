@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import PostCard from "@/components/PostCard";
 import ClientReviewLink from "@/components/ClientReviewLink";
+import EmptyState from "@/components/EmptyState";
 import { getBrandClientEmails } from "@/lib/brand-clients";
 
 export const dynamic = "force-dynamic";
@@ -152,19 +153,7 @@ export default async function BrandDetailPage({
 
         {/* Grid */}
         {filteredPosts.length === 0 ? (
-          <div
-            className="lg-surface--card text-center"
-            style={{
-              padding: "60px 24px",
-              borderRadius: "16px",
-              color: "#7a7a88",
-              fontSize: "14px",
-              backdropFilter: "blur(10px) saturate(145%)",
-              WebkitBackdropFilter: "blur(10px) saturate(145%)",
-            }}
-          >
-            No posts match this filter.
-          </div>
+          <EmptyState>No posts match this filter.</EmptyState>
         ) : (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"

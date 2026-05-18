@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { cardBackdropFilter } from "@/lib/glass-style";
 
 interface BrandStats {
   not_started: number;
@@ -42,11 +43,7 @@ export default function BrandCard({ brand }: { brand: Brand }) {
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
-        // Inline because LightningCSS strips standard backdrop-filter
-        // from the .lg-surface--card rule when Safari is in browserslist
-        // (collapses to -webkit- only, which Chromium 146 no longer accepts).
-        backdropFilter: "blur(10px) saturate(145%)",
-        WebkitBackdropFilter: "blur(10px) saturate(145%)",
+        ...cardBackdropFilter,
       }}
     >
       {/* Specular curved highlight at the top edge — the "shine"

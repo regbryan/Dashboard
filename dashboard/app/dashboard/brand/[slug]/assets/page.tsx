@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import EmptyState from "@/components/EmptyState";
 
 /**
  * Brand Assets — surfaces uploaded logos from `brand_logos`. Acts as a
@@ -51,22 +52,11 @@ export default async function BrandAssetsPage({
     <div style={{ padding: "28px 0 48px" }}>
       <div>
         {logos.length === 0 ? (
-          <div
-            className="lg-surface--card"
-            style={{
-              borderRadius: "16px",
-              padding: "60px 24px",
-              textAlign: "center",
-              color: "#7a7a88",
-              fontSize: "14px",
-              backdropFilter: "blur(10px) saturate(145%)",
-              WebkitBackdropFilter: "blur(10px) saturate(145%)",
-            }}
-          >
+          <EmptyState>
             No logos uploaded yet. Logos live in the
             <code style={{ padding: "0 4px", color: "#c4b5fd" }}>brand_logos</code>
             table and feed the LogoOverlayPanel on individual posts.
-          </div>
+          </EmptyState>
         ) : (
           <div
             style={{

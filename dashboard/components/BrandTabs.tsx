@@ -14,10 +14,6 @@ import { usePathname } from "next/navigation";
  * tokens already established in globals.css. Active suffix computed
  * via longest-match on usePathname() so nested routes stay accurate.
  */
-// Kept as a named export so the layout can still import it for now —
-// no longer used (the card surface follows below) but cheap to keep.
-export const TAB_CARD_BG = "#0f0f1a";
-
 const SECTIONS = [
   { label: "Designs", suffix: "" },
   { label: "Calendar", suffix: "/calendar" },

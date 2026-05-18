@@ -1,5 +1,6 @@
 import BrandKitPanel from "@/components/BrandKitPanel";
 import { loadBrandKit } from "@/lib/brand-kit";
+import EmptyState from "@/components/EmptyState";
 
 /**
  * Brand Kit tab — the full editor (archetype, industry, visual donts,
@@ -23,21 +24,10 @@ export default async function BrandKitPage({
         {view ? (
           <BrandKitPanel view={view} />
         ) : (
-          <div
-            className="lg-surface--card"
-            style={{
-              borderRadius: "16px",
-              padding: "60px 24px",
-              textAlign: "center",
-              color: "#7a7a88",
-              fontSize: "14px",
-              backdropFilter: "blur(10px) saturate(145%)",
-              WebkitBackdropFilter: "blur(10px) saturate(145%)",
-            }}
-          >
+          <EmptyState>
             Brand kit not initialized. Run derivation from the Designs tab or
             via the cron to bootstrap it.
-          </div>
+          </EmptyState>
         )}
       </div>
     </div>

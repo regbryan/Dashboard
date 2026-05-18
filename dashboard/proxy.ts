@@ -3,6 +3,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isAdminEmail } from "@/lib/admin-emails";
 
 export async function proxy(request: NextRequest) {
+  // Test-only bypass — Playwright sends a header that this branch
+  // checks for, combined with a server-side secret that's only set
+  // during test runs. Production never sees DASHBOARD_TEST_SECRET,
+  // so the header alone proves nothing.
+  //
+  // The secret is generated per-run in playwright.config.ts and only
+  // exists in the test process env; no committed value, no leak.
+  if (process.env.DASHBOARD_TEST_SECRET) {
+    const headerSecret = request.headers.get("x-dashboard-test-auth");
+    if (headerSecret && headerSecret === process.env.DASHBOARD_TEST_SECRET) {
+      return NextResponse.next({ request });
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
