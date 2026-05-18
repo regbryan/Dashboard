@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ClientReviewLinkProps {
   path: string;
@@ -28,8 +28,16 @@ export default function ClientReviewLink({
   const [sendStatus, setSendStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  const fullUrl =
-    typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
+  // The full URL needs `window.location.origin`, which doesn't exist
+  // on the server. Reading it during render causes a hydration
+  // mismatch (server emits relative path, client immediately swaps
+  // to absolute). Use useEffect so server + initial client render the
+  // same relative path; we upgrade to absolute after mount.
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+  const fullUrl = `${origin}${path}`;
 
   async function markInReview() {
     if (!brandId && !postId) return;

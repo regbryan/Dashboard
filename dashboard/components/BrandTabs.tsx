@@ -62,6 +62,7 @@ export default function BrandTabs({ slug }: { slug: string }) {
             href={href}
             role="tab"
             aria-selected={active}
+            className="brand-tab"
             style={{
               position: "relative",
               padding: "9px 18px",
@@ -84,6 +85,7 @@ export default function BrandTabs({ slug }: { slug: string }) {
                 : undefined,
               transition:
                 "color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.3s ease",
+              outline: "none",
             }}
             onMouseEnter={(e) => {
               if (active) return;

@@ -29,6 +29,12 @@ async function openFirstBrand(page: import("@playwright/test").Page) {
   await page.waitForURL(/\/dashboard\/brand\/[^/]+(?:\/|$)/);
 }
 
+// Serial mode: every test in this file goes through openFirstBrand
+// which hits Supabase for the brand list. Running 8 workers in
+// parallel saturates Supabase's connection pool on shared infra and
+// produces flaky timeouts. Serial is plenty fast for 9 tests (~25s).
+test.describe.configure({ mode: "serial" });
+
 test.describe("Brand page header — desktop", () => {
   test.use({ viewport: { width: 1400, height: 900 } });
 
@@ -95,6 +101,18 @@ test.describe("Brand page header — mobile (375px)", () => {
 
     // Stacked: tabs start below the title's bottom edge with positive gap.
     expect(tablistBox.y).toBeGreaterThan(titleBox.y + titleBox.height);
+  });
+
+  test("subtitle text fits viewport (no horizontal overflow)", async ({
+    page,
+  }) => {
+    await openFirstBrand(page);
+    const subtitle = page.locator("h1 + p").first();
+    const box = await subtitle.boundingBox();
+    if (!box) throw new Error("missing subtitle bounding box");
+    // At 375px viewport the subtitle must not extend past the viewport
+    // right edge — guards the BrandSectionTitle ellipsis fallback.
+    expect(box.x + box.width).toBeLessThanOrEqual(375);
   });
 });
 

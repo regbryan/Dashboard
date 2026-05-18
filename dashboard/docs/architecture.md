@@ -107,3 +107,38 @@ The Dashboard never holds card info. Stripe Checkout (hosted page) + Stripe Cust
 ### Gemini boundary
 
 Every brand-context-aware prompt goes through `lib/autopilot/brand-prompt.ts` which composes the brand_kit (positioning, tone, do/donts, archetype, palette, photography direction) with the post's concept + visual_direction. Responses are validated as structured JSON before writing to `posts`.
+
+## Frontend conventions
+
+A handful of patterns established on the brand-page surfaces — note them when extending those pages.
+
+### Liquid-glass surface
+
+`.lg-surface--card` (in `app/globals.css`) handles the static glass styling (gradient bg, inset specular, border, hover glow). Backdrop blur lives in `lib/glass-style.ts` as `cardBackdropFilter` and is applied inline via `style={{ ...cardBackdropFilter }}`. The blur **must** be inline because Tailwind v4 + LightningCSS strips the standard `backdrop-filter` property from the class rule when Safari is in browserslist, leaving only `-webkit-backdrop-filter` which Chromium 146+ no longer accepts. See [feedback memory](../../../../.claude/projects/C--Users-reggi-OneDrive-Documents-Instagram-Automation/memory/feedback_tailwind_v4_backdrop_filter.md) for the full trace.
+
+### Brand page header
+
+`/dashboard/brand/[slug]/layout.tsx` owns the sticky header. The active section title + subtitle render via the client component `BrandSectionTitle` (reads `usePathname()` to pick the active section, gets subtitle text from a prop passed by the server-rendered layout). Subtitle data comes from cached fetchers in `lib/brand-data.ts` — `getBrand`, `getBrandPosts`, and `getBrandLogoCount` are wrapped in React's `cache()` so the layout and the Designs/Calendar pages share one round-trip per brand_id within a single render.
+
+The header row is responsive: stacked column below the `md` Tailwind breakpoint, side-by-side (title absolute-left, tabs centered) at md and up.
+
+### Empty states
+
+All four brand tabs use the shared `<EmptyState>` component for "nothing here yet" surfaces — same `.lg-surface--card` treatment, same 60×24 padding, same muted color. Replaces what were four ad-hoc inline style blocks.
+
+### Tab focus ring
+
+`.brand-tab:focus-visible` (in `app/globals.css`) adds a violet outline ring when keyboard users land on a tab. Mouse-only interaction never sees it; the violet matches the active-tab border.
+
+## Dev-docs route group
+
+Admin-only system documentation lives under `/dev/*` (`app/dev/layout.tsx`). Four routes today:
+
+| Route | Source | Purpose |
+|---|---|---|
+| `/dev/architecture` | this file | Component map + service notes + boundary contracts |
+| `/dev/schema` | `docs/schema/README.md` | Mermaid ER diagram + table-by-table prose |
+| `/dev/flows` | every `.md` in `docs/flows/` | User-journey flow diagrams |
+| `/dev/app-map` | `docs/app-map/index.html` (iframe srcDoc) | Interactive LiteGraph viewer; node click opens side panel with role/owner/breaks |
+
+Gated to admin emails by `proxy.ts` + a defense-in-depth check in `app/dev/layout.tsx`. Add new flows by dropping a `.md` into `docs/flows/` — `/dev/flows` picks them up automatically.
