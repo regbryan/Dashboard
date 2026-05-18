@@ -1,4 +1,5 @@
 import { getValidAccessToken, SocialPilotNotConfiguredError } from "@/lib/socialpilot";
+import { logger } from "@/lib/logger";
 
 /**
  * Hourly token-refresh cron. Keeps the agency access token warm so a
@@ -48,7 +49,7 @@ export async function GET(req: Request): Promise<Response> {
         reason: "not_configured",
       });
     }
-    console.error("[cron/socialpilot-refresh] failed", err);
+    logger.error("cron/socialpilot-refresh", "failed", { err });
     return Response.json(
       {
         ok: false,

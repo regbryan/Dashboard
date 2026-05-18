@@ -3,6 +3,7 @@ import {
   handleAuthError,
   AuthError,
 } from "@/lib/api-auth";
+import { logger } from "@/lib/logger";
 import {
   listAccounts,
   isSocialPilotConfigured,
@@ -49,7 +50,7 @@ export async function GET(): Promise<Response> {
     if (err instanceof AuthError) {
       return Response.json(err.body, { status: err.status });
     }
-    console.error("[socialpilot/accounts] failed", err);
+    logger.error("socialpilot/accounts", "failed", { err });
     return Response.json({ error: "list_failed" }, { status: 500 });
   }
 }

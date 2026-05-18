@@ -1,5 +1,6 @@
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
+import { logger } from "@/lib/logger";
 
 /**
  * Retry the SocialPilot queue step for a post that previously failed
@@ -24,7 +25,7 @@ export async function POST(
   } catch (err) {
     const handled = handleAuthError(err);
     if (handled) return handled;
-    console.error("[posts/socialpilot-retry] failed", err);
+    logger.error("posts/socialpilot-retry", "failed", { err });
     return Response.json({ error: "retry_failed" }, { status: 500 });
   }
 }

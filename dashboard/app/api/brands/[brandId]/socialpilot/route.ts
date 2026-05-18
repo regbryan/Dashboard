@@ -3,6 +3,7 @@ import {
   handleAuthError,
   AuthError,
 } from "@/lib/api-auth";
+import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -63,7 +64,7 @@ export async function PUT(
       .update({ socialpilot_account_id: accountId })
       .eq("id", brandId);
     if (updErr) {
-      console.error("[brands/socialpilot] update failed", updErr);
+      logger.error("brands/socialpilot", "update failed", { err: updErr });
       throw new AuthError(500, { error: "update_failed" });
     }
 

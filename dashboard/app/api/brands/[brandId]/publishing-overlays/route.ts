@@ -1,5 +1,6 @@
 import { requireAdmin, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { logger } from "@/lib/logger";
 
 /**
  * Set the brand's auto-overlay rules. JSON array, each element shaped
@@ -88,7 +89,7 @@ export async function PUT(
       .update({ publishing_overlays: overlays })
       .eq("id", brandId);
     if (updErr) {
-      console.error("[brands/publishing-overlays] update failed", updErr);
+      logger.error("brands/publishing-overlays", "update failed", { err: updErr });
       throw new AuthError(500, { error: "update_failed" });
     }
 

@@ -1,5 +1,6 @@
 import { requireAdmin, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { logger } from "@/lib/logger";
 
 /**
  * OAuth callback. SocialPilot redirects here after admin consent with
@@ -28,7 +29,7 @@ export async function GET(req: Request): Promise<Response> {
     const state = url.searchParams.get("state");
     const spError = url.searchParams.get("error");
     if (spError) {
-      console.error("[socialpilot/callback] SP returned error", {
+      logger.error("socialpilot/callback", "SP returned error", {
         error: spError,
         description: url.searchParams.get("error_description"),
       });
@@ -72,7 +73,7 @@ export async function GET(req: Request): Promise<Response> {
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text().catch(() => "");
-      console.error("[socialpilot/callback] token exchange failed", {
+      logger.error("socialpilot/callback", "token exchange failed", {
         status: tokenRes.status,
         body: errBody.slice(0, 500),
       });
@@ -109,7 +110,7 @@ export async function GET(req: Request): Promise<Response> {
         { onConflict: "id" }
       );
     if (upsertErr) {
-      console.error("[socialpilot/callback] credentials upsert failed", upsertErr);
+      logger.error("socialpilot/callback", "credentials upsert failed", { err: upsertErr });
       throw new AuthError(500, { error: "credentials_persist_failed" });
     }
 

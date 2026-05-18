@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { loadVideoBrandKit } from "@/lib/video-brand-kit";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { logger } from "@/lib/logger";
 
 // Remotion's bundler + renderer pull in headless Chromium and a
 // full webpack bundle. Force the Node runtime and a long max
@@ -177,7 +178,7 @@ export async function POST(req: NextRequest) {
       });
     if (uploadErr) {
       // Log server-side, return generic to caller.
-      console.error("[render-reel] upload failed", {
+      logger.error("render-reel", "upload failed", {
         storageKey,
         message: uploadErr.message,
       });
@@ -208,7 +209,7 @@ export async function POST(req: NextRequest) {
     const authResp = handleAuthError(err);
     if (authResp) return authResp;
     // Log full error, return generic to caller.
-    console.error("[render-reel] render failed", err);
+    logger.error("render-reel", "render failed", { err });
     return NextResponse.json({ error: "render failed" }, { status: 500 });
   }
 }

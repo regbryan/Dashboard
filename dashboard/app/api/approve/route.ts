@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { requirePostAccess, handleAuthError, type AuthedClient } from "@/lib/api-auth";
 import { sendEmail } from "@/lib/send-email";
 import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
+import { logger } from "@/lib/logger";
 import type { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       comment: comment || null,
       reviewerEmail: ctx.user.email ?? null,
     }).catch((e) => {
-      console.error("[approve] reviewer confirmation failed", e);
+      logger.error("approve", "reviewer confirmation failed", { err: e });
     });
 
     // Auto-queue to SocialPilot when an approval lands. Gated on Growth
@@ -69,14 +70,14 @@ export async function POST(request: NextRequest) {
         try {
           const outcome = await autoQueueApprovedPost(post_id);
           if (outcome.status === "failed") {
-            console.warn("[approve] socialpilot auto-queue failed", {
+            logger.warn("approve", "socialpilot auto-queue failed", {
               post_id,
               error: outcome.error,
               recoverable: outcome.recoverable,
             });
           }
         } catch (e) {
-          console.error("[approve] socialpilot auto-queue crashed", e);
+          logger.error("approve", "socialpilot auto-queue crashed", { err: e });
         }
       });
     }

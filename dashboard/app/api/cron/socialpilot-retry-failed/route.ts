@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
+import { logger } from "@/lib/logger";
 
 /**
  * Auto-retry cron for SocialPilot queue failures.
@@ -53,7 +54,7 @@ export async function GET(req: Request): Promise<Response> {
     .limit(BATCH_LIMIT);
 
   if (error) {
-    console.error("[cron/socialpilot-retry-failed] query failed", error);
+    logger.error("cron/socialpilot-retry-failed", "query failed", { err: error });
     return Response.json(
       { ok: false, error: error.message },
       { status: 500 }

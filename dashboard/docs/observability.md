@@ -48,13 +48,11 @@ Once the DSN is set:
 - `app/api/dev/sentry-smoke/route.ts` — Admin-only deliberate-throw for verification
 - `next.config.ts` — Wrapped with `withSentryConfig` (source-map upload, tunnel route, release injection)
 
-## Logging hygiene (before adding Sentry)
+## Logging hygiene
 
-A few things to clean up so Sentry breadcrumbs are useful:
-
-- Replace ad-hoc `console.log` in API routes with a thin structured logger (one function, accepts `{event, ...context}`) so every log line is filterable.
-- Strip PII from logs at the source — never log full user email, full session tokens, or Supabase user IDs in plaintext.
-- Tag every request with a request-id (Vercel provides `x-vercel-id`) so a single user complaint maps to a single trace.
+- ✅ **Structured logger wired** — `lib/logger.ts` exports `logger.{debug,info,warn,error}(scope, msg, context?)`. Production emits single-line JSON to stdout (filterable in Vercel Logs); development emits pretty key=value. Every API route + cron + auth callback in `app/` and `lib/` uses it; `console.*` is banned outside `lib/logger.ts` itself.
+- ✅ **PII scrubbing at the source** — the logger redacts known credential keys (`password`, `token`, `secret`, `cookie`, `service_role_key`, etc.) at any nesting depth, masks any field whose name ends in `email` (`alice@example.com` → `a***@example.com`), and expands `Error` instances to `{name, message, stack}` so you don't have to remember to call `.stack` manually. Unit tested in `tests/logger.spec.ts`.
+- ⏳ **Per-request correlation ID** — not wired yet. When ready, read `x-vercel-id` from the request and thread it through as a `requestId` log field so a single user complaint maps to one trace.
 
 ## What "good" looks like
 
@@ -75,6 +73,6 @@ If that returns zero, the deploy is healthy. If it returns hits, you triage them
 | First alert rule configured | Reggie | Pending |
 | Smoke test route exists | Branch `claude/angry-nash-94318d` | ✅ `/api/dev/sentry-smoke` |
 | Smoke test executed against a real DSN | Reggie | Pending (after env vars are set) |
-| Replace `console.*` with structured logger | _(open)_ | Not started |
+| Replace `console.*` with structured logger | Branch `claude/angry-nash-94318d` | ✅ Done — `lib/logger.ts`, 34 call sites migrated, PII scrubbing + Error expansion built in, unit-tested |
 
 When all rows flip to "done," delete this Status table and replace this doc with operational runbooks (querying issues, common triage paths, etc.).
