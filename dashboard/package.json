@@ -6,11 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "biome check app components lib tests",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "remotion:studio": "remotion studio",
-    "remotion:render": "remotion render"
+    "remotion:render": "remotion render",
+    "lint:fix": "biome check --write app components lib tests",
+    "check:deps": "knip --no-exit-code",
+    "check:circular": "madge --circular --extensions ts,tsx app components lib",
+    "check:a11y": "axe http://localhost:3000/login http://localhost:3000/dashboard",
+    "audit": "npm run lint && npm run check:deps && npm run check:circular && tsc --noEmit"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.462",
@@ -33,7 +38,10 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@axe-core/cli": "^4.11.3",
     "@axe-core/playwright": "^4.11.3",
+    "@biomejs/biome": "^2.4.15",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -41,6 +49,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "knip": "^6.14.1",
+    "madge": "^8.0.0",
+    "pa11y-ci": "^4.1.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

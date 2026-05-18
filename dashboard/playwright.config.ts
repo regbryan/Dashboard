@@ -33,9 +33,6 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL ?? "http://localhost:3411",
     trace: "retain-on-failure",
-    extraHTTPHeaders: {
-      "x-dashboard-test-auth": TEST_AUTH_SECRET,
-    },
   },
   projects: [
     {

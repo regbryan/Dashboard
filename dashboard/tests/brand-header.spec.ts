@@ -19,6 +19,15 @@ import AxeBuilder from "@axe-core/playwright";
  * message if no brand exists.
  */
 
+// Apply the test-only auth bypass header only to this spec.
+// Globally setting it via playwright.config.ts breaks the api-contract
+// tests that explicitly verify the redirect-to-/login behavior.
+test.use({
+  extraHTTPHeaders: process.env.DASHBOARD_TEST_SECRET
+    ? { "x-dashboard-test-auth": process.env.DASHBOARD_TEST_SECRET }
+    : {},
+});
+
 async function openFirstBrand(page: import("@playwright/test").Page) {
   await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   const firstBrand = page.locator('a[href^="/dashboard/brand/"]').first();
