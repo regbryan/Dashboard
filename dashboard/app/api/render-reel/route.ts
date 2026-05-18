@@ -6,6 +6,7 @@ import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { loadVideoBrandKit } from "@/lib/video-brand-kit";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 // Remotion's bundler + renderer pull in headless Chromium and a
 // full webpack bundle. Force the Node runtime and a long max
@@ -56,6 +57,10 @@ type Body = {
  * - Supabase errors are logged server-side, never echoed raw.
  */
 export async function POST(req: NextRequest) {
+  return withRequestContext(req, () => handlePOST(req));
+}
+
+async function handlePOST(req: NextRequest) {
   try {
     const ctx = await requireAdmin();
 

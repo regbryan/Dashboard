@@ -52,7 +52,19 @@ Once the DSN is set:
 
 - ✅ **Structured logger wired** — `lib/logger.ts` exports `logger.{debug,info,warn,error}(scope, msg, context?)`. Production emits single-line JSON to stdout (filterable in Vercel Logs); development emits pretty key=value. Every API route + cron + auth callback in `app/` and `lib/` uses it; `console.*` is banned outside `lib/logger.ts` itself.
 - ✅ **PII scrubbing at the source** — the logger redacts known credential keys (`password`, `token`, `secret`, `cookie`, `service_role_key`, etc.) at any nesting depth, masks any field whose name ends in `email` (`alice@example.com` → `a***@example.com`), and expands `Error` instances to `{name, message, stack}` so you don't have to remember to call `.stack` manually. Unit tested in `tests/logger.spec.ts`.
-- ⏳ **Per-request correlation ID** — not wired yet. When ready, read `x-vercel-id` from the request and thread it through as a `requestId` log field so a single user complaint maps to one trace.
+- ✅ **Per-request correlation ID wired.** Every request gets a stable `x-request-id` value (sourced from `x-vercel-id` in production, generated via `crypto.randomUUID()` locally). The middleware sets it on the rewritten request headers (so downstream handlers can read it) and on the response (so clients can quote it when reporting bugs). Handlers wrapped in `withRequestContext()` (lib/request-context.ts) propagate the ID through AsyncLocalStorage; every `logger.*` call auto-tags entries with `requestId`. Wrapped today: Stripe webhook, /api/approve, /api/onboarding/create, /api/render-reel, /api/socialpilot/callback, /auth/callback. Other routes still work — their logs just omit the field. Pattern for adding correlation to a new route:
+
+  ```ts
+  import { withRequestContext } from "@/lib/request-context";
+
+  export async function POST(req: Request) {
+    return withRequestContext(req, () => handlePOST(req));
+  }
+
+  async function handlePOST(req: Request) {
+    // existing handler body — every logger.* call here gets requestId
+  }
+  ```
 
 ## What "good" looks like
 

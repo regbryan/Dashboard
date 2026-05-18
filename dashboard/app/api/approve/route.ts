@@ -3,9 +3,14 @@ import { requirePostAccess, handleAuthError, type AuthedClient } from "@/lib/api
 import { sendEmail } from "@/lib/send-email";
 import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
 import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 import type { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
+  return withRequestContext(request, () => handlePOST(request));
+}
+
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
     const { post_id, status, comment } = body;

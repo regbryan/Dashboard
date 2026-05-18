@@ -3,6 +3,27 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isAdminEmail } from "@/lib/admin-emails";
 
 export async function proxy(request: NextRequest) {
+  // Stamp every request with a correlation ID. Vercel always sets
+  // x-vercel-id; for local dev (and any path where x-vercel-id is
+  // missing) we generate one. The ID is forwarded to the downstream
+  // handler via rewritten request headers AND echoed back to the
+  // client on the response so a user can quote it when reporting a
+  // bug. Edge-runtime middleware can't use AsyncLocalStorage; route
+  // handlers pick the ID up by wrapping their body in
+  // withRequestContext() — see lib/request-context.ts.
+  const incoming = request.headers.get("x-request-id");
+  const vercel = request.headers.get("x-vercel-id");
+  const requestId = incoming ?? vercel ?? crypto.randomUUID();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+
+  // Helper: every NextResponse this middleware returns gets the
+  // x-request-id header. Centralized so we can't miss a return path.
+  function tagged(res: NextResponse): NextResponse {
+    res.headers.set("x-request-id", requestId);
+    return res;
+  }
+
   // Test-only bypass — Playwright sends a header that this branch
   // checks for, combined with a server-side secret that's only set
   // during test runs. Production never sees DASHBOARD_TEST_SECRET,
@@ -13,11 +34,11 @@ export async function proxy(request: NextRequest) {
   if (process.env.DASHBOARD_TEST_SECRET) {
     const headerSecret = request.headers.get("x-dashboard-test-auth");
     if (headerSecret && headerSecret === process.env.DASHBOARD_TEST_SECRET) {
-      return NextResponse.next({ request });
+      return tagged(NextResponse.next({ request: { headers: requestHeaders } }));
     }
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +52,7 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -59,17 +80,19 @@ export async function proxy(request: NextRequest) {
   ];
   const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
 
-  if (isPublic) return supabaseResponse;
+  if (isPublic) return tagged(supabaseResponse);
 
   // Not signed in
   if (!user) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return tagged(
+        NextResponse.json({ error: "unauthorized" }, { status: 401 })
+      );
     }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return tagged(NextResponse.redirect(url));
   }
 
   const isAdmin = isAdminEmail(user.email);
@@ -92,7 +115,7 @@ export async function proxy(request: NextRequest) {
     const brandId = (access as { brand_id?: string } | null)?.brand_id;
     const url = request.nextUrl.clone();
     url.pathname = brandId ? `/client/${brandId}` : "/no-access";
-    return NextResponse.redirect(url);
+    return tagged(NextResponse.redirect(url));
   }
 
   // Client routes — verify access to the requested brand.
@@ -110,12 +133,12 @@ export async function proxy(request: NextRequest) {
       if (!access) {
         const url = request.nextUrl.clone();
         url.pathname = "/no-access";
-        return NextResponse.redirect(url);
+        return tagged(NextResponse.redirect(url));
       }
     }
   }
 
-  return supabaseResponse;
+  return tagged(supabaseResponse);
 }
 
 export const config = {

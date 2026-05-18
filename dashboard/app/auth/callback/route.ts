@@ -1,8 +1,13 @@
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
+  return withRequestContext(request, () => handleGET(request));
+}
+
+async function handleGET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");

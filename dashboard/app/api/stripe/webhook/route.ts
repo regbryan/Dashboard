@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * Stripe webhook receiver.
@@ -32,6 +33,10 @@ if (process.env.STRIPE_PRICE_GROWTH) {
 }
 
 export async function POST(req: Request) {
+  return withRequestContext(req, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request) {
   const sig = req.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
 

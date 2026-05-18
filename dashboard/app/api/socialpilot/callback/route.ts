@@ -1,6 +1,7 @@
 import { requireAdmin, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * OAuth callback. SocialPilot redirects here after admin consent with
@@ -21,6 +22,10 @@ export const runtime = "nodejs";
 const STATE_COOKIE = "sp_oauth_state";
 
 export async function GET(req: Request): Promise<Response> {
+  return withRequestContext(req, () => handleGET(req));
+}
+
+async function handleGET(req: Request): Promise<Response> {
   try {
     await requireAdmin();
 

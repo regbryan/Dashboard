@@ -5,6 +5,7 @@ import { sendWelcomeEmail } from "@/lib/emails/welcome";
 import { seedFirstBatch } from "@/lib/autopilot/seed-first-batch";
 import { runBrandAutopilot } from "@/lib/autopilot";
 import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * Self-serve provisioning endpoint.
@@ -59,6 +60,10 @@ type OnboardingPayload = {
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
 
 export async function POST(req: Request): Promise<Response> {
+  return withRequestContext(req, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request): Promise<Response> {
   try {
     const ctx = await requireUser();
 

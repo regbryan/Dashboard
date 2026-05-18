@@ -20,6 +20,8 @@
  * .stack manually.
  */
 
+import { getRequestId } from "./request-context";
+
 type LogLevel = "debug" | "info" | "warn" | "error";
 
 type LogContext = Record<string, unknown>;
@@ -94,6 +96,11 @@ function emit(
   context?: LogContext
 ) {
   const scrubbed = context ? (scrub(context) as LogContext) : undefined;
+  // Pull the correlation ID from AsyncLocalStorage (set by handlers
+  // wrapped in withRequestContext). Undefined for routes that
+  // haven't opted in or for top-level code paths outside any
+  // request scope.
+  const requestId = getRequestId();
 
   // Production: structured JSON, one line per entry. Vercel Logs
   // parses it; Sentry's console integration captures the same shape
@@ -104,6 +111,7 @@ function emit(
       level,
       scope,
       msg: message,
+      ...(requestId ? { requestId } : {}),
       ...(scrubbed ?? {}),
     };
     const line = JSON.stringify(entry);
@@ -115,7 +123,8 @@ function emit(
 
   // Development: human-readable. Bracketed prefix mirrors the
   // pre-logger pattern so existing log statements look familiar.
-  const prefix = `[${level}] [${scope}] ${message}`;
+  const reqTag = requestId ? ` [req=${requestId.slice(0, 8)}]` : "";
+  const prefix = `[${level}] [${scope}]${reqTag} ${message}`;
   const suffix = scrubbed && Object.keys(scrubbed).length > 0
     ? ` ${JSON.stringify(scrubbed)}`
     : "";
