@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { getImageUrl } from "@/lib/image-url";
 import EmptyState from "@/components/EmptyState";
+import { getBrand, getBrandPosts } from "@/lib/brand-data";
 import StatusBadge from "@/components/StatusBadge";
 
 /**
@@ -36,21 +36,12 @@ export default async function BrandCalendarPage({
 }) {
   const { slug } = await params;
 
-  const { data: brand } = await supabase
-    .from("brands")
-    .select("id, name, color_primary")
-    .eq("id", slug)
-    .single();
+  const [brand, postRows] = await Promise.all([
+    getBrand(slug),
+    getBrandPosts(slug),
+  ]);
 
-  const { data: postRows } = await supabase
-    .from("posts")
-    .select(
-      "id, post_number, date, day, post_type, content_pillar, concept, visual_direction, caption, status, file_path, updated_at"
-    )
-    .eq("brand_id", slug)
-    .order("date", { ascending: true });
-
-  const posts = ((postRows ?? []) as Post[]).filter((p) => p.date);
+  const posts = (postRows as Post[]).filter((p) => p.date);
   const accent = brand?.color_primary || "#8b5cff";
 
   const weeks = groupByWeek(posts);

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import BrandTabs from "@/components/BrandTabs";
 import BrandSectionTitle from "@/components/BrandSectionTitle";
+import { getBrand, getBrandPosts, getBrandLogoCount } from "@/lib/brand-data";
 
 /**
  * Per-brand layout. Tabs sit above a rounded content card that the
@@ -19,14 +19,17 @@ export default async function BrandLayout({
 }) {
   const { slug } = await params;
 
-  const [brandRes, postsRes, logosRes] = await Promise.all([
-    supabase.from("brands").select("id, name, handle").eq("id", slug).single(),
-    supabase.from("posts").select("date").eq("brand_id", slug),
-    supabase.from("brand_logos").select("id").eq("brand_id", slug),
+  // Cached fetchers — getBrand and getBrandPosts dedupe with the
+  // Designs and Calendar pages (which also call them) within the same
+  // request. Brand Kit and Assets pages don't call getBrandPosts, so
+  // those tabs do incur the (small) cost of fetching posts just for
+  // the subtitle — accepted because the layout can't know the active
+  // tab server-side without pathname access.
+  const [brand, posts, logosCount] = await Promise.all([
+    getBrand(slug),
+    getBrandPosts(slug),
+    getBrandLogoCount(slug),
   ]);
-  const brand = brandRes.data;
-  const posts = postsRes.data ?? [];
-  const logosCount = (logosRes.data ?? []).length;
 
   // Distinct Monday-aligned week count for the calendar subtitle.
   const weekStarts = new Set<string>();
