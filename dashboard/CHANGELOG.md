@@ -31,6 +31,14 @@ All notable changes to the SocialPulse dashboard are recorded here. Format follo
 
 ### Fixed
 
+- **Tech-debt sweep: biome + knip backlog cleared.**
+  - Wrapped `refreshSnapshotState` in `useCallback` so FooterOverlayPanel + LogoOverlayPanel pass `useExhaustiveDependencies` without lint-disable.
+  - Documented why DocViewer keeps `markdown` in deps + the intentional `dangerouslySetInnerHTML` (admin-only, trusted-source markdown) with biome-ignore comments.
+  - Replaced index-based React keys in BrandKitPanel (pillars, audiences, rules) with content-derived stable keys.
+  - Replaced `(byDate[p.date] ??= []).push(p)` with an explicit init+push to clear `noAssignInExpressions`.
+  - Removed dead `StatusKey` type alias from ClientPostCard.
+  - De-exported internal-only `buildClaudeRevisionPrompt`, `TIER_TO_PRICE_ENV`, and `Tier` (never imported from another module). Deleted dead `postImagePath`.
+  - Configured knip to ignore types that are self-referenced inside their declaring file (`ignoreExportsUsedInFile: { type: true }`) — these are domain primitives kept for readability, not waste.
 - **Vercel build broken since the Remotion scaffold landed.** Externalized `@remotion/*` + `esbuild` via `serverExternalPackages` so Turbopack stops trying to bundle platform-specific binaries (macOS compositor on a Linux build host) and stops parsing `@esbuild/linux-x64/README.md` as a module. Local `npm run build` now succeeds.
 - Removed dead `TAB_CARD_BG` export from `BrandTabs.tsx` + matching import in the brand layout (Phase 1 audit finding).
 - Liquid-glass `.lg-surface--card` blur now visible — the standard `backdrop-filter` property was being stripped by the Tailwind v4 + LightningCSS pipeline, leaving only `-webkit-backdrop-filter` which Chromium 146+ no longer accepts. Backdrop blur applied inline as a workaround until LightningCSS targeting changes.
@@ -38,8 +46,8 @@ All notable changes to the SocialPulse dashboard are recorded here. Format follo
 
 ### Known issues
 
-- **Knip backlog** — 14 unused exported types/functions across lib/. Surfaced by `npm run audit`; not blocking. Triage and either delete or `@public` annotate per export.
-- **Biome backlog** — 11 warnings (3× useExhaustiveDependencies, 3× noArrayIndexKey in BrandKitPanel, 1× noUnusedVariables in ClientPostCard, etc.). Pre-existing tech debt; address as a single sweep.
+- ~~Knip backlog~~ ✅ Cleared. `npm run audit` reports 0 unused exports.
+- ~~Biome backlog~~ ✅ Cleared. `npm run audit` reports 0 warnings.
 - **Sentry installed but unconfigured.** SDK is wired and no-ops until `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` are set in Vercel. Smoke route at `/api/dev/sentry-smoke` is ready to verify the pipeline once envs land.
 - **No rollback drill** has been performed against the current Vercel deploy. See [docs/rollback.md](docs/rollback.md) for the documented procedure; the drill is open.
 

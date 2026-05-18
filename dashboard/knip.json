@@ -4,6 +4,9 @@
     "remotion/**",
     "remotion.config.ts"
   ],
+  "ignoreExportsUsedInFile": {
+    "type": true
+  },
   "ignoreDependencies": [
     "@remotion/google-fonts",
     "@remotion/shapes",

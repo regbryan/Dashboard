@@ -83,7 +83,8 @@ function groupByWeek(posts: Post[]): Week[] {
   const byDate: Record<string, Post[]> = {};
   for (const p of posts) {
     if (!p.date) continue;
-    (byDate[p.date] ??= []).push(p);
+    if (!byDate[p.date]) byDate[p.date] = [];
+    byDate[p.date].push(p);
   }
 
   const allDates = Object.keys(byDate).sort();

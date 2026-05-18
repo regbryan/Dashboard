@@ -15,8 +15,6 @@ interface ClientPostCardProps {
   platform?: string | null;
 }
 
-type StatusKey = "approved" | "in_review" | "changes_requested" | "scheduled" | "posted" | "generating" | "not_started";
-
 const STATUS_META: Record<string, { text: string; color: string; bg: string; border: string }> = {
   approved: {
     text: "APPROVED",

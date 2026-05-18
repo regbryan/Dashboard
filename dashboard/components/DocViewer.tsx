@@ -32,6 +32,11 @@ export default function DocViewer({ markdown }: { markdown: string }) {
   const mermaidLoaded = useRef(false);
   const [, force] = useState(0);
 
+  // `markdown` is the actual trigger for re-rendering. Biome can't see it
+  // because the effect queries DOM mounted by the sibling
+  // dangerouslySetInnerHTML below — dropping the dep would stop mermaid from
+  // re-rendering when the doc text changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
   useEffect(() => {
     let cancelled = false;
     const renderMermaid = async () => {
@@ -105,6 +110,7 @@ export default function DocViewer({ markdown }: { markdown: string }) {
         maxWidth: "920px",
         margin: "0 auto",
       }}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown produces our own escaped HTML from trusted .md files bundled into the build (docs/architecture, docs/schema, docs/flows). No user-supplied content reaches this prop. /dev/* is admin-gated.
       dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
     />
   );

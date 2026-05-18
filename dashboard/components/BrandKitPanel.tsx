@@ -593,9 +593,9 @@ function PillarBars({ pillars }: { pillars: { name: string; pct: number | null }
     <div>
       <SubLabel>Content pillars</SubLabel>
       <div style={{ display: "grid", gap: "8px", marginTop: "10px" }}>
-        {pillars.map((p, i) => (
+        {pillars.map((p) => (
           <div
-            key={p.name + i}
+            key={p.name}
             style={{
               display: "grid",
               gridTemplateColumns: hasPct ? "minmax(120px, 220px) 1fr 40px" : "1fr",
@@ -657,9 +657,9 @@ function Audiences({
     <div>
       <SubLabel>Audiences</SubLabel>
       <div style={{ display: "grid", gap: "6px", marginTop: "8px" }}>
-        {sorted.map((a, i) => (
+        {sorted.map((a) => (
           <div
-            key={i}
+            key={`${a.tier ?? ""}|${a.description ?? ""}`}
             style={{
               display: "grid",
               gridTemplateColumns: "minmax(90px, 110px) 1fr",
@@ -834,9 +834,9 @@ function Rules({ rules }: { rules: AutopilotRule[] }) {
         </span>
       </summary>
       <ul style={{ listStyle: "none", padding: 0, margin: "14px 0 0", display: "grid", gap: "10px" }}>
-        {rules.map((rule, i) => (
+        {rules.map((rule) => (
           <li
-            key={i}
+            key={`${rule.source}|${rule.label}`}
             style={{ fontSize: "12px", color: VALUE, lineHeight: 1.5, display: "flex", gap: "10px" }}
           >
             <span
