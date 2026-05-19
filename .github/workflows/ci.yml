@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel in-flight runs when a new commit lands on the same PR / branch.
+# Saves CI minutes on rapid-fire pushes; the latest commit is the one we
+# care about.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Audit ──────────────────────────────────────────────────────────────
+  #
+  # Always runs. Lint + dead-code + circular-dep + typecheck. No secrets
+  # required — works on first push without any repo configuration.
+  #
+  # This is the cheap gate that catches the bulk of regressions in <90s.
+  # Mirrors `npm run audit` locally so contributors can pre-flight before
+  # opening a PR.
+  audit:
+    name: Audit (biome + knip + madge + tsc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run audit (biome + knip + madge + tsc)
+        run: npm run audit
+
+  # ─── Test ───────────────────────────────────────────────────────────────
+  #
+  # Playwright suite against a fresh production build. Requires the
+  # following GitHub Actions secrets to be set on the repo (Settings →
+  # Secrets and variables → Actions):
+  #
+  #   NEXT_PUBLIC_SUPABASE_URL
+  #   NEXT_PUBLIC_SUPABASE_ANON_KEY
+  #   SUPABASE_SERVICE_ROLE_KEY
+  #   CRON_SECRET
+  #   STRIPE_WEBHOOK_SECRET     (otherwise 1 stripe-webhook test stays
+  #                              skipped; the rest still pass)
+  #
+  # The brand-header browser tests need a real database with at least one
+  # brand row — they skip otherwise via openFirstBrand(). DASHBOARD_TEST_SECRET
+  # is generated per-run by playwright.config.ts; no secret needed.
+  #
+  # If you haven't added secrets yet, this job will fail at the `next start`
+  # step (Supabase client init throws). Add the secrets above and the job
+  # turns green.
+  test:
+    name: Playwright
+    needs: audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: dashboard
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      # Force CI mode so playwright.config.ts uses retries + github reporter.
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        # `--with-deps` pulls the Linux system packages Chromium needs.
+        # Only Chromium — Firefox/WebKit aren't in our test matrix.
+        run: npx playwright install --with-deps chromium
+
+      - name: Build (production)
+        # Playwright's webServer config runs `next start -p 3411` against
+        # this build. Source-map upload to Sentry is gated on
+        # SENTRY_AUTH_TOKEN being set, so this no-ops there.
+        run: npm run build
+
+      - name: Run Playwright suite
+        run: npx playwright test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: dashboard/playwright-report/
+          retention-days: 7

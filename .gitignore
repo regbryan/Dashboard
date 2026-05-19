@@ -3,6 +3,7 @@
 # must NEVER leak into git history.
 /*
 !/.gitignore
+!/.github/
 !/dashboard/
 
 # Belt-and-suspenders for anything inside dashboard/ that should be ignored
