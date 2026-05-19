@@ -61,9 +61,9 @@ jobs:
   # brand row — they skip otherwise via openFirstBrand(). DASHBOARD_TEST_SECRET
   # is generated per-run by playwright.config.ts; no secret needed.
   #
-  # If you haven't added secrets yet, this job will fail at the `next start`
-  # step (Supabase client init throws). Add the secrets above and the job
-  # turns green.
+  # Until the secrets are configured the job skips itself cleanly (green
+  # check, "Secrets not configured" annotation in the run summary). Add
+  # the secrets and the next push runs the full Playwright suite.
   test:
     name: Playwright
     needs: audit
@@ -83,7 +83,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for required secrets
+        id: secrets
+        # Repo-level secrets aren't available in job-level `if:` for
+        # security, so we gate every downstream step on this output.
+        # Skipping cleanly (not failing) when secrets are absent means
+        # forks + freshly cloned repos see a green CI until they wire
+        # things up.
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::warning::Repo secrets not configured (NEXT_PUBLIC_SUPABASE_URL missing). Skipping Playwright suite. See .github/workflows/ci.yml for the secret list."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Node
+        if: steps.secrets.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -91,20 +107,24 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
 
       - name: Install dependencies
+        if: steps.secrets.outputs.configured == 'true'
         run: npm ci
 
       - name: Install Playwright browsers
+        if: steps.secrets.outputs.configured == 'true'
         # `--with-deps` pulls the Linux system packages Chromium needs.
         # Only Chromium — Firefox/WebKit aren't in our test matrix.
         run: npx playwright install --with-deps chromium
 
       - name: Build (production)
+        if: steps.secrets.outputs.configured == 'true'
         # Playwright's webServer config runs `next start -p 3411` against
         # this build. Source-map upload to Sentry is gated on
         # SENTRY_AUTH_TOKEN being set, so this no-ops there.
         run: npm run build
 
       - name: Run Playwright suite
+        if: steps.secrets.outputs.configured == 'true'
         run: npx playwright test
 
       - name: Upload Playwright report on failure
