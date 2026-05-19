@@ -5,7 +5,16 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { parseRenderedMp4Path } from "@/lib/hyperframes";
 import { requireAdmin, AuthError } from "@/lib/api-auth";
 
+import { withRequestContext } from "@/lib/request-context";
+
 export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withRequestContext(_request as Request, () => handleGET(_request, { params }));
+}
+
+async function handleGET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {

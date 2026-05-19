@@ -5,6 +5,8 @@ import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // Serve the brand's local logo PNG so the LogoOverlayPanel preview can render
 // it in the browser. Logos live on disk under <brand folder>/<logo_path>; they
 // are not in Supabase Storage (the upstream automation pipeline writes them
@@ -13,6 +15,13 @@ import path from "node:path";
 // feature is gated to local dev anyway via NODE_ENV/ENABLE_LOCAL_SCRIPTS, so
 // that's consistent.
 export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+) {
+  return withRequestContext(_req as Request, () => handleGET(_req, { params }));
+}
+
+async function handleGET(
   _req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ) {

@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser, handleAuthError, AuthError } from "@/lib/api-auth";
 import { logger } from "@/lib/logger";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Create a Stripe Customer Portal session for the signed-in user's
  * brand. Stripe hosts the portal — update payment method, view
@@ -20,6 +22,10 @@ import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request): Promise<Response> {
+  return withRequestContext(req as Request, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request): Promise<Response> {
   try {
     const ctx = await requireUser();
     const url = new URL(req.url);

@@ -1,6 +1,8 @@
 import { requireAdmin, handleAuthError, AuthError } from "@/lib/api-auth";
 import { randomBytes } from "node:crypto";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * One-time OAuth bootstrap: admin clicks "Connect SocialPilot" in the
  * dashboard → we redirect to SocialPilot's authorize URL with the
@@ -22,6 +24,10 @@ const STATE_COOKIE = "sp_oauth_state";
 const STATE_TTL_SECONDS = 600; // 10 minutes
 
 export async function GET(req: Request): Promise<Response> {
+  return withRequestContext(req as Request, () => handleGET(req));
+}
+
+async function handleGET(req: Request): Promise<Response> {
   try {
     await requireAdmin();
 

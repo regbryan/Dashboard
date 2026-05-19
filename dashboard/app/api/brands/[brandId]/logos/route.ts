@@ -1,9 +1,18 @@
 import { requireBrandAccess, handleAuthError } from "@/lib/api-auth";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // List all logo variants for a brand. Used by LogoOverlayPanel's picker.
 // Returns each variant with a public preview URL (Supabase storage) plus
 // the row id so the apply call can reference the exact variant chosen.
 export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+) {
+  return withRequestContext(_req as Request, () => handleGET(_req, { params }));
+}
+
+async function handleGET(
   _req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ) {

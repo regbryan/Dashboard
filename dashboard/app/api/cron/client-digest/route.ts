@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { runClientReadyDigest } from "@/lib/client-notify";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // Daily client-facing digest. Mirrors the owner digest cron's auth pattern
 // (Bearer CRON_SECRET, with ?secret=... fallback for testing).
 function authorized(req: NextRequest): boolean {
@@ -13,6 +15,10 @@ function authorized(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
+  return withRequestContext(req as Request, () => handleGET(req));
+}
+
+async function handleGET(req: NextRequest) {
   if (!authorized(req)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }

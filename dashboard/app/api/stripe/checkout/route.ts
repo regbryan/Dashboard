@@ -1,6 +1,8 @@
 import { stripe, priceIdForTier } from "@/lib/stripe";
 import { logger } from "@/lib/logger";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Create a Stripe Checkout Session for a given pricing tier.
  *
@@ -71,6 +73,10 @@ export async function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
+  return withRequestContext(req as Request, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request) {
   const cors = corsHeaders(req.headers.get("origin"));
 
   let body: unknown;

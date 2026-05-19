@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { runFeedbackDigest } from "@/lib/digest";
 
+import { withRequestContext } from "@/lib/request-context";
+
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
@@ -11,6 +13,10 @@ function authorized(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
+  return withRequestContext(req as Request, () => handleGET(req));
+}
+
+async function handleGET(req: NextRequest) {
   if (!authorized(req)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }

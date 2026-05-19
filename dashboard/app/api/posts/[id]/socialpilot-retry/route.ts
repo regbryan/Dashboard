@@ -2,6 +2,8 @@ import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
 import { logger } from "@/lib/logger";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Retry the SocialPilot queue step for a post that previously failed
  * (or was skipped due to a transient condition). Admin-only — only
@@ -14,6 +16,13 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  return withRequestContext(_req as Request, () => handlePOST(_req, { params }));
+}
+
+async function handlePOST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {

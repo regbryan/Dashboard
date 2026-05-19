@@ -1,6 +1,8 @@
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // Bootstraps human-only brand_kit fields by reading the brand's website.
 // We fetch the URL ourselves (Gemini's free-tier doesn't auto-fetch), strip
 // HTML to plain text, send the text to Gemini with a strict-JSON schema,
@@ -36,6 +38,13 @@ type ExtractedKit = {
 };
 
 export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+) {
+  return withRequestContext(req as Request, () => handlePOST(req, { params }));
+}
+
+async function handlePOST(
   req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ) {

@@ -1,6 +1,8 @@
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // Admin-only PATCH for human-only brand-kit fields. The derivation pipeline
 // fills in positioning / tone / pillars / hashtags / photography direction /
 // colors / fonts automatically. This endpoint covers the fields a human
@@ -38,6 +40,13 @@ type PatchBody = {
 };
 
 export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+) {
+  return withRequestContext(req as Request, () => handlePATCH(req, { params }));
+}
+
+async function handlePATCH(
   req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ) {

@@ -1,6 +1,8 @@
 import { getValidAccessToken, SocialPilotNotConfiguredError } from "@/lib/socialpilot";
 import { logger } from "@/lib/logger";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Hourly token-refresh cron. Keeps the agency access token warm so a
  * client approval that triggers queueing never has to wait on a token
@@ -19,6 +21,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(req: Request): Promise<Response> {
+  return withRequestContext(req as Request, () => handleGET(req));
+}
+
+async function handleGET(req: Request): Promise<Response> {
   // Match the pattern used by the other crons in this app: a missing
   // CRON_SECRET env is treated as unauthorized (401) rather than a
   // misconfiguration error. Stripe-style 5xx behavior would trip Vercel

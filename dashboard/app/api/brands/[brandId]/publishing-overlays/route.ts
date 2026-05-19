@@ -2,6 +2,8 @@ import { requireAdmin, handleAuthError, AuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { logger } from "@/lib/logger";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Set the brand's auto-overlay rules. JSON array, each element shaped
  * like `{ type: "logo" | "footer", ...params }`. Pass `null` or `[]`
@@ -18,6 +20,13 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+): Promise<Response> {
+  return withRequestContext(_req as Request, () => handleGET(_req, { params }));
+}
+
+async function handleGET(
   _req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ): Promise<Response> {
@@ -45,6 +54,13 @@ export async function GET(
 }
 
 export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+): Promise<Response> {
+  return withRequestContext(req as Request, () => handlePUT(req, { params }));
+}
+
+async function handlePUT(
   req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ): Promise<Response> {

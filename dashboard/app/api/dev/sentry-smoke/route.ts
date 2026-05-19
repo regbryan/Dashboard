@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 
+import { withRequestContextFromHeaders } from "@/lib/request-context";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,10 @@ export const dynamic = "force-dynamic";
  * route is wired without having to load Sentry UI to see the throw.
  */
 export async function GET() {
+  return withRequestContextFromHeaders(() => handleGET());
+}
+
+async function handleGET() {
   try {
     await requireAdmin();
   } catch (err) {

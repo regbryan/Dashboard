@@ -37,6 +37,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import { headers } from "next/headers";
 
 interface RequestContext {
   requestId: string;
@@ -72,5 +73,22 @@ export async function withRequestContext<T>(
     request.headers.get("x-request-id") ??
     request.headers.get("x-vercel-id") ??
     crypto.randomUUID();
+  return store.run({ requestId }, async () => fn());
+}
+
+/**
+ * Same as `withRequestContext` but for route handlers whose signature
+ * doesn't include a Request (e.g. `export async function POST()` with
+ * no params). Reads the ID from `next/headers` instead.
+ *
+ * Only callable from server-side code inside a request scope — same
+ * constraint as `next/headers` itself.
+ */
+export async function withRequestContextFromHeaders<T>(
+  fn: () => Promise<T> | T
+): Promise<T> {
+  const h = await headers();
+  const requestId =
+    h.get("x-request-id") ?? h.get("x-vercel-id") ?? crypto.randomUUID();
   return store.run({ requestId }, async () => fn());
 }

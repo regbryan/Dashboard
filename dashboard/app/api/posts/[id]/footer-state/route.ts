@@ -1,7 +1,16 @@
 import { requirePostAccess, handleAuthError } from "@/lib/api-auth";
 import { hasFooterSnapshot } from "@/lib/overlay-footer";
 
+import { withRequestContext } from "@/lib/request-context";
+
 export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withRequestContext(_req as Request, () => handleGET(_req, { params }));
+}
+
+async function handleGET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Stripe → Dashboard handoff.
  *
@@ -28,6 +30,10 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  return withRequestContext(req as Request, () => handleGET(req));
+}
+
+async function handleGET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get("session_id");
   if (!sessionId) {
     return NextResponse.redirect(new URL("/onboarding", req.url));

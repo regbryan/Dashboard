@@ -1,6 +1,12 @@
 import { requireUser, handleAuthError } from "@/lib/api-auth";
 
+import { withRequestContextFromHeaders } from "@/lib/request-context";
+
 export async function GET() {
+  return withRequestContextFromHeaders(() => handleGET());
+}
+
+async function handleGET() {
   try {
     const ctx = await requireUser();
 

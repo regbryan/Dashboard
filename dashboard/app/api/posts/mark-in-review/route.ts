@@ -5,9 +5,15 @@ import {
   handleAuthError,
 } from "@/lib/api-auth";
 
+import { withRequestContext } from "@/lib/request-context";
+
 const PROTECTED_STATUSES = ["approved", "posted", "scheduled"];
 
 export async function POST(request: NextRequest) {
+  return withRequestContext(request as Request, () => handlePOST(request));
+}
+
+async function handlePOST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => null)) as {
       brandId?: string;

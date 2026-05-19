@@ -11,6 +11,8 @@ import {
   SocialPilotAuthError,
 } from "@/lib/socialpilot";
 
+import { withRequestContextFromHeaders } from "@/lib/request-context";
+
 /**
  * Lists the social profiles connected to the agency's SocialPilot
  * account. Used by the per-brand binding dropdown so operators can
@@ -26,6 +28,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(): Promise<Response> {
+  return withRequestContextFromHeaders(() => handleGET());
+}
+
+async function handleGET(): Promise<Response> {
   try {
     await requireAdmin();
 

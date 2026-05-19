@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { runScript } from "@/lib/scripts";
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // Scripts that run safely in any environment, including production on
 // Vercel. These don't shell out — they read/write Supabase Storage in
 // process via sharp. Other scripts (hyperframes_render, run_all_overlays,
@@ -14,6 +16,10 @@ const PRODUCTION_SAFE_SCRIPTS = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
+  return withRequestContext(request as Request, () => handlePOST(request));
+}
+
+async function handlePOST(request: NextRequest) {
   let body: {
     script?: string;
     post_id?: number;

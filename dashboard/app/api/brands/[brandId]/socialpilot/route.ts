@@ -6,6 +6,8 @@ import {
 import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+import { withRequestContext } from "@/lib/request-context";
+
 /**
  * Set or clear the SocialPilot account binding for a brand.
  *
@@ -20,6 +22,13 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+): Promise<Response> {
+  return withRequestContext(req as Request, () => handlePUT(req, { params }));
+}
+
+async function handlePUT(
   req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ): Promise<Response> {
