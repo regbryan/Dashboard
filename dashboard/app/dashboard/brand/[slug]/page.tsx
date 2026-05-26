@@ -97,6 +97,21 @@ export default async function BrandDetailPage({
             </>
           )}
         </div>
+        {/* Brand-state row — voice + palette confidence + last sync.
+            Mirrors PROJECT_INDEX.md so the operator can see at a glance
+            whether brand-render will accept this brand. */}
+        <BrandStateRow
+          voiceConfidence={brand.voice_confidence}
+          colorConfidence={brand.color_confidence}
+          colorPrimary={brand.color_primary}
+          colorSecondary={brand.color_secondary}
+          colorAccent={brand.color_accent}
+          hasBrandDoc={brand.has_brand_doc}
+          hasKitDoc={brand.has_kit_doc}
+          syncedAt={brand.brand_json_synced_at}
+          slug={slug}
+        />
+
         {brand.compliance && (
           <p style={{ marginTop: "-12px", marginBottom: "20px", fontSize: "11px", color: "#8a8a98", letterSpacing: "0.04em" }}>
             {brand.compliance}
@@ -169,6 +184,147 @@ export default async function BrandDetailPage({
         )}
       </div>
     </div>
+  );
+}
+
+function BrandStateRow({
+  voiceConfidence,
+  colorConfidence,
+  colorPrimary,
+  colorSecondary,
+  colorAccent,
+  hasBrandDoc,
+  hasKitDoc,
+  syncedAt,
+  slug,
+}: {
+  voiceConfidence: string | null | undefined;
+  colorConfidence: string | null | undefined;
+  colorPrimary: string | null | undefined;
+  colorSecondary: string | null | undefined;
+  colorAccent: string | null | undefined;
+  hasBrandDoc: number | boolean | null | undefined;
+  hasKitDoc: boolean | null | undefined;
+  syncedAt: string | null | undefined;
+  slug: string;
+}) {
+  if (voiceConfidence == null && colorConfidence == null) return null;
+
+  const voiceOk = voiceConfidence === "high";
+  const colorOk = colorConfidence === "high";
+  const palette = [colorPrimary, colorSecondary, colorAccent].filter(
+    (c): c is string => !!c,
+  );
+
+  const syncedDate = syncedAt
+    ? new Date(syncedAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: "10px",
+        marginBottom: "24px",
+        padding: "10px 14px",
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "10px",
+        fontSize: "12px",
+        color: "#bfbfcc",
+      }}
+    >
+      <span style={{ color: "#9999a6" }}>Brand state</span>
+      <span style={{ color: "#3a3a45" }}>·</span>
+
+      <StateChip label="Voice" ok={voiceOk} okText="✓" missingText="TBD" />
+      <StateChip label="Palette" ok={colorOk} okText="✓" missingText="TBD" />
+
+      {palette.length > 0 && (
+        <div className="flex items-center" style={{ gap: "3px" }}>
+          {palette.map((c, i) => (
+            <span
+              key={`${c}-${i}`}
+              title={c}
+              style={{
+                display: "inline-block",
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: c,
+                border: "1px solid rgba(255,255,255,0.12)",
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <span style={{ color: "#3a3a45", marginLeft: "auto" }}>
+        Docs: {hasBrandDoc ? "brand.json ✓" : "brand.json ✗"} ·{" "}
+        {hasKitDoc ? "kit.md ✓" : "kit.md ✗"}
+      </span>
+      {syncedDate && (
+        <span style={{ color: "#7a7a88", marginLeft: "8px" }}>
+          Synced {syncedDate}
+        </span>
+      )}
+      <Link
+        href={`/dashboard/brand/${slug}/kit`}
+        style={{
+          marginLeft: "8px",
+          color: "#c084fc",
+          textDecoration: "none",
+          fontWeight: 500,
+        }}
+      >
+        Open Kit →
+      </Link>
+    </div>
+  );
+}
+
+function StateChip({
+  label,
+  ok,
+  okText,
+  missingText,
+}: {
+  label: string;
+  ok: boolean;
+  okText: string;
+  missingText: string;
+}) {
+  const palette = ok
+    ? {
+        bg: "rgba(74, 222, 128, 0.10)",
+        fg: "#86efac",
+        border: "rgba(74, 222, 128, 0.30)",
+      }
+    : {
+        bg: "rgba(251, 191, 36, 0.12)",
+        fg: "#fcd34d",
+        border: "rgba(251, 191, 36, 0.30)",
+      };
+  return (
+    <span
+      style={{
+        padding: "3px 9px",
+        borderRadius: "999px",
+        fontSize: "11px",
+        fontWeight: 600,
+        background: palette.bg,
+        color: palette.fg,
+        border: `1px solid ${palette.border}`,
+      }}
+    >
+      {label} {ok ? okText : missingText}
+    </span>
   );
 }
 

@@ -19,9 +19,18 @@ interface Brand {
   id: string;
   name: string;
   colorPrimary: string;
+  colorSecondary?: string | null;
+  colorAccent?: string | null;
   handle: string;
   cadence: string;
   stats: BrandStats;
+  voiceConfidence?: "high" | "low" | "missing" | null;
+  colorConfidence?: "high" | "low" | "missing" | null;
+  nextPost?: {
+    date: string;
+    concept: string | null;
+    status: string;
+  } | null;
 }
 
 export default function BrandCard({ brand }: { brand: Brand }) {
@@ -69,14 +78,10 @@ export default function BrandCard({ brand }: { brand: Brand }) {
           style={{ marginBottom: "18px" }}
         >
           <div className="flex items-center" style={{ gap: "10px" }}>
-            <div
-              style={{
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                backgroundColor: brand.colorPrimary || "#8b5cff",
-                flexShrink: 0,
-              }}
+            <SwatchRow
+              primary={brand.colorPrimary}
+              secondary={brand.colorSecondary}
+              accent={brand.colorAccent}
             />
             <span
               style={{
@@ -89,22 +94,28 @@ export default function BrandCard({ brand }: { brand: Brand }) {
               {brand.name}
             </span>
           </div>
-          {needsReview > 0 && (
-            <span
-              style={{
-                padding: "3px 8px",
-                borderRadius: "999px",
-                fontSize: "10px",
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                background: "rgba(192,132,252,0.14)",
-                color: "#e9d5ff",
-                border: "1px solid rgba(192,132,252,0.3)",
-              }}
-            >
-              {needsReview} TO REVIEW
-            </span>
-          )}
+          <div className="flex items-center" style={{ gap: "6px" }}>
+            <ReadinessPill
+              voice={brand.voiceConfidence}
+              color={brand.colorConfidence}
+            />
+            {needsReview > 0 && (
+              <span
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "999px",
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  background: "rgba(192,132,252,0.14)",
+                  color: "#e9d5ff",
+                  border: "1px solid rgba(192,132,252,0.3)",
+                }}
+              >
+                {needsReview} TO REVIEW
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Progress bars */}
@@ -124,8 +135,189 @@ export default function BrandCard({ brand }: { brand: Brand }) {
             color="#7de29c"
           />
         </div>
+
+        {brand.nextPost && <NextPostRow next={brand.nextPost} />}
       </div>
     </Link>
+  );
+}
+
+/**
+ * 3-dot brand identity row. Primary always shown; secondary + accent
+ * shown when set. Null accent (intentional, like Doug) collapses
+ * gracefully to 2 dots. Brands with no palette at all render a
+ * single neutral dot.
+ */
+function SwatchRow({
+  primary,
+  secondary,
+  accent,
+}: {
+  primary: string | null | undefined;
+  secondary: string | null | undefined;
+  accent: string | null | undefined;
+}) {
+  const colors = [primary, secondary, accent].filter(
+    (c): c is string => !!c,
+  );
+  if (colors.length === 0) {
+    return (
+      <div
+        style={{
+          width: "10px",
+          height: "10px",
+          borderRadius: "50%",
+          backgroundColor: "#8b5cff",
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+  return (
+    <div
+      className="flex items-center"
+      style={{ gap: "3px", flexShrink: 0 }}
+      title={colors.join(" / ")}
+    >
+      {colors.map((c, i) => (
+        <div
+          key={`${c}-${i}`}
+          style={{
+            width: "10px",
+            height: "10px",
+            borderRadius: "50%",
+            backgroundColor: c,
+            border: "1px solid rgba(255,255,255,0.12)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Readiness state derived from voice + color confidence flags on the
+ * brand row. Brands at status=high on both render "READY" in a muted
+ * green; missing flags surface as amber warnings so the operator can
+ * see at a glance which brands can't dispatch through brand-render.
+ */
+function ReadinessPill({
+  voice,
+  color,
+}: {
+  voice: "high" | "low" | "missing" | null | undefined;
+  color: "high" | "low" | "missing" | null | undefined;
+}) {
+  const voiceOk = voice === "high";
+  const colorOk = color === "high";
+  if (voice == null && color == null) return null;
+
+  let label: string;
+  let palette: { bg: string; fg: string; border: string };
+
+  if (voiceOk && colorOk) {
+    label = "READY";
+    palette = { bg: "rgba(74, 222, 128, 0.10)", fg: "#86efac", border: "rgba(74, 222, 128, 0.30)" };
+  } else if (!voiceOk && !colorOk) {
+    label = "BOTH TBD";
+    palette = { bg: "rgba(251, 146, 60, 0.12)", fg: "#fdba74", border: "rgba(251, 146, 60, 0.32)" };
+  } else if (!voiceOk) {
+    label = "VOICE TBD";
+    palette = { bg: "rgba(251, 191, 36, 0.12)", fg: "#fcd34d", border: "rgba(251, 191, 36, 0.30)" };
+  } else {
+    label = "PALETTE TBD";
+    palette = { bg: "rgba(251, 191, 36, 0.12)", fg: "#fcd34d", border: "rgba(251, 191, 36, 0.30)" };
+  }
+
+  return (
+    <span
+      style={{
+        padding: "3px 8px",
+        borderRadius: "999px",
+        fontSize: "10px",
+        fontWeight: 600,
+        letterSpacing: "0.08em",
+        background: palette.bg,
+        color: palette.fg,
+        border: `1px solid ${palette.border}`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function NextPostRow({
+  next,
+}: {
+  next: { date: string; concept: string | null; status: string };
+}) {
+  const [y, m, d] = next.date.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const label = dt.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((dt.getTime() - today.getTime()) / 86_400_000);
+  const relative =
+    diffDays === 0
+      ? "today"
+      : diffDays === 1
+        ? "tomorrow"
+        : diffDays > 1 && diffDays <= 7
+          ? `in ${diffDays} days`
+          : null;
+
+  return (
+    <div
+      style={{
+        marginTop: "14px",
+        paddingTop: "12px",
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "10px",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#8a8a98",
+          fontWeight: 600,
+          marginBottom: "4px",
+        }}
+      >
+        Next post
+      </div>
+      <div
+        className="flex items-baseline"
+        style={{ gap: "8px", fontSize: "12px", color: "#dcdce4" }}
+      >
+        <span style={{ color: "white", fontWeight: 500 }}>{label}</span>
+        {relative && (
+          <span style={{ color: "#c084fc", fontSize: "11px" }}>
+            ({relative})
+          </span>
+        )}
+      </div>
+      {next.concept && (
+        <div
+          style={{
+            marginTop: "3px",
+            fontSize: "11px",
+            color: "#9999a6",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {next.concept}
+        </div>
+      )}
+    </div>
   );
 }
 

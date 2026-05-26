@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import BrandCard from "@/components/BrandCard";
 import QuickActions from "@/components/QuickActions";
@@ -37,9 +38,17 @@ export default async function DashboardPage() {
 
   const { data: posts } = await supabase
     .from("posts")
-    .select("brand_id, status, file_path");
+    .select("brand_id, status, file_path, date, concept, content_pillar");
 
   const statsMap: Record<string, BrandStats> = {};
+  // Next-post per brand: earliest future-or-today post that isn't already
+  // posted/scheduled. Brand card surfaces this so an operator can see at a
+  // glance what's coming up next per brand.
+  const nextPostMap: Record<
+    string,
+    { date: string; concept: string | null; status: string } | undefined
+  > = {};
+  const today = new Date().toISOString().slice(0, 10);
   for (const post of posts || []) {
     if (!statsMap[post.brand_id]) statsMap[post.brand_id] = emptyStats();
     const s = statsMap[post.brand_id];
@@ -48,6 +57,22 @@ export default async function DashboardPage() {
       (s as unknown as Record<string, number>)[post.status]++;
     }
     if (post.file_path) s.has_image++;
+
+    const isUpcoming =
+      post.date &&
+      post.date >= today &&
+      post.status !== "posted" &&
+      post.status !== "scheduled";
+    if (isUpcoming) {
+      const current = nextPostMap[post.brand_id];
+      if (!current || post.date < current.date) {
+        nextPostMap[post.brand_id] = {
+          date: post.date,
+          concept: post.concept ?? post.content_pillar ?? null,
+          status: post.status,
+        };
+      }
+    }
   }
 
   const now = new Date();
@@ -76,9 +101,25 @@ export default async function DashboardPage() {
       <div className="mx-auto" style={{ maxWidth: "1280px" }}>
         {/* Header */}
         <div style={{ marginBottom: "40px" }}>
-          <span className="eyebrow" style={{ color: "#c084fc" }}>
-            Admin · {dateRange}
-          </span>
+          <div className="flex items-center" style={{ gap: "16px" }}>
+            <span className="eyebrow" style={{ color: "#c084fc" }}>
+              Admin · {dateRange}
+            </span>
+            <span style={{ color: "#3a3a45" }}>·</span>
+            <Link
+              href="/dashboard/health"
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#9999a6",
+                textDecoration: "none",
+              }}
+            >
+              Brand health →
+            </Link>
+          </div>
           <h1
             className="display-heading"
             style={{ fontSize: "clamp(44px, 6vw, 72px)", marginTop: "10px" }}
@@ -110,6 +151,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        <OpenGapsPanel brands={brands || []} />
+
         {/* Brand grid */}
         <div style={{ marginTop: "40px" }}>
           <h2 className="eyebrow" style={{ marginBottom: "16px", textAlign: "center" }}>Brands</h2>
@@ -126,8 +169,13 @@ export default async function DashboardPage() {
                     id: b.id,
                     name: b.name,
                     colorPrimary: b.color_primary,
+                    colorSecondary: b.color_secondary,
+                    colorAccent: b.color_accent,
                     handle: b.handle,
                     cadence: b.cadence,
+                    voiceConfidence: b.voice_confidence,
+                    colorConfidence: b.color_confidence,
+                    nextPost: nextPostMap[b.id] ?? null,
                     stats: s,
                   }}
                 />
@@ -180,6 +228,102 @@ function StatTile({
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+interface BrandLite {
+  id: string;
+  name: string;
+  voice_confidence?: string | null;
+  color_confidence?: string | null;
+  has_brand_doc?: number | boolean | null;
+  has_kit_doc?: boolean | null;
+}
+
+/**
+ * Cross-brand readiness callout. Only renders when there's actually
+ * something to nudge about — silent on a fully-ready fleet. Mirrors
+ * the "Open gaps" section at the bottom of PROJECT_INDEX.md.
+ */
+function OpenGapsPanel({ brands }: { brands: BrandLite[] }) {
+  const realVoiceGaps = brands.filter(
+    (b) => b.voice_confidence != null && b.voice_confidence !== "high",
+  );
+  const realPaletteGaps = brands.filter(
+    (b) => b.color_confidence != null && b.color_confidence !== "high",
+  );
+
+  if (realVoiceGaps.length === 0 && realPaletteGaps.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: "32px",
+        padding: "18px 22px",
+        background: "rgba(251, 191, 36, 0.04)",
+        border: "1px solid rgba(251, 191, 36, 0.22)",
+        borderRadius: "14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#fcd34d",
+        }}
+      >
+        <span>⚠</span>
+        <span>Open gaps · brand readiness</span>
+      </div>
+      {realVoiceGaps.length > 0 && (
+        <p style={{ fontSize: "13px", color: "#e6e6ed", margin: 0 }}>
+          <strong style={{ color: "#fcd34d" }}>Voice doc missing:</strong>{" "}
+          {realVoiceGaps.map((b, i) => (
+            <span key={b.id}>
+              <Link
+                href={`/dashboard/brand/${b.id}/kit`}
+                style={{ color: "#fcd34d", textDecoration: "underline" }}
+              >
+                {b.name}
+              </Link>
+              {i < realVoiceGaps.length - 1 ? ", " : ""}
+            </span>
+          ))}{" "}
+          <span style={{ color: "#9999a6" }}>
+            — run the brand-scanner skill or write voice.md.
+          </span>
+        </p>
+      )}
+      {realPaletteGaps.length > 0 && (
+        <p style={{ fontSize: "13px", color: "#e6e6ed", margin: 0 }}>
+          <strong style={{ color: "#fcd34d" }}>Palette TBD:</strong>{" "}
+          {realPaletteGaps.map((b, i) => (
+            <span key={b.id}>
+              <Link
+                href={`/dashboard/brand/${b.id}/kit`}
+                style={{ color: "#fcd34d", textDecoration: "underline" }}
+              >
+                {b.name}
+              </Link>
+              {i < realPaletteGaps.length - 1 ? ", " : ""}
+            </span>
+          ))}{" "}
+          <span style={{ color: "#9999a6" }}>
+            — lock the palette in brand.json (extract from reference posts via _ops/extract-brand-palette.py).
+          </span>
+        </p>
+      )}
     </div>
   );
 }
