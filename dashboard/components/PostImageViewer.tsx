@@ -109,7 +109,7 @@ export default function PostImageViewer({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#4a4a55",
+              color: "#8a8a98",
               fontSize: "12px",
               letterSpacing: "0.08em",
               textTransform: "uppercase",

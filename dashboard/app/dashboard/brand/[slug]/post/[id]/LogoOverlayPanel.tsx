@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const PRESETS: { value: string; label: string; xPct: number; yPct: number }[] = [
@@ -66,7 +66,9 @@ export default function LogoOverlayPanel({
   const logoWidthPct = maxLogoWidth / 100; // 0–1 fraction of stage width
   const logoHeightPct = logoWidthPct / logoNaturalAspect; // fraction of stage height
 
-  async function refreshSnapshotState() {
+  // Memoize per postId so the effect deps array stays stable and
+  // useExhaustiveDependencies is satisfied without a lint-disable.
+  const refreshSnapshotState = useCallback(async () => {
     try {
       const res = await fetch(`/api/posts/${postId}/logo-state`);
       if (!res.ok) return;
@@ -75,12 +77,11 @@ export default function LogoOverlayPanel({
     } catch {
       // ignore
     }
-  }
+  }, [postId]);
 
   useEffect(() => {
     void refreshSnapshotState();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+  }, [refreshSnapshotState]);
 
   useEffect(() => {
     let cancelled = false;

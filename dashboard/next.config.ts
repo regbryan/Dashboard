@@ -1,7 +1,51 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Remotion + its esbuild dep can't be bundled. esbuild ships
+  // platform-specific binaries under optional deps (@esbuild/linux-x64,
+  // @esbuild/darwin-arm64, etc.), and Turbopack chokes trying to parse
+  // README.md files inside those packages. The render-reel route at
+  // /api/render-reel lazy-imports @remotion/bundler + @remotion/renderer
+  // at runtime; marking them external keeps them as Node `require()`s
+  // instead of build-time bundling, so the build doesn't try to
+  // resolve the platform-mismatched binaries.
+  serverExternalPackages: [
+    "@remotion/bundler",
+    "@remotion/renderer",
+    "@remotion/compositor-linux-x64-gnu",
+    "@remotion/compositor-linux-x64-musl",
+    "@remotion/compositor-linux-arm64-gnu",
+    "@remotion/compositor-linux-arm64-musl",
+    "@remotion/compositor-darwin-x64",
+    "@remotion/compositor-darwin-arm64",
+    "@remotion/compositor-win32-x64-msvc",
+    "esbuild",
+  ],
 };
 
-export default nextConfig;
+// Wrap with Sentry so errors auto-ship to the configured project.
+// All Sentry behavior is gated by NEXT_PUBLIC_SENTRY_DSN being set;
+// when unset, the SDK is a no-op and the build still works without
+// SENTRY_AUTH_TOKEN. Source-map upload only fires when both DSN and
+// SENTRY_AUTH_TOKEN are present (production builds in Vercel).
+export default withSentryConfig(nextConfig, {
+  // Org + project slug. Override per-env via SENTRY_ORG / SENTRY_PROJECT.
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Silent unless we're in CI (where logs help debug source-map upload).
+  silent: !process.env.CI,
+  // Upload all client bundles to Sentry for source-map symbolication,
+  // not just the ones that import @sentry/* directly.
+  widenClientFileUpload: true,
+  // Strip uploaded source-map files from the deployed bundle so the
+  // public asset directory doesn't leak source code (Sentry has the
+  // maps server-side for symbolication).
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+  // Tunnel client-side ingest requests through this Next.js route to
+  // bypass ad blockers that filter sentry.io. Safe to leave even
+  // without a DSN (the route just no-ops).
+  tunnelRoute: "/monitoring",
+});

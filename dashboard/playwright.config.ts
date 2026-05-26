@@ -1,4 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
+import { randomBytes } from "node:crypto";
+
+// Per-run secret for the test-only auth bypass in proxy.ts. Generated
+// fresh every Playwright start (unless DASHBOARD_TEST_SECRET is already
+// in the env — handy when running tests against a dev server you
+// started separately with the same secret). Never committed, never
+// leaked into dev/prod env. Tests opt in via extraHTTPHeaders below;
+// without the matching env on the server side, the bypass is dead code.
+const TEST_AUTH_SECRET =
+  process.env.DASHBOARD_TEST_SECRET ?? randomBytes(32).toString("hex");
+process.env.DASHBOARD_TEST_SECRET = TEST_AUTH_SECRET;
 
 /**
  * Playwright smoke + contract test config.
@@ -36,5 +47,6 @@ export default defineConfig({
         url: "http://localhost:3411/login",
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        env: { DASHBOARD_TEST_SECRET: TEST_AUTH_SECRET },
       },
 });

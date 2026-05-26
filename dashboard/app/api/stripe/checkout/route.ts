@@ -1,4 +1,7 @@
 import { stripe, priceIdForTier } from "@/lib/stripe";
+import { logger } from "@/lib/logger";
+
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * Create a Stripe Checkout Session for a given pricing tier.
@@ -70,6 +73,10 @@ export async function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
+  return withRequestContext(req as Request, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request) {
   const cors = corsHeaders(req.headers.get("origin"));
 
   let body: unknown;
@@ -149,10 +156,7 @@ export async function POST(req: Request) {
   } catch (err) {
     // Log the full Stripe error server-side; never echo internals
     // (parameter names, account IDs, request IDs) to the browser.
-    console.error("[stripe/checkout] session create failed", {
-      tier,
-      err: err instanceof Error ? err.message : String(err),
-    });
+    logger.error("stripe/checkout", "session create failed", { tier, err });
     return Response.json(
       { error: "checkout_failed" },
       { status: 502, headers: cors }

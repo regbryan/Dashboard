@@ -35,7 +35,7 @@ function trim(value: string | null | undefined, max = MAX_FIELD_CHARS): string {
   return v.slice(0, max - 1).trimEnd() + "…";
 }
 
-export function buildClaudeRevisionPrompt(input: ClaudeLinkInput): string {
+function buildClaudeRevisionPrompt(input: ClaudeLinkInput): string {
   const lines = [
     "Help me draft a revision for this post based on the client's feedback. Stay on-brand and propose:",
     "1. Revised caption",

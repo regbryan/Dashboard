@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { cardBackdropFilter } from "@/lib/glass-style";
 
 interface BrandStats {
   not_started: number;
@@ -32,14 +32,10 @@ export default function BrandCard({ brand }: { brand: Brand }) {
   const approvedPct = stats.total > 0 ? Math.round((approved / stats.total) * 100) : 0;
   const needsReview = stats.in_review;
 
-  const [hovered, setHovered] = useState(false);
-
   return (
     <Link
       href={`/dashboard/brand/${brand.id}`}
-      className="block"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="block lg-surface--card"
       style={{
         position: "relative",
         overflow: "hidden",
@@ -47,16 +43,7 @@ export default function BrandCard({ brand }: { brand: Brand }) {
         borderRadius: "16px",
         textDecoration: "none",
         color: "inherit",
-        // Liquid Glass — Shiny/Specular variant.
-        // Semi-transparent base so backdrop-filter has something to
-        // refract; lets the page bg show subtly through the card.
-        backgroundColor: "rgba(19, 18, 31, 0.7)",
-        backdropFilter: "blur(12px) saturate(140%)",
-        WebkitBackdropFilter: "blur(12px) saturate(140%)",
-        // Hover ONLY changes border color — no lift, no sheen sweep,
-        // no colored glow. Just a brighter ring to signal clickable.
-        border: `1px solid ${hovered ? "rgba(255,255,255,0.32)" : "rgba(255,255,255,0.18)"}`,
-        transition: "border-color 0.2s ease",
+        ...cardBackdropFilter,
       }}
     >
       {/* Specular curved highlight at the top edge — the "shine"

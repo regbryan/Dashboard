@@ -2,10 +2,19 @@ import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { generateBrandPost, type AutopilotPostRow } from "@/lib/autopilot/pipeline";
 
+import { withRequestContext } from "@/lib/request-context";
+
 // One Gemini image gen + upload. ~10-30s typical, cap at 120 to be safe.
 export const maxDuration = 120;
 
 export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withRequestContext(_req as Request, () => handlePOST(_req, { params }));
+}
+
+async function handlePOST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {

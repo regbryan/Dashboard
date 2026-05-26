@@ -5,7 +5,13 @@ import {
   handleAuthError,
 } from "@/lib/api-auth";
 
+import { withRequestContext } from "@/lib/request-context";
+
 export async function GET(request: NextRequest) {
+  return withRequestContext(request as Request, () => handleGET(request));
+}
+
+async function handleGET(request: NextRequest) {
   try {
     const ctx = await requireUser();
     const url = new URL(request.url);
@@ -79,6 +85,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  return withRequestContext(request as Request, () => handlePATCH(request));
+}
+
+async function handlePATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, status, file_path, version, archetype } = body;

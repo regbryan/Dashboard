@@ -1,6 +1,8 @@
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * Stripe webhook receiver.
@@ -31,6 +33,10 @@ if (process.env.STRIPE_PRICE_GROWTH) {
 }
 
 export async function POST(req: Request) {
+  return withRequestContext(req, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request) {
   const sig = req.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -39,8 +45,9 @@ export async function POST(req: Request) {
     // hammer a misconfigured endpoint. 400 makes it give up quickly so
     // an operator can fix the env and reattach. Log loud so the miss
     // surfaces in the deploy logs.
-    console.error(
-      "[stripe webhook] misconfigured: missing STRIPE_WEBHOOK_SECRET or signature header",
+    logger.error(
+      "stripe/webhook",
+      "misconfigured: missing STRIPE_WEBHOOK_SECRET or signature header",
       { has_sig: !!sig, has_secret: !!secret }
     );
     return Response.json(
@@ -91,9 +98,9 @@ export async function POST(req: Request) {
   } catch (err) {
     // Returning 500 makes Stripe retry — usually what we want for
     // transient DB issues.
-    console.error("[stripe webhook] handler crashed", {
+    logger.error("stripe/webhook", "handler crashed", {
       type: event.type,
-      err: err instanceof Error ? err.message : String(err),
+      err,
     });
     return Response.json({ error: "handler_failed" }, { status: 500 });
   }
@@ -110,13 +117,13 @@ async function handleCheckoutCompleted(
   const tier = (session.metadata?.tier as string | undefined) ?? null;
 
   if (!email) {
-    console.warn("[stripe webhook] completed session has no email", {
+    logger.warn("stripe/webhook", "completed session has no email", {
       session_id: session.id,
     });
     return Response.json({ received: true, error: "no_email" });
   }
   if (!tier || (tier !== "starter" && tier !== "growth")) {
-    console.warn("[stripe webhook] completed session has unknown tier", {
+    logger.warn("stripe/webhook", "completed session has unknown tier", {
       session_id: session.id,
       tier,
     });
@@ -148,7 +155,7 @@ async function handleCheckoutCompleted(
     );
 
   if (error) {
-    console.error("[stripe webhook] failed to insert pending_signup", error);
+    logger.error("stripe/webhook", "failed to insert pending_signup", { err: error });
     return Response.json({ error: error.message }, { status: 500 });
   }
 

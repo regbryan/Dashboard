@@ -26,12 +26,10 @@ export function stripe(): Stripe {
   return _client;
 }
 
-export const TIER_TO_PRICE_ENV: Record<string, string> = {
+const TIER_TO_PRICE_ENV: Record<string, string> = {
   starter: "STRIPE_PRICE_STARTER",
   growth: "STRIPE_PRICE_GROWTH",
 };
-
-export type Tier = keyof typeof TIER_TO_PRICE_ENV;
 
 export function priceIdForTier(tier: string): string | null {
   const envKey = TIER_TO_PRICE_ENV[tier];

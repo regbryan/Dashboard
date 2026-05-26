@@ -1,7 +1,16 @@
 import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { loadOrSynthesizeBrief, saveBrief, type ImageBrief } from "@/lib/autopilot/brief";
 
+import { withRequestContext } from "@/lib/request-context";
+
 export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withRequestContext(_req as Request, () => handleGET(_req, { params }));
+}
+
+async function handleGET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -26,6 +35,13 @@ export async function GET(
 }
 
 export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withRequestContext(req as Request, () => handlePATCH(req, { params }));
+}
+
+async function handlePATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {

@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/send-email";
 import { getBrandClientEmails } from "@/lib/brand-clients";
+import { logger } from "@/lib/logger";
 
 // Posts ready-for-client-review notifications. Two entry points share one
 // rendering pipeline:
@@ -253,7 +254,7 @@ export async function runClientReadyDigest(): Promise<DigestRunResult> {
       .update({ client_notified_at: new Date().toISOString() })
       .in("id", ids);
     if (flushErr) {
-      console.error("[client-digest] flush failed", flushErr.message);
+      logger.error("client-digest", "flush failed", { err: flushErr });
     }
 
     results.push({

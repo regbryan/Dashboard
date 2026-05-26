@@ -47,7 +47,3 @@ export function getProjectRoot(): string {
 export function brandFolderPath(folderPath: string): string {
   return path.join(getProjectRoot(), folderPath);
 }
-
-export function postImagePath(folderPath: string, filePath: string): string {
-  return path.join(getProjectRoot(), folderPath, filePath);
-}

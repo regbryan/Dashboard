@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import BrandTabs, { TAB_CARD_BG } from "@/components/BrandTabs";
+import BrandTabs from "@/components/BrandTabs";
+import BrandSectionTitle from "@/components/BrandSectionTitle";
+import { getBrand, getBrandPosts, getBrandLogoCount } from "@/lib/brand-data";
 
 /**
  * Per-brand layout. Tabs sit above a rounded content card that the
@@ -18,11 +19,41 @@ export default async function BrandLayout({
 }) {
   const { slug } = await params;
 
-  const { data: brand } = await supabase
-    .from("brands")
-    .select("id, name, handle")
-    .eq("id", slug)
-    .single();
+  // Cached fetchers — getBrand and getBrandPosts dedupe with the
+  // Designs and Calendar pages (which also call them) within the same
+  // request. Brand Kit and Assets pages don't call getBrandPosts, so
+  // those tabs do incur the (small) cost of fetching posts just for
+  // the subtitle — accepted because the layout can't know the active
+  // tab server-side without pathname access.
+  const [brand, posts, logosCount] = await Promise.all([
+    getBrand(slug),
+    getBrandPosts(slug),
+    getBrandLogoCount(slug),
+  ]);
+
+  // Distinct Monday-aligned week count for the calendar subtitle.
+  const weekStarts = new Set<string>();
+  for (const p of posts) {
+    if (!p.date) continue;
+    const d = new Date(p.date + "T00:00:00Z");
+    const dow = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dow);
+    weekStarts.add(d.toISOString().slice(0, 10));
+  }
+  const postsWithDate = posts.filter((p) => p.date).length;
+
+  const subtitles = {
+    designs: `${posts.length} post${posts.length === 1 ? "" : "s"} total`,
+    calendar:
+      postsWithDate === 0
+        ? "No scheduled posts yet."
+        : `${postsWithDate} post${postsWithDate === 1 ? "" : "s"} across ${weekStarts.size} week${weekStarts.size === 1 ? "" : "s"}`,
+    kit: "Voice, colors, archetype, hashtags, and visual rules.",
+    assets:
+      logosCount === 0
+        ? "No logos on file."
+        : `${logosCount} logo${logosCount === 1 ? "" : "s"} on file.`,
+  };
 
   return (
     <div style={{ position: "relative", isolation: "isolate" }}>
@@ -173,7 +204,13 @@ export default async function BrandLayout({
             background: "#07070e",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center" }}>
+          {/* Header row. Desktop: title pinned left, tabs centered.
+              Mobile (<md): stack vertically so the tab pill (~380px) and
+              the title don't collide on narrow viewports. */}
+          <div className="flex flex-col items-center gap-3 md:relative md:flex-row md:items-center md:justify-center md:gap-0">
+            <div className="w-full text-center md:absolute md:left-0 md:top-1/2 md:w-auto md:-translate-y-1/2 md:text-left">
+              <BrandSectionTitle slug={slug} subtitles={subtitles} />
+            </div>
             <BrandTabs slug={slug} />
           </div>
         </div>

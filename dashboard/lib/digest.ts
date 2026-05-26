@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/send-email";
 import { buildClaudeRevisionLink } from "@/lib/claude-link";
 import { getImageUrl } from "@/lib/image-url";
+import { logger } from "@/lib/logger";
 
 const QUIET_MINUTES = 10;
 
@@ -153,7 +154,7 @@ export async function runFeedbackDigest(
       .update({ notified_at: new Date().toISOString() })
       .in("id", ids);
     if (flushErr) {
-      console.error("[feedback-digest] flush failed", flushErr.message);
+      logger.error("feedback-digest", "flush failed", { err: flushErr });
     }
 
     results.push({

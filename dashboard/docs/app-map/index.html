@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>App Map · SocialPulse Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litegraph.js@0.7.18/css/litegraph.css" />
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #141414;
+    --panel-2: #1c1c1c;
+    --border: #2a2a2a;
+    --border-2: #3a3a3a;
+    --fg: #e6e6e6;
+    --muted: #8b8b8b;
+    --accent: #ffaa00;     /* ComfyUI yellow */
+    --accent-dim: #b87800;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    overflow: hidden;
+  }
+
+  /* top toolbar — workflow tabs / title like ComfyUI */
+  header {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+  }
+  header .brand {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+  }
+  header .tabs { display: flex; gap: 4px; }
+  header .tab {
+    font-size: 12px;
+    padding: 6px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  header .tab.active {
+    color: var(--fg);
+    border-color: var(--accent-dim);
+    background: #1f1a10;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 56px 1fr 380px;
+    height: calc(100vh - 44px);
+  }
+
+  /* left icon rail — ComfyUI's vertical sidebar */
+  .rail {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 0;
+  }
+  .rail button {
+    width: 36px; height: 36px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rail button:hover { background: var(--panel-2); color: var(--fg); border-color: var(--border); }
+  .rail button.active { color: var(--accent); background: #1f1a10; border-color: var(--accent-dim); }
+
+  /* graph area */
+  #graphwrap {
+    position: relative;
+    overflow: hidden;
+    background: #0a0a0a;
+    background-image: radial-gradient(circle at 25px 25px, rgba(255,255,255,0.04) 1.2px, transparent 1.2px);
+    background-size: 32px 32px;
+  }
+  #graph { display: block; width: 100%; height: 100%; cursor: grab; }
+  .litegraph.litecanvas { background-color: transparent !important; }
+
+  /* bottom queue bar like ComfyUI */
+  .queuebar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 5;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .queuebar .queue {
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff;
+    font-weight: 600;
+    border: 0;
+    padding: 7px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.4), 0 2px 8px rgba(59,130,246,0.3);
+  }
+  .queuebar .queue:hover { filter: brightness(1.1); }
+  .queuebar .step {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-left: 1px solid var(--border);
+  }
+  .queuebar .step strong { color: var(--fg); }
+
+  /* bottom-right corner controls */
+  .corner {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 5;
+  }
+  .corner button {
+    width: 32px; height: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .corner button:hover { background: var(--panel-2); border-color: var(--border-2); }
+  .corner-left {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    display: flex;
+    gap: 4px;
+    z-index: 5;
+  }
+  .corner-left button {
+    width: 32px; height: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .corner-left button:hover { background: var(--panel-2); border-color: var(--border-2); }
+
+  /* right side panel */
+  aside {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 22px 30px;
+  }
+  aside h2 { margin: 0 0 6px; font-size: 18px; letter-spacing: -0.01em; }
+  aside .role {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #1f1a10;
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+  aside .owner { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  aside p { line-height: 1.6; color: #cfcfcf; font-size: 13.5px; }
+  aside .section-title {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin: 18px 0 6px;
+  }
+  aside ul { padding-left: 18px; margin: 0; }
+  aside li { margin: 4px 0; color: #cfcfcf; font-size: 13px; }
+  aside code {
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 40px 0;
+    text-align: center;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">⬢ SocialPulse · App Map</div>
+  <div class="tabs">
+    <div class="tab active">System Overview</div>
+    <div class="tab">DB Schema</div>
+    <div class="tab">User Flow</div>
+  </div>
+</header>
+
+<main>
+  <div class="rail">
+    <button class="active" title="Workflow">⬢</button>
+    <button title="Components">▦</button>
+    <button title="Schema">▤</button>
+    <button title="Search">⌕</button>
+    <button title="Settings">⚙</button>
+  </div>
+
+  <div id="graphwrap">
+    <canvas id="graph"></canvas>
+    <div class="queuebar">
+      <button class="queue">▶ Inspect</button>
+      <div class="step"><strong>8</strong>&nbsp;components</div>
+    </div>
+    <div class="corner">
+      <button id="zoomin" title="Zoom in">+</button>
+      <button id="zoomout" title="Zoom out">−</button>
+      <button id="fit" title="Fit to view">⤢</button>
+    </div>
+    <div class="corner-left">
+      <button title="Theme">☾</button>
+      <button title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <aside id="panel">
+    <div class="hint">Click any node to see what it does, who owns it, and what breaks when it's down.</div>
+  </aside>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/litegraph.js@0.7.18/build/litegraph.min.js"></script>
+<script>
+window.addEventListener("load", function () {
+  if (typeof LiteGraph === "undefined") {
+    document.getElementById("panel").innerHTML =
+      '<div class="hint" style="color:#ff6b6b">LiteGraph failed to load — check network / firewall.</div>';
+    return;
+  }
+
+  const docs = {
+    user: { title: "Admin / Client", role: "Real human", owner: "Customer", color: "#94a3b8", inputs: [], outputs: ["request"],
+      summary: "Admins (Reggie + team) use /dashboard, clients use /client/{brand}. Both authenticate via the same Google OAuth flow; role decided by isAdminEmail().",
+      breaks: ["Client signs in with wrong Google account, routed to /no-access","Admin email not in isAdminEmail() list, silently treated as client","Browser blocks third-party cookies, OAuth callback fails"]},
+    vercel: { title: "Vercel Edge", role: "Front door", owner: "Platform", color: "#3b82f6", inputs: ["request"], outputs: ["routed"],
+      summary: "Vercel's edge terminates TLS, serves /public statics, and routes the rest into Next.js. Also runs the cron schedule from vercel.json.",
+      breaks: ["Build fails, previous deploy stays live (good)","vercel.json cron misconfigured, daily generators stop","Edge cold start adds 200-400ms to first request"]},
+    middleware: { title: "Middleware (proxy.ts)", role: "Auth gate", owner: "Backend", color: "#a855f7", inputs: ["routed"], outputs: ["page", "api"],
+      summary: "Runs on every request. Calls supabase.auth.getUser(), redirects unauthenticated users to /login, gates /dashboard + /dev/* to admin emails, gates /client/{brand} to user_brand_access membership.",
+      breaks: ["NEXT_PUBLIC_SUPABASE_URL or ANON_KEY missing, every request 500s","Matcher excludes /robots.txt and images; missing exclusion here breaks crawlers","Session cookie corrupted, infinite redirect to /login"]},
+    pages: { title: "Pages (App Router)", role: "Render UI", owner: "Frontend", color: "#10b981", inputs: ["page"], outputs: ["sb-read"],
+      summary: "Server components fetch from Supabase via the anon client. Routes: /dashboard, /dashboard/brand/{id}/{tab}, /client/{brand}, /dev/{architecture,schema,flows,app-map}.",
+      breaks: ["Supabase query throws, error.tsx boundary","Hydration mismatch (e.g. window.location.origin in render), silent client drift","Long server fetch, user sees blank shell"]},
+    api: { title: "API Routes", role: "Mutations + cron", owner: "Backend", color: "#10b981", inputs: ["api"], outputs: ["sb-write", "stripe-out", "gemini-out", "sp-out", "resend-out"],
+      summary: "Every user action (approve, request changes, regenerate, run-script, render-reel) hits /api/*. Daily cron paths gated by CRON_SECRET.",
+      breaks: ["Missing input validation, bad rows in posts","SUPABASE_SERVICE_ROLE_KEY missing, admin routes 500","CRON_SECRET drift, all cron 401","Stripe webhook signature mismatch, silent webhook drops"]},
+    supabase_db: { title: "Supabase Postgres", role: "Source of truth", owner: "Backend / DBA", color: "#f59e0b", inputs: ["sb-read", "sb-write"], outputs: ["rows"],
+      summary: "13 tables: brands, posts, brand_logos, brand_kit_json, user_brand_access, pending_signups, socialpilot_credentials, etc. RLS enforces per-brand access for non-admin users.",
+      breaks: ["Missing RLS policy on new table, data leak across brands","Migration without IF NOT EXISTS, repeated runs fail","Long query holds row lock, cron writes queue up"]},
+    supabase_storage: { title: "Supabase Storage", role: "Image + video bucket", owner: "Backend", color: "#f59e0b", inputs: ["sb-write"], outputs: [],
+      summary: "Two buckets: post-images (signed-URL access via /api/posts/{id}/image) and post-videos (Remotion renders). Signed URLs short-lived (7d for video).",
+      breaks: ["Bucket policy missed, unsigned reads 401","Signed URL TTL too short, preview links die mid-session","No lifecycle rule, storage grows unbounded"]},
+    stripe: { title: "Stripe", role: "Subscription billing", owner: "Backend / Ops", color: "#ef4444", inputs: ["stripe-out"], outputs: ["stripe-hook"],
+      summary: "Hosted checkout for signups (/api/stripe/checkout). Webhooks (/api/stripe/webhook) update tier in Supabase. Tier is authoritative for plan-gated features.",
+      breaks: ["STRIPE_WEBHOOK_SECRET missing, all webhooks rejected","Webhook signature drifts, user pays but tier never updates","Customer portal URL expires"]},
+    gemini: { title: "Gemini (nanobanana)", role: "Image generation", owner: "Backend", color: "#ec4899", inputs: ["gemini-out"], outputs: [],
+      summary: "Gemini 3.1 Flash Image generates post art. Triggered by /api/cron/autopilot-generate and /api/posts/{id}/regenerate. Result uploaded to post-images bucket and file_path saved on the post row.",
+      breaks: ["API quota exceeded, generation cron drops posts silently","Content filter triggers on prompt, refusal, no image","Unbudgeted token-cost spike"]},
+    socialpilot: { title: "SocialPilot", role: "Publishing distribution", owner: "Backend", color: "#06b6d4", inputs: ["sp-out"], outputs: ["sp-hook"],
+      summary: "Approved posts push to SocialPilot which distributes to IG/FB/X/LinkedIn. Per-brand OAuth. Queue status synced via /api/cron/socialpilot-refresh.",
+      breaks: ["OAuth token expires without refresh, publishes silently fail","SP rate limit, retries queue","Brand not bound to SP account, approve has no destination"]},
+    resend: { title: "Resend", role: "Outbound email", owner: "Backend / Ops", color: "#ef4444", inputs: ["resend-out"], outputs: [],
+      summary: "Daily client digest, approval confirmations, changes-requested emails, onboarding welcome. Templates in lib/emails/. DKIM/SPF on socialpulse.media.",
+      breaks: ["RESEND_API_KEY missing, emails silently fail","DKIM/SPF drift, mails marked spam","Bounce webhook not wired, bounces invisible"]},
+    remotion: { title: "Remotion (local)", role: "Video render", owner: "Backend", color: "#a855f7", inputs: ["api"], outputs: ["sb-write"],
+      summary: "Local-only Remotion renderer at /api/render-reel. Bundles compositions from remotion/, renders MP4, uploads to post-videos, returns signed URL. Lambda variant wired but not deployed.",
+      breaks: ["Platform compositor binary missing on Vercel, renderMedia fails","Headless Chromium tries private-IP imageUrl, SSRF guard blocks","tmp disk fills, render dies mid-write"]}
+  };
+
+  // size the canvas BEFORE creating LGraphCanvas
+  const canvasEl = document.getElementById("graph");
+  function sizeCanvas() {
+    const r = canvasEl.parentElement.getBoundingClientRect();
+    canvasEl.width  = Math.floor(r.width);
+    canvasEl.height = Math.floor(r.height);
+  }
+  sizeCanvas();
+
+  // Custom node type — ComfyUI-style compact box with semantic pins
+  function ComponentNode() {
+    this.properties = { docId: "" };
+    this.size = [220, 80];
+  }
+  ComponentNode.title = "Component";
+  ComponentNode.prototype.onDrawTitleBar = function (ctx, h) {
+    const d = docs[this.properties.docId];
+    if (!d) return;
+    // accent strip on the left edge of the title
+    ctx.fillStyle = d.color;
+    ctx.fillRect(0, 0, 4, h);
+  };
+  ComponentNode.prototype.onDrawBackground = function (ctx) {
+    if (this.flags.collapsed) return;
+    const d = docs[this.properties.docId];
+    if (!d) return;
+    ctx.save();
+    ctx.fillStyle = "#9a9a9a";
+    ctx.font = "10px -apple-system, Inter, system-ui";
+    ctx.fillText(d.role.toUpperCase(), 10, this.size[1] - 12);
+    ctx.restore();
+  };
+  ComponentNode.prototype.onSelected = function () { renderPanel(this.properties.docId); };
+  LiteGraph.registerNodeType("app/component", ComponentNode);
+
+  // Build the graph
+  const graph = new LGraph();
+
+  function mkNode(docId, pos) {
+    const d = docs[docId];
+    const n = LiteGraph.createNode("app/component");
+    n.title = d.title;
+    n.properties.docId = docId;
+    n.color   = "#1c1c1c";     // title bar bg
+    n.bgcolor = "#141414";     // body bg
+    n.boxcolor = d.color;      // status dot
+    // semantic pins
+    for (const inName of d.inputs)  n.addInput(inName, -1);
+    for (const outName of d.outputs) n.addOutput(outName, -1);
+    // height grows with number of pins
+    const pins = Math.max(d.inputs.length, d.outputs.length, 1);
+    n.size = [220, 30 + pins * 22 + 20];
+    n.pos = pos;
+    graph.add(n);
+    return n;
+  }
+
+  const N = {
+    user:             mkNode("user",             [40,    320]),
+    vercel:           mkNode("vercel",           [300,   320]),
+    middleware:       mkNode("middleware",       [580,   320]),
+    pages:            mkNode("pages",            [880,   180]),
+    api:              mkNode("api",              [880,   480]),
+    supabase_db:      mkNode("supabase_db",      [1200,  240]),
+    supabase_storage: mkNode("supabase_storage", [1200,  420]),
+    stripe:           mkNode("stripe",           [1200,  600]),
+    gemini:           mkNode("gemini",           [1200,  780]),
+    socialpilot:      mkNode("socialpilot",      [1500,  600]),
+    resend:           mkNode("resend",           [1500,  780]),
+    remotion:         mkNode("remotion",         [1500,  420]),
+  };
+
+  // Connect by pin name — more readable than indices
+  function wire(from, fromPin, to, toPin) {
+    const oi = from.findOutputSlot(fromPin);
+    const ii = to.findInputSlot(toPin);
+    if (oi >= 0 && ii >= 0) from.connect(oi, to, ii);
+  }
+  wire(N.user,        "request",     N.vercel,           "request");
+  wire(N.vercel,      "routed",      N.middleware,       "routed");
+  wire(N.middleware,  "page",        N.pages,            "page");
+  wire(N.middleware,  "api",         N.api,              "api");
+  wire(N.pages,       "sb-read",     N.supabase_db,      "sb-read");
+  wire(N.api,         "sb-write",    N.supabase_db,      "sb-write");
+  wire(N.api,         "sb-write",    N.supabase_storage, "sb-write");
+  wire(N.api,         "stripe-out",  N.stripe,           "stripe-out");
+  wire(N.api,         "gemini-out",  N.gemini,           "gemini-out");
+  wire(N.api,         "sp-out",      N.socialpilot,      "sp-out");
+  wire(N.api,         "resend-out",  N.resend,           "resend-out");
+  wire(N.api,         "api",         N.remotion,         "api");
+  wire(N.remotion,    "sb-write",    N.supabase_storage, "sb-write");
+
+  // Now create the canvas after layout
+  const lgcanvas = new LGraphCanvas("#graph", graph);
+  lgcanvas.background_image      = null;
+  lgcanvas.clear_background      = false;
+  lgcanvas.render_canvas_border  = false;
+  lgcanvas.render_shadows        = false;
+  lgcanvas.render_connections_shadows = false;
+  lgcanvas.default_link_color    = "#ffaa00";
+  lgcanvas.links_render_mode     = LiteGraph.SPLINE_LINK;
+  lgcanvas.allow_searchbox       = false;
+  lgcanvas.show_info             = false;
+  lgcanvas.render_curved_connections = true;
+  lgcanvas.connections_width     = 3;
+  lgcanvas.highquality_render    = true;
+
+  // LiteGraph visual config
+  LiteGraph.NODE_TITLE_HEIGHT      = 28;
+  LiteGraph.NODE_TITLE_TEXT_SIZE   = 13;
+  LiteGraph.NODE_TEXT_SIZE         = 12;
+  LiteGraph.NODE_TEXT_COLOR        = "#cfcfcf";
+  LiteGraph.NODE_TITLE_COLOR       = "#ffffff";
+  LiteGraph.NODE_DEFAULT_BGCOLOR   = "#1a1a1a";
+  LiteGraph.NODE_DEFAULT_COLOR     = "#252525";
+  LiteGraph.LINK_COLOR             = "#ffaa00";
+  LiteGraph.CONNECTING_LINK_COLOR  = "#ffaa00";
+  if (LGraphCanvas.link_type_colors) {
+    LGraphCanvas.link_type_colors["-1"] = "#ffaa00";
+  }
+
+  // ── Monkey-patch node rendering for rounded corners + shadow + title bar
+  const RADIUS = 8;
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+  function roundRectTop(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  LGraphCanvas.prototype.drawNodeShape = function (node, ctx, size, fgcolor, bgcolor, selected, mouse_over) {
+    const w = size[0];
+    const h = size[1];
+    const titleH = LiteGraph.NODE_TITLE_HEIGHT;
+    const bodyColor = node.bgcolor || "#1a1a1a";
+    const titleColor = node.color || "#252525";
+    const accent = node.boxcolor || "#666";
+
+    ctx.save();
+
+    // Drop shadow (only when not dragging — performance)
+    if (!this.dragging_canvas) {
+      ctx.shadowColor   = "rgba(0,0,0,0.55)";
+      ctx.shadowBlur    = 14;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 4;
+    }
+
+    // Body
+    ctx.fillStyle = bodyColor;
+    roundRect(ctx, 0, -titleH, w, h + titleH, RADIUS);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Title bar
+    ctx.fillStyle = titleColor;
+    roundRectTop(ctx, 0, -titleH, w, titleH, RADIUS);
+    ctx.fill();
+
+    // Accent dot on title bar
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(14, -titleH / 2, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Title text — without this the drawNodeShape override eats LiteGraph's
+    // default title rendering and nodes appear as empty boxes.
+    if (node.title) {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "600 12.5px -apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      const maxWidth = w - 30;
+      let title = node.title;
+      if (ctx.measureText(title).width > maxWidth) {
+        while (title.length > 1 && ctx.measureText(title + "…").width > maxWidth) {
+          title = title.slice(0, -1);
+        }
+        title += "…";
+      }
+      ctx.fillText(title, 26, -titleH / 2 + 0.5);
+    }
+
+    // Border / outline — always visible, accent-tinted
+    if (selected) {
+      ctx.strokeStyle = "#ffaa00";
+      ctx.lineWidth = 2;
+    } else {
+      ctx.strokeStyle = accent;          // use the component's color
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.5;
+    }
+    roundRect(ctx, 0, -titleH, w, h + titleH, RADIUS);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Divider line between title bar and body
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w, 0);
+    ctx.stroke();
+
+    ctx.restore();
+  };
+
+  graph.start();
+
+  // Resize handling
+  window.addEventListener("resize", () => {
+    sizeCanvas();
+    lgcanvas.resize();
+    lgcanvas.setDirty(true, true);
+  });
+
+  // Controls
+  document.getElementById("fit").onclick    = fitToView;
+  document.getElementById("zoomin").onclick = () => zoom(1.2);
+  document.getElementById("zoomout").onclick = () => zoom(1/1.2);
+
+  function zoom(f) {
+    const cx = canvasEl.width / 2, cy = canvasEl.height / 2;
+    const before = lgcanvas.ds.convertOffsetToCanvas([cx, cy]);
+    lgcanvas.ds.scale = Math.max(0.2, Math.min(3, lgcanvas.ds.scale * f));
+    const after = lgcanvas.ds.convertOffsetToCanvas([cx, cy]);
+    lgcanvas.ds.offset[0] += (after[0] - before[0]);
+    lgcanvas.ds.offset[1] += (after[1] - before[1]);
+    lgcanvas.setDirty(true, true);
+  }
+
+  function fitToView() {
+    const nodes = graph._nodes;
+    if (!nodes.length) return;
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for (const n of nodes) {
+      minX = Math.min(minX, n.pos[0]);
+      minY = Math.min(minY, n.pos[1]);
+      maxX = Math.max(maxX, n.pos[0] + n.size[0]);
+      maxY = Math.max(maxY, n.pos[1] + n.size[1]);
+    }
+    const w = maxX - minX, h = maxY - minY;
+    const margin = 80;
+    const cw = canvasEl.width, ch = canvasEl.height;
+    const scale = Math.min((cw - margin*2) / w, (ch - margin*2) / h, 1);
+    lgcanvas.ds.scale = scale;
+    lgcanvas.ds.offset[0] = -minX + (cw/scale - w) / 2;
+    lgcanvas.ds.offset[1] = -minY + (ch/scale - h) / 2;
+    lgcanvas.setDirty(true, true);
+  }
+
+  // initial fit after one frame so layout has settled
+  requestAnimationFrame(() => requestAnimationFrame(fitToView));
+
+  function renderPanel(id) {
+    const d = docs[id];
+    const panel = document.getElementById("panel");
+    if (!d) { panel.innerHTML = '<div class="hint">No doc for this node yet.</div>'; return; }
+    panel.innerHTML = `
+      <span class="role" style="border-color:${d.color}66;color:${d.color};background:${d.color}1a">${d.role}</span>
+      <span class="owner">owner: ${d.owner}</span>
+      <h2>${d.title}</h2>
+      <p>${d.summary}</p>
+      <div class="section-title">What breaks here</div>
+      <ul>${d.breaks.map(b => `<li>${b}</li>`).join("")}</ul>
+      <div class="section-title">Wire to your stack</div>
+      <p style="font-size:12.5px;color:var(--muted);">
+        Plain-English copy lives in <code>docs/components/${id}.md</code>. Tag Sentry events with
+        <code>component: "${id}"</code> — and clicking the broken part becomes literal.
+      </p>
+    `;
+  }
+});
+</script>
+</body>
+</html>

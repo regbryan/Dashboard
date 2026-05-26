@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [
+    "remotion/**",
+    "remotion.config.ts"
+  ],
+  "ignoreExportsUsedInFile": {
+    "type": true
+  },
+  "ignoreDependencies": [
+    "@remotion/google-fonts",
+    "@remotion/shapes",
+    "@remotion/transitions",
+    "remotion",
+    "@lhci/cli",
+    "pa11y-ci"
+  ]
+}

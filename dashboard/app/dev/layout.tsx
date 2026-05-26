@@ -57,6 +57,7 @@ export default async function DevLayout({
           <DevNavLink href="/dev/architecture" label="Architecture" />
           <DevNavLink href="/dev/schema" label="Schema" />
           <DevNavLink href="/dev/flows" label="Flows" />
+          <DevNavLink href="/dev/app-map" label="App Map" />
         </nav>
         {children}
       </div>

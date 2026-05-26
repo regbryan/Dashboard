@@ -2,7 +2,16 @@ import { requirePostAccess, handleAuthError } from "@/lib/api-auth";
 import { getImageUrl } from "@/lib/image-url";
 import { NextRequest } from "next/server";
 
+import { withRequestContext } from "@/lib/request-context";
+
 export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withRequestContext(request as Request, () => handleGET(request, { params }));
+}
+
+async function handleGET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {

@@ -1,6 +1,9 @@
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser, handleAuthError, AuthError } from "@/lib/api-auth";
+import { logger } from "@/lib/logger";
+
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * Create a Stripe Customer Portal session for the signed-in user's
@@ -19,6 +22,10 @@ import { requireUser, handleAuthError, AuthError } from "@/lib/api-auth";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request): Promise<Response> {
+  return withRequestContext(req as Request, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request): Promise<Response> {
   try {
     const ctx = await requireUser();
     const url = new URL(req.url);
@@ -80,9 +87,7 @@ export async function POST(req: Request): Promise<Response> {
     if (res) return res;
     // Log internals; return a generic error so we don't leak Stripe
     // request IDs / parameter names to the browser.
-    console.error("[stripe/portal] session create failed", {
-      err: err instanceof Error ? err.message : String(err),
-    });
+    logger.error("stripe/portal", "session create failed", { err });
     return Response.json(
       { error: "portal_unavailable" },
       { status: 502 }

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import PostCard from "@/components/PostCard";
 import ClientReviewLink from "@/components/ClientReviewLink";
+import EmptyState from "@/components/EmptyState";
 import { getBrandClientEmails } from "@/lib/brand-clients";
+import { getBrand, getBrandPosts } from "@/lib/brand-data";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,7 @@ export default async function BrandDetailPage({
   const { slug } = await params;
   const { status: filterStatus, filter } = await searchParams;
 
-  const { data: brand } = await supabase
-    .from("brands")
-    .select("id, name, handle, color_primary, cadence, compliance, platform")
-    .eq("id", slug)
-    .single();
+  const brand = await getBrand(slug);
 
   if (!brand) {
     return (
@@ -43,13 +40,7 @@ export default async function BrandDetailPage({
     );
   }
 
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("id, post_number, date, day, post_type, content_pillar, concept, status, file_path")
-    .eq("brand_id", slug)
-    .order("post_number");
-
-  const allPosts = posts || [];
+  const allPosts = await getBrandPosts(slug);
   const dates = allPosts.map((p) => p.date).filter(Boolean).sort();
   const dateRange = dates.length > 0 ? `${dates[0]} to ${dates[dates.length - 1]}` : "No dates";
 
@@ -73,7 +64,7 @@ export default async function BrandDetailPage({
   const clientEmails = await getBrandClientEmails(brand.id).catch(() => []);
 
   return (
-    <div style={{ padding: "28px clamp(20px, 3vw, 36px) 48px" }}>
+    <div style={{ padding: "28px 0 48px" }}>
       <div>
         {/* Brand stats row (name + handle live in the layout chrome above) */}
         <div
@@ -152,19 +143,7 @@ export default async function BrandDetailPage({
 
         {/* Grid */}
         {filteredPosts.length === 0 ? (
-          <div
-            className="text-center"
-            style={{
-              padding: "80px 24px",
-              background: "#0f0f1a",
-              border: "1px solid #1a1a2e",
-              borderRadius: "16px",
-              color: "#7a7a88",
-              fontSize: "14px",
-            }}
-          >
-            No posts match this filter.
-          </div>
+          <EmptyState>No posts match this filter.</EmptyState>
         ) : (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
@@ -175,10 +154,10 @@ export default async function BrandDetailPage({
                 key={post.id}
                 post={{
                   id: String(post.id),
-                  concept: post.concept,
-                  date: post.date,
-                  post_type: post.post_type,
-                  content_pillar: post.content_pillar,
+                  concept: post.concept ?? "",
+                  date: post.date ?? "",
+                  post_type: post.post_type ?? "",
+                  content_pillar: post.content_pillar ?? "",
                   status: post.status,
                   file_path: post.file_path,
                 }}

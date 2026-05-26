@@ -14,10 +14,6 @@ import { usePathname } from "next/navigation";
  * tokens already established in globals.css. Active suffix computed
  * via longest-match on usePathname() so nested routes stay accurate.
  */
-// Kept as a named export so the layout can still import it for now —
-// no longer used (the card surface follows below) but cheap to keep.
-export const TAB_CARD_BG = "#0f0f1a";
-
 const SECTIONS = [
   { label: "Designs", suffix: "" },
   { label: "Calendar", suffix: "/calendar" },
@@ -66,6 +62,7 @@ export default function BrandTabs({ slug }: { slug: string }) {
             href={href}
             role="tab"
             aria-selected={active}
+            className="brand-tab"
             style={{
               position: "relative",
               padding: "9px 18px",
@@ -88,6 +85,7 @@ export default function BrandTabs({ slug }: { slug: string }) {
                 : undefined,
               transition:
                 "color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.3s ease",
+              outline: "none",
             }}
             onMouseEnter={(e) => {
               if (active) return;

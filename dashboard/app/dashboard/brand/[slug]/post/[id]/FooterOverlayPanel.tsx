@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface FooterOverlayPanelProps {
@@ -54,7 +54,10 @@ export default function FooterOverlayPanel({
   // only for the preview overlay's Y-bound — server side computes exactly.
   const textBlockHeightFrac = Math.min(0.4, (fontSizePct / 100) * estimateLines(text, blockWidthFrac, fontSizePct / 100) * 1.4);
 
-  async function refreshSnapshotState() {
+  // Memoize so the function identity is stable per postId and can
+  // safely sit in the useEffect deps below — keeps both eslint and
+  // biome's useExhaustiveDependencies satisfied without disabling.
+  const refreshSnapshotState = useCallback(async () => {
     try {
       const res = await fetch(`/api/posts/${postId}/footer-state`);
       if (!res.ok) return;
@@ -63,12 +66,11 @@ export default function FooterOverlayPanel({
     } catch {
       // ignore
     }
-  }
+  }, [postId]);
 
   useEffect(() => {
     void refreshSnapshotState();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+  }, [refreshSnapshotState]);
 
   function clamp01(n: number): number {
     if (Number.isNaN(n)) return 0;

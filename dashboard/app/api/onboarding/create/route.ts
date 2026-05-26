@@ -4,6 +4,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendWelcomeEmail } from "@/lib/emails/welcome";
 import { seedFirstBatch } from "@/lib/autopilot/seed-first-batch";
 import { runBrandAutopilot } from "@/lib/autopilot";
+import { logger } from "@/lib/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 /**
  * Self-serve provisioning endpoint.
@@ -58,6 +60,10 @@ type OnboardingPayload = {
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
 
 export async function POST(req: Request): Promise<Response> {
+  return withRequestContext(req, () => handlePOST(req));
+}
+
+async function handlePOST(req: Request): Promise<Response> {
   try {
     const ctx = await requireUser();
 
@@ -134,14 +140,14 @@ export async function POST(req: Request): Promise<Response> {
     );
 
     if (rpcErr) {
-      console.error("[onboarding/create] RPC transport error", rpcErr);
+      logger.error("onboarding/create", "RPC transport error", { err: rpcErr });
       throw new AuthError(500, { error: "Failed to create brand." });
     }
     const result = rpcResult as
       | { ok: true; slug: string }
       | { ok: false; code: string; error: string; sqlstate?: string };
     if (!result.ok) {
-      console.warn("[onboarding/create] provision rejected", result);
+      logger.warn("onboarding/create", "provision rejected", { result });
       throw new AuthError(result.code === "slug_taken" ? 409 : 500, {
         error: result.error,
       });
@@ -175,8 +181,9 @@ export async function POST(req: Request): Promise<Response> {
         })
         .eq("id", body.slug);
       if (brandUpdateErr) {
-        console.error(
-          "[onboarding/create] failed to copy Stripe state onto brand",
+        logger.error(
+          "onboarding/create",
+          "failed to copy Stripe state onto brand",
           { brand: body.slug, pending: pending.id, err: brandUpdateErr }
         );
         // Don't claim the pending row — let the webhook/operator
@@ -192,7 +199,7 @@ export async function POST(req: Request): Promise<Response> {
           })
           .eq("id", pending.id);
         if (claimErr) {
-          console.error("[onboarding/create] failed to claim pending_signup", {
+          logger.error("onboarding/create", "failed to claim pending_signup", {
             pending: pending.id,
             err: claimErr,
           });
@@ -207,7 +214,7 @@ export async function POST(req: Request): Promise<Response> {
     // generation for the first 2 posts so they see content within
     // a minute or two without waiting for tomorrow's cron tick.
     const seed = await seedFirstBatch(body.slug).catch((err) => {
-      console.warn("[onboarding/create] seed failed", err);
+      logger.warn("onboarding/create", "seed failed", { err });
       return null;
     });
     if (seed && !seed.skipped && seed.postsCreated > 0) {
@@ -221,13 +228,14 @@ export async function POST(req: Request): Promise<Response> {
             lookaheadDays: 14,
           });
           if (summary.failed > 0) {
-            console.warn(
-              "[onboarding/create] first-batch autopilot had failures",
-              summary.errors
+            logger.warn(
+              "onboarding/create",
+              "first-batch autopilot had failures",
+              { errors: summary.errors }
             );
           }
         } catch (err) {
-          console.warn("[onboarding/create] autopilot kickoff failed", err);
+          logger.warn("onboarding/create", "autopilot kickoff failed", { err });
         }
       });
     }
@@ -252,7 +260,7 @@ export async function POST(req: Request): Promise<Response> {
           dashboardUrl: dashboardOrigin,
         });
         if (!res.ok) {
-          console.warn("[onboarding/create] welcome email failed", res.error);
+          logger.warn("onboarding/create", "welcome email failed", { err: res.error });
         }
       });
     }

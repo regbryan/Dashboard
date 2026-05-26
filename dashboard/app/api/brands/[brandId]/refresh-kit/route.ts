@@ -2,9 +2,18 @@ import { requireAdmin, handleAuthError } from "@/lib/api-auth";
 import { deriveBrandKitForSlug } from "@/lib/autopilot/derive-kit";
 import { deriveBrandVisuals } from "@/lib/autopilot/derive-visuals";
 
+import { withRequestContext } from "@/lib/request-context";
+
 export const maxDuration = 120;
 
 export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ brandId: string }> }
+) {
+  return withRequestContext(_req as Request, () => handlePOST(_req, { params }));
+}
+
+async function handlePOST(
   _req: Request,
   { params }: { params: Promise<{ brandId: string }> }
 ) {
