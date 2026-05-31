@@ -23,6 +23,14 @@
     {
       "path": "/api/cron/socialpilot-retry-failed",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-competitors",
+      "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-ig-token",
+      "schedule": "0 5 1 * *"
     }
   ]
 }
