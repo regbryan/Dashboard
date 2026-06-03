@@ -91,16 +91,14 @@ export default async function PostDetailPage({
           <span style={{ color: "white" }}>Post #{post.post_number}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "40px" }}>
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 lg:items-start" style={{ gap: "40px" }}>
+          {/* LEFT: the post itself — image, identity, copy, details */}
+          <div className="flex flex-col" style={{ gap: "20px" }}>
             <PostImageViewer
               imageUrl={imageUrl}
               alt={post.concept || "Post image"}
               thumbAspect={thumbAspect}
             />
-          </div>
-
-          <div className="flex flex-col" style={{ gap: "20px" }}>
             <div>
               <span className="eyebrow" style={{ color: "#c084fc" }}>
                 #{post.post_number}
@@ -158,7 +156,10 @@ export default async function PostDetailPage({
                 {post.archetype && <MetaChip>{post.archetype}</MetaChip>}
               </div>
             </div>
+          </div>
 
+          {/* RIGHT: workflow — review, actions, generation tools, sharing */}
+          <div className="flex flex-col" style={{ gap: "20px" }}>
             <div
               className="surface-card"
               style={{
