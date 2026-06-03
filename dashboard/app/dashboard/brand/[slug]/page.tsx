@@ -1,9 +1,10 @@
 import Link from "next/link";
-import PostCard from "@/components/PostCard";
 import ClientReviewLink from "@/components/ClientReviewLink";
-import EmptyState from "@/components/EmptyState";
+import SelectableDesignsGrid from "@/components/SelectableDesignsGrid";
+import GenerateCalendarButton from "@/components/GenerateCalendarButton";
 import { getBrandClientEmails } from "@/lib/brand-clients";
 import { getBrand, getBrandPosts } from "@/lib/brand-data";
+import { requireUser } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,27 @@ export default async function BrandDetailPage({
 
   const clientEmails = await getBrandClientEmails(brand.id).catch(() => []);
 
+  let isAdmin = false;
+  try {
+    ({ isAdmin } = await requireUser());
+  } catch {
+    isAdmin = false;
+  }
+  const now = new Date();
+  const defaultYear = now.getUTCFullYear();
+  const defaultMonth = now.getUTCMonth() + 1;
+  const todayIso = now.toISOString().slice(0, 10);
+
+  const gridPosts = filteredPosts.map((post) => ({
+    id: String(post.id),
+    concept: post.concept ?? "",
+    date: post.date ?? "",
+    post_type: post.post_type ?? "",
+    content_pillar: post.content_pillar ?? "",
+    status: post.status,
+    file_path: post.file_path,
+  }));
+
   return (
     <div style={{ padding: "28px 0 48px" }}>
       <div>
@@ -103,6 +125,15 @@ export default async function BrandDetailPage({
           </p>
         )}
 
+        {isAdmin && (
+          <GenerateCalendarButton
+            brandId={brand.id}
+            defaultYear={defaultYear}
+            defaultMonth={defaultMonth}
+            todayIso={todayIso}
+          />
+        )}
+
         <div style={{ marginBottom: "28px" }}>
           <ClientReviewLink
             path={`/client/${slug}`}
@@ -141,32 +172,13 @@ export default async function BrandDetailPage({
             ))}
         </div>
 
-        {/* Grid */}
-        {filteredPosts.length === 0 ? (
-          <EmptyState>No posts match this filter.</EmptyState>
-        ) : (
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-            style={{ gap: "20px" }}
-          >
-            {filteredPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={{
-                  id: String(post.id),
-                  concept: post.concept ?? "",
-                  date: post.date ?? "",
-                  post_type: post.post_type ?? "",
-                  content_pillar: post.content_pillar ?? "",
-                  status: post.status,
-                  file_path: post.file_path,
-                }}
-                brandSlug={slug}
-                platform={brand.platform}
-              />
-            ))}
-          </div>
-        )}
+        {/* Grid + selection / generation toolbar */}
+        <SelectableDesignsGrid
+          posts={gridPosts}
+          brandSlug={slug}
+          platform={brand.platform}
+          isAdmin={isAdmin}
+        />
       </div>
     </div>
   );
