@@ -55,15 +55,24 @@ export async function buildBrandImagePrompt(
     .maybeSingle();
   const kit = (kitData ?? null) as KitRow | null;
 
+  // Post type drives whether we treat the brief as a single still or the
+  // cover frame of a video. Reel/video storyboards must NOT be rendered as
+  // multi-panel collages.
+  const { data: postRow } = await admin
+    .from("posts")
+    .select("post_type")
+    .eq("id", postId)
+    .maybeSingle();
+  const postType = ((postRow as { post_type?: string | null } | null)?.post_type ?? "").toLowerCase();
+  const isVideoCover =
+    postType.includes("reel") || postType.includes("video") || postType.includes("story");
+
   const platform = (brand.platform ?? "instagram").toLowerCase();
 
   // The structured envelope sent to Gemini. Plain JSON. Each field is what
   // the user sees and edits in the ImageBriefPanel — plus brand context
   // that's pulled from brand_kit so it stays current automatically.
-  const colorRoles =
-    kit?.colors && typeof kit.colors === "object"
-      ? (kit.colors as { roles?: Record<string, string> }).roles ?? null
-      : null;
+  const brandColors = readBrandColors(kit?.colors);
 
   const envelope = {
     platform,
@@ -74,7 +83,7 @@ export async function buildBrandImagePrompt(
       archetype: kit?.archetype ?? null,
       industry: kit?.industry ?? null,
       voice_keywords: readToneKeywords(kit?.tone),
-      color_roles: colorRoles,
+      colors: brandColors,
     },
     brief: briefResult.brief,
     constraints: {
@@ -94,17 +103,79 @@ export async function buildBrandImagePrompt(
 
   // Natural-language framing + JSON body. Image models follow JSON better
   // when they're told it IS a brief, not arbitrary text.
+  const frameLine = isVideoCover
+    ? `This image is the single COVER frame for a short video. Depict ONE striking, unified moment that captures the concept. Ignore any "reel", "quick-cut", "sequence", or "step-by-step" phrasing in the subject — do NOT split the scene into separate panels, a grid, a storyboard, or before/after frames.`
+    : `Render a single cohesive scene. If the subject reads like a sequence of shots or steps, condense it into ONE unified image — not a multi-panel collage — UNLESS the brief's composition explicitly calls for panels or an infographic layout.`;
+
+  const colorLine =
+    brandColors.palette.length > 0
+      ? `Use the brand palette as the dominant color story${
+          brandColors.primary
+            ? ` (primary ${brandColors.primary}${
+                brandColors.secondary ? `, secondary ${brandColors.secondary}` : ""
+              }${brandColors.accent ? `, accent ${brandColors.accent}` : ""})`
+            : ` (${brandColors.palette.join(", ")})`
+        }. The image must feel unmistakably on-brand.`
+      : "";
+
   const text = [
-    `Generate a high-quality social media image for ${brand.name} based on the JSON brief below.`,
+    `Generate a high-quality, polished social media image for ${brand.name} based on the JSON brief below.`,
     `Honor every field. Treat the negative constraints as hard rules.`,
-    `Composition must be visually full and bold — no dead space, no sparse empty backdrops.`,
+    frameLine,
+    `Aim for an intentionally designed, on-brand result: one clear focal subject, clean professional composition, balanced and full — no dead space, no sparse empty backdrops, no generic stock-photo clichés.`,
+    colorLine,
     "",
     "```json",
     JSON.stringify(envelope, null, 2),
     "```",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return { text, brief: briefResult.brief, briefIsSaved: briefResult.saved };
+}
+
+type BrandColors = {
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  palette: string[];
+};
+
+/**
+ * Normalize brand_kits.colors (shape varies: {primary,secondary,accent,palette}
+ * and/or {roles:{...}}) into an explicit color set the image model can use.
+ * Previously only colors.roles was read, so brands storing flat primary/
+ * secondary/accent (e.g. IEC) passed an empty/null palette and the output
+ * ignored the brand colors entirely.
+ */
+function readBrandColors(colors: Record<string, unknown> | null | undefined): BrandColors {
+  const out: BrandColors = { palette: [] };
+  if (!colors || typeof colors !== "object") return out;
+  const c = colors as Record<string, unknown>;
+  const hex = (v: unknown): string | undefined =>
+    typeof v === "string" && v.trim().length > 0 ? v.trim() : undefined;
+
+  out.primary = hex(c.primary);
+  out.secondary = hex(c.secondary);
+  out.accent = hex(c.accent);
+
+  const seen = new Set<string>();
+  const add = (v: unknown) => {
+    const h = hex(v);
+    if (h && !seen.has(h.toLowerCase())) {
+      seen.add(h.toLowerCase());
+      out.palette.push(h);
+    }
+  };
+  add(c.primary);
+  add(c.secondary);
+  add(c.accent);
+  if (Array.isArray(c.palette)) for (const v of c.palette) add(v);
+  if (c.roles && typeof c.roles === "object") {
+    for (const v of Object.values(c.roles as Record<string, unknown>)) add(v);
+  }
+  return out.palette.length > 6 ? { ...out, palette: out.palette.slice(0, 6) } : out;
 }
 
 function readToneKeywords(tone: Record<string, unknown> | null | undefined): string[] {
