@@ -7,6 +7,9 @@ import "server-only";
 export const UNIVERSAL_NEGATIVE_RULES: string[] = [
   "DO NOT render any company logo, watermark, brand name text, phone number, or license number — those are composited later.",
   "DO NOT add a footer band or disclaimer text — those are handled by post-processing.",
+  "DO NOT include random, irrelevant, or nonsensical objects (e.g. toys or clutter unrelated to the subject).",
+  "Any text that appears must be real, correctly spelled words — never gibberish, garbled, or warped lettering. Keep on-image text minimal.",
+  "DO NOT output a generic stock-photo look. The result should read as an intentionally designed, on-brand graphic.",
 ];
 
 export type CaptionFooterBlock = {
