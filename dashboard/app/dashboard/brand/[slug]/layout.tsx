@@ -140,7 +140,7 @@ export default async function BrandLayout({
       <div
         className="mx-auto"
         style={{
-          maxWidth: "1600px",
+          maxWidth: "1280px",
           padding: "16px clamp(16px, 3vw, 40px) 64px",
           position: "relative",
         }}

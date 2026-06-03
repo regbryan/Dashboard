@@ -76,7 +76,7 @@ export default async function PostDetailPage({
 
   return (
     <div className="min-h-[calc(100vh-64px)]" style={{ padding: "32px clamp(20px, 4vw, 56px) 64px" }}>
-      <div className="mx-auto" style={{ maxWidth: "1600px" }}>
+      <div className="mx-auto" style={{ maxWidth: "1280px" }}>
         {/* Breadcrumbs */}
         <nav
           className="flex items-center flex-wrap"
@@ -268,6 +268,26 @@ export default async function PostDetailPage({
               />
             </div>
 
+            <ImageBriefPanel postId={post.id} />
+
+            {brandData?.logo_path && (
+              <LogoOverlayPanel
+                postId={post.id}
+                brandId={post.brand_id}
+                postImageUrl={imageUrl}
+                thumbAspect={thumbAspect}
+              />
+            )}
+
+            {brandData?.compliance && (
+              <FooterOverlayPanel
+                postId={post.id}
+                postImageUrl={imageUrl}
+                thumbAspect={thumbAspect}
+                complianceText={brandData.compliance}
+              />
+            )}
+
             <ClientReviewLink
               path={`/client/${slug}/post/${post.id}`}
               label="Share this post with client"
@@ -277,33 +297,6 @@ export default async function PostDetailPage({
               postId={post.id}
             />
           </div>
-        </div>
-
-        {/* Generation & overlay tools — full width, two-up so they don't
-            stack into one endless column under the post. */}
-        <div
-          className="grid grid-cols-1 lg:grid-cols-2 lg:items-start"
-          style={{ gap: "20px", marginTop: "40px" }}
-        >
-          <ImageBriefPanel postId={post.id} />
-
-          {brandData?.logo_path && (
-            <LogoOverlayPanel
-              postId={post.id}
-              brandId={post.brand_id}
-              postImageUrl={imageUrl}
-              thumbAspect={thumbAspect}
-            />
-          )}
-
-          {brandData?.compliance && (
-            <FooterOverlayPanel
-              postId={post.id}
-              postImageUrl={imageUrl}
-              thumbAspect={thumbAspect}
-              complianceText={brandData.compliance}
-            />
-          )}
         </div>
       </div>
     </div>
