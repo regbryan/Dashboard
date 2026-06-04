@@ -5,7 +5,7 @@
 // A dash used as a clause separator becomes a comma; collapse any resulting
 // doubled punctuation/space.
 
-function stripEmDashes(text: string): string {
+export function stripEmDashes(text: string): string {
   return text
     .replace(/\s*[—–]\s*/g, ", ") // em (U+2014) / en (U+2013) dash → comma
     .replace(/\s+,/g, ",") // no space before a comma

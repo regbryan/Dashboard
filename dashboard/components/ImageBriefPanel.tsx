@@ -232,6 +232,12 @@ export default function ImageBriefPanel({ postId }: { postId: number }) {
             }
           />
           <Field
+            label="Text overlay"
+            value={brief.text_overlay ?? ""}
+            onChange={(v) => setBrief({ ...brief, text_overlay: v || null })}
+            placeholder="Leave blank for none"
+          />
+          <Field
             label="Notes"
             value={brief.notes ?? ""}
             onChange={(v) => setBrief({ ...brief, notes: v || null })}
@@ -292,9 +298,9 @@ export default function ImageBriefPanel({ postId }: { postId: number }) {
                   fontSize: "12px",
                 }}
               >
-                <option value="ai">AI photo · no text</option>
-                <option value="photo">Photo + real-font text</option>
-                <option value="card">Designed card · no photo</option>
+                <option value="ai">AI photo (no overlay)</option>
+                <option value="card">Designed card (no photo)</option>
+                <option value="photo">Photo + text overlay</option>
               </select>
             </label>
             {(brief.design?.mode ?? "ai") !== "ai" && (
@@ -310,18 +316,16 @@ export default function ImageBriefPanel({ postId }: { postId: number }) {
                   value={brief.design?.headline ?? ""}
                   onChange={(v) => setBrief({ ...brief, design: { ...brief.design, headline: v || null } })}
                 />
-                {(brief.design?.mode === "card" || brief.design?.mode === "photo") && (
+                {brief.design?.mode === "card" && (
                   <Field
-                    label={'Rows (one per line, "Label: text") — e.g. "Myth: …" / "Fact: …"'}
+                    label={'Rows (one per line, "Label: text")'}
                     value={rowsToText(brief.design?.rows)}
                     onChange={(v) => setBrief({ ...brief, design: { ...brief.design, rows: textToRows(v) } })}
                     multiline
                   />
                 )}
                 <p style={{ fontSize: "11px", color: MUTED }}>
-                  All text is rendered in real fonts from these fields — the AI photo is always
-                  text-free, so words never garble. Brand colors and the CTA (name, phone, website)
-                  are added automatically from the brand kit.
+                  Brand colors and the CTA (name, phone, website) are added automatically from the brand kit.
                 </p>
               </>
             )}
