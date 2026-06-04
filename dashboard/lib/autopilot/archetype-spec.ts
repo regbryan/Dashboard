@@ -112,7 +112,7 @@ export async function synthesizeArchetypeSpec(
     dataInstruction(forcedLetter, market),
     ``,
     `RULES:`,
-    `- The headline mixes BOLD SANS lines with exactly 1-2 ITALIC-SERIF emphasis words/phrase (a short emotional or temporal phrase). 2-3 short lines.`,
+    `- The headline mixes BOLD SANS lines with exactly 1-2 ITALIC-SERIF emphasis words/phrase (a short emotional or temporal phrase). 2-3 short lines. The italic styling is applied automatically by the "style" field — do NOT wrap any words in asterisks, underscores, or markdown.`,
     `- Body copy: 1-3 short sentences in the brand voice. No hype, no pressure.`,
     `- CTA text is overridden in code with the phone; just return "CALL ${IMAGE_PHONE}".`,
     `- Trust element (optional): pick from — ${trustMarks || "a 5-star review line"}.`,
@@ -170,15 +170,20 @@ export async function synthesizeArchetypeSpec(
 
   // Archetype was chosen deterministically (forcedKey) — the model only wrote copy.
   const archetype = forcedKey;
+  // Strip stray markdown emphasis markers — the model sometimes wraps words in
+  // *asterisks* / _underscores_ / `backticks`, which would render literally.
+  const clean = (v: unknown): string =>
+    typeof v === "string" ? v.replace(/[*_`]+/g, "").replace(/\s{2,}/g, " ").trim() : "";
   const lines = Array.isArray(parsed.headline_lines)
     ? parsed.headline_lines
         .filter((l): l is { text: string; style: "sans" | "italic-serif" } =>
           !!l && typeof l.text === "string"
         )
         .map((l) => ({
-          text: l.text,
+          text: clean(l.text),
           style: (l.style === "italic-serif" ? "italic-serif" : "sans") as "sans" | "italic-serif",
         }))
+        .filter((l) => l.text.length > 0)
     : [];
   if (lines.length === 0) return { ok: false, error: "gemini returned no headline lines" };
 
@@ -191,11 +196,11 @@ export async function synthesizeArchetypeSpec(
         .slice(0, 3)
         .map((it, i) => ({
           number: typeof it.number === "string" && it.number.trim() ? it.number.trim() : String(i + 1),
-          text: it.text,
+          text: clean(it.text),
         }))
     : null;
 
-  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const str = (v: unknown) => clean(v) || null;
 
   const spec: ArchetypeSpec = {
     archetype,
@@ -204,10 +209,10 @@ export async function synthesizeArchetypeSpec(
         parsed.eyebrow?.color === "navy" || parsed.eyebrow?.color === "light-blue"
           ? parsed.eyebrow.color
           : "red",
-      text: (parsed.eyebrow?.text ?? "").toString().toUpperCase().slice(0, 32) || "IEC",
+      text: clean(parsed.eyebrow?.text).toUpperCase().slice(0, 32) || "IEC",
     },
     headline_lines: lines,
-    body_copy: typeof parsed.body_copy === "string" ? parsed.body_copy : "",
+    body_copy: clean(parsed.body_copy),
     photo: {
       include: usesPhoto && parsed.photo?.include !== false,
       description: typeof parsed.photo?.description === "string" ? parsed.photo.description : "",
