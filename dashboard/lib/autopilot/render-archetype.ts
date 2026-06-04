@@ -88,7 +88,7 @@ async function starRow(count: number, size = 48, gap = 10): Promise<El> {
   );
 }
 
-function eyebrowPill(eyebrow: ArchetypeRenderInput["eyebrow"]): El[] {
+function eyebrowPill(eyebrow: ArchetypeRenderInput["eyebrow"], centered = false): El[] {
   if (!eyebrow?.text) return [];
   const bg = PILL_BG[eyebrow.color ?? "red"] ?? RED;
   return [
@@ -96,7 +96,7 @@ function eyebrowPill(eyebrow: ArchetypeRenderInput["eyebrow"]): El[] {
       "div",
       {
         display: "flex",
-        alignSelf: "flex-start",
+        alignSelf: centered ? "center" : "flex-start",
         background: bg,
         color: bg === LIGHT_BLUE ? NAVY : WHITE,
         fontFamily: "Poppins",
@@ -114,62 +114,105 @@ function eyebrowPill(eyebrow: ArchetypeRenderInput["eyebrow"]): El[] {
 // Uniform vertical rhythm between every block in a panel.
 const GAP = "30px";
 
-function headlineEls(lines: HeadlineLine[], sansColor: string, italicColor: string, size = 78): El {
+type HeadlineOpts = { serif?: boolean; centered?: boolean };
+function headlineEls(
+  lines: HeadlineLine[],
+  sansColor: string,
+  italicColor: string,
+  size = 78,
+  opts: HeadlineOpts = {}
+): El {
+  const { serif = false, centered = false } = opts;
+  const just = centered ? "center" : "flex-start";
   return h(
     "div",
-    { display: "flex", flexDirection: "column", gap: "6px" },
-    lines.map((l) =>
-      l.style === "italic-serif"
-        ? h(
-            "div",
-            { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: `${size - 2}px`, lineHeight: 1.12, color: italicColor },
-            l.text
-          )
-        : h(
-            "div",
-            { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: `${size}px`, lineHeight: 1.08, letterSpacing: "0.5px", color: sansColor, textTransform: "uppercase" },
-            l.text
-          )
-    )
+    { display: "flex", flexDirection: "column", gap: serif ? "4px" : "6px", alignItems: centered ? "center" : "flex-start", width: "100%" },
+    lines.map((l) => {
+      const base = { display: "flex", width: "100%", justifyContent: just, lineHeight: 1.12 } as Record<string, unknown>;
+      if (l.style === "italic-serif") {
+        // Italic-serif emphasis line (Playfair italic) in both modes.
+        return h("div", { ...base, fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: `${size - 2}px`, color: italicColor }, l.text);
+      }
+      if (serif) {
+        // Elegant serif headline (title-case) like the v6 promo posts.
+        return h("div", { ...base, fontFamily: "Playfair", fontWeight: 700, fontSize: `${size - 2}px`, color: sansColor }, l.text);
+      }
+      // Condensed all-caps (lists / big-number archetypes).
+      return h("div", { ...base, fontFamily: "Oswald", fontWeight: 600, fontSize: `${size}px`, lineHeight: 1.08, letterSpacing: "0.5px", color: sansColor, textTransform: "uppercase" }, l.text);
+    })
   );
 }
 
-function ctaPill(text: string, onLight: boolean): El {
+function ctaPill(text: string, onLight: boolean, opts: { centered?: boolean; arrow?: boolean } = {}): El {
+  const { centered = false, arrow = true } = opts;
   const pillBg = onLight ? NAVY : WHITE;
   const txt = onLight ? WHITE : NAVY;
+  const pad = arrow ? "16px 18px 16px 28px" : "18px 36px";
+  const kids: El[] = [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "30px", color: txt }, text)];
+  if (arrow) {
+    kids.push(h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", borderRadius: "999px", background: RED, color: WHITE, fontFamily: "Poppins", fontWeight: 800, fontSize: "28px" }, "›"));
+  }
   return h(
     "div",
-    { display: "flex", alignItems: "center", alignSelf: "flex-start", background: pillBg, borderRadius: "999px", padding: "16px 18px 16px 28px", gap: "16px" },
+    { display: "flex", alignItems: "center", alignSelf: centered ? "center" : "flex-start", background: pillBg, borderRadius: "999px", padding: pad, gap: "16px" },
+    kids
+  );
+}
+
+function bodyEl(body: string | undefined | null, color: string, centered = false): El[] {
+  if (!body?.trim()) return [];
+  return [h("div", {
+    display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "30px", lineHeight: 1.34, color,
+    width: centered ? "90%" : "92%",
+    ...(centered ? { alignSelf: "center", textAlign: "center", justifyContent: "center" } : {}),
+  }, body.trim())];
+}
+function trustEl(trust: string | undefined | null, color: string, centered = false): El[] {
+  if (!trust?.trim()) return [];
+  return [h("div", {
+    display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "26px", color,
+    ...(centered ? { alignSelf: "center" } : {}),
+  }, trust.trim())];
+}
+
+// A thin red rule with a centered red star — the IEC seam accent.
+async function seamStar(bg: string, width: number): Promise<El> {
+  const u = await starUri();
+  const sidePad = Math.round(width * 0.05);
+  return h(
+    "div",
+    { display: "flex", alignItems: "center", justifyContent: "center", gap: "26px", background: bg, padding: `26px ${sidePad}px` },
     [
-      h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "30px", color: txt }, text),
-      h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", borderRadius: "999px", background: RED, color: WHITE, fontFamily: "Poppins", fontWeight: 800, fontSize: "28px" }, "›"),
+      h("div", { display: "flex", flexGrow: 1, height: "3px", background: RED }, []),
+      img(u, { width: "34px", height: "34px" }),
+      h("div", { display: "flex", flexGrow: 1, height: "3px", background: RED }, []),
     ]
   );
 }
 
-function bodyEl(body: string | undefined | null, color: string): El[] {
-  if (!body?.trim()) return [];
-  return [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "30px", lineHeight: 1.34, color, width: "92%" }, body.trim())];
-}
-function trustEl(trust: string | undefined | null, color: string): El[] {
-  if (!trust?.trim()) return [];
-  return [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "26px", color }, trust.trim())];
-}
-
-// --- A / C: panel + photo ---------------------------------------------------
+// --- A / C: photo + centered serif panel (matches the v6 promo look) --------
 function panel(input: ArchetypeRenderInput, surface: "navy" | "light-blue", width: number): El {
   const onNavy = surface === "navy";
   const pad = Math.round(width * 0.066);
+  const main = onNavy ? WHITE : NAVY;
+  // CALL pill + trust line stay tight together, then participate in the panel rhythm.
+  const ctaGroup = h(
+    "div",
+    { display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" },
+    [
+      ctaPill(input.cta, !onNavy, { centered: true, arrow: false }),
+      ...trustEl(input.trust, onNavy ? "#C7D6EC" : "#1C3A63", true),
+    ]
+  );
   const kids: El[] = [
-    ...eyebrowPill(input.eyebrow),
-    headlineEls(input.headlineLines, onNavy ? WHITE : NAVY, onNavy ? EMPHASIS_ON_NAVY : NAVY),
-    ...bodyEl(input.body, onNavy ? "#E6EEF8" : NEAR_BLACK),
-    ...trustEl(input.trust, onNavy ? WHITE : NAVY),
-    ctaPill(input.cta, !onNavy),
+    ...eyebrowPill(input.eyebrow, true),
+    headlineEls(input.headlineLines, main, onNavy ? EMPHASIS_ON_NAVY : NAVY, 78, { serif: true, centered: true }),
+    ...bodyEl(input.body, onNavy ? "#DCE8F6" : NEAR_BLACK, true),
+    ctaGroup,
   ];
   return h(
     "div",
-    { display: "flex", flexDirection: "column", justifyContent: "center", gap: GAP, background: onNavy ? NAVY : LIGHT_BLUE, padding: `${pad}px`, width: "100%" },
+    { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: GAP, background: onNavy ? NAVY : LIGHT_BLUE, padding: `${pad}px`, width: "100%" },
     kids
   );
 }
@@ -268,7 +311,7 @@ export async function renderArchetypeDesign(input: ArchetypeRenderInput): Promis
     const photoBlock = h("div", { display: "flex", flexGrow: 1, width: "100%" }, [
       img(dataUri, { width: "100%", height: "100%", objectFit: "cover" }),
     ]);
-    const seam = h("div", { display: "flex", width: "100%", height: "8px", background: RED }, []);
+    const seam = await seamStar(surface === "navy" ? NAVY : LIGHT_BLUE, width);
     const order = input.archetype === "A" ? [panelEl, seam, photoBlock] : [photoBlock, seam, panelEl];
     root = h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: NAVY }, order);
   } else if (input.archetype === "D") {
