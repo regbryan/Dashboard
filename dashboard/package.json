@@ -18,8 +18,6 @@
     "audit": "npm run lint && npm run check:deps && npm run check:circular && tsc --noEmit"
   },
   "dependencies": {
-    "@fontsource/anton": "^5.2.7",
-    "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@remotion/bundler": "^4.0.462",
     "@remotion/cli": "^4.0.462",
     "@remotion/google-fonts": "^4.0.462",
