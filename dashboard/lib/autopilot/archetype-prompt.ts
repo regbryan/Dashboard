@@ -84,6 +84,25 @@ function renderHeadline(lines: ArchetypeHeadlineLine[]): string[] {
   );
 }
 
+/**
+ * Build a prompt for a TEXT-FREE photo only (used by the Satori archetype path:
+ * the AI makes the photo, code draws the panel + text). No text/logos/frames.
+ */
+export function buildPhotoPrompt(template: BrandTemplate, spec: ArchetypeSpec): string {
+  const uniform = (template.GLOBAL_HARD_RULES ?? []).find((r) =>
+    r.startsWith("TECHNICIAN UNIFORM")
+  );
+  const scene = spec.photo?.description?.trim() || "a clean, on-brand lifestyle photo relevant to the topic";
+  return [
+    `A single photorealistic PHOTOGRAPH only. ABSOLUTELY NO text, letters, numbers, words, captions, logos, watermarks, badges, signs, or graphic overlays of any kind anywhere in the image — a clean photo, nothing else. Fill the entire frame edge-to-edge; no border, frame, or margin.`,
+    `Scene: ${scene}`,
+    uniform ? `If a technician appears: ${uniform}` : "",
+    `Natural light, professional, photorealistic. Not a stock-photo cliché. No people posing for the camera.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 /** Assemble the full contract prompt for one post. */
 export function buildArchetypePrompt(
   template: BrandTemplate,
