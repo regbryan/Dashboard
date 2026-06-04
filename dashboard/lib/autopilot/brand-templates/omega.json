@@ -1,0 +1,89 @@
+{
+  "_meta": {
+    "name": "Omega Mortgage Group Instagram Template",
+    "brand": "Omega Mortgage Group (@omglending) — mortgage lender",
+    "usage": "Per-brand archetype contract. Editorial/premium look: serif display headlines + italic/script accent, navy #005181 dominant, near-white breathing room, real warm diverse family photography. Distinct from IEC (no red, hollow navy rings not filled, gold reserved for reviews)."
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "navy_hero": "#005181",
+    "near_white": "#FEFEFE",
+    "gold_reviews_only": "#FDD314",
+    "near_black": "#231F20",
+    "white": "#FFFFFF",
+    "color_roles": {
+      "#005181": "PRIMARY — dominant on every post: header pills, CTA bars, full backgrounds, numbered-circle RINGS, hero numerals.",
+      "#FEFEFE": "Near-white default light background, card fills, listicle backgrounds, breathing room.",
+      "#FDD314": "Gold — RESERVED for 5-star review graphics ONLY. Never a primary field on standard feed posts.",
+      "#231F20": "Near-black, dark text on light backgrounds.",
+      "#FFFFFF": "White headlines/body over navy or photo."
+    },
+    "FORBIDDEN": ["red accents (that's IEC)", "filled navy circles with white numerals (that's IEC/CSC — Omega rings are HOLLOW)", "bright primary colors", "rainbow gradients", "gold as a primary field on a non-review post"]
+  },
+
+  "BRAND": {
+    "name": "Omega Mortgage Group",
+    "short": "Omega",
+    "market": "homebuyers and homeowners",
+    "voice": "Warm senior loan officer guiding a first-time buyer with patience. Educational, reassuring, partnering — never pushy, never hard-sell. 'Let's figure this out together.'",
+    "tagline_feel": "Wealth-management newsletter meets hometown realtor (NOT fintech startup).",
+    "logo_usage": "NEVER bake the Ω logo or OMEGA/MORTGAGE/GROUP wordmark into the image. Added separately after delivery.",
+    "trust_marks": ["Local, trusted lender", "Guidance every step", "5-star reviews"]
+  },
+
+  "FORBIDDEN_TEXT": {
+    "_rule": "NEVER render any of these in the image — compliance/NMLS/license text is added ONLY by the dashboard Footer Overlay after delivery (brands.compliance). Unlike the old reference slides (which burned a compliance footer into the image), the new designs must NOT bake any of it in.",
+    "never_render": ["NMLS", "MLS", "NMLSCONSUMERACCESS", "NMLSCONSUMERACCESS.ORG", "license", "lic #", "license #", "DFPI", "DBO", "Infinity Equity Group", "DBA", "Department of Financial Protection", "Residential Mortgage Lending Act", "any 6-7 digit license/NMLS number", "any state license code (AZ/CA/CO/FL/ID/NV/OR/SC/TN/TX/UTAH/WA)"]
+  },
+
+  "FORMAT": { "platform": "Instagram feed", "aspect_ratio": "4:5 portrait", "native_size": "1080x1350" },
+
+  "TYPOGRAPHY": {
+    "display_serif": "Elegant high-contrast serif (Playfair Display / Cormorant), mixed-case — hero numerals + topic headlines. THE signature.",
+    "accent": "Italic/script accent for connecting words ('Why', 'On Your Mortgage') paired with the serif. Most distinctive element — preserve it.",
+    "eyebrow": "Light sans ALL-CAPS with wide letter-spacing — category labels ('WAYS TO SAVE', 'WHY REFINANCE?').",
+    "body": "Clean sans (Montserrat) — one-sentence explainers."
+  },
+
+  "ARCHETYPES": {
+    "A_photo_hero_navy_pill": {
+      "description": "Aspirational dream-home hero. Real warm photo on the top ~56%; cream text panel below with a small navy pill eyebrow, serif headline + SCRIPT accent, and a one-sentence body + soft CTA. Editorial and calm.",
+      "when_to_use": "PRIMARY / DEFAULT archetype — Omega is photo-forward, so MOST posts use this. Reach for the text archetypes (C/D/G) only for genuine lists, stats, or reviews.",
+      "_photos": "Use real warm, diverse family/home photography. Approved assets exist (couple-keys, home-interior, neighborhood, elderly-couple, closing-table, sold-sign); otherwise generate warm golden-hour family/home scenes — never stock-cheese or fintech illustration."
+    },
+    "C_numbered_listicle": {
+      "description": "The Omega workhorse. Near-white background. Navy pill eyebrow, serif headline with an italic accent word, then short numbered list items each preceded by a HOLLOW thin-ring navy circle with a navy numeral inside (never filled).",
+      "when_to_use": "Tips, ways-to-save, requirements, step-by-step buyer education"
+    },
+    "D_big_number_hero": {
+      "description": "Giant serif (Playfair) numeral as the focal point on navy, with a serif topic line and short body. Editorial stat post.",
+      "when_to_use": "Rate / percentage / stat / 'X reasons' posts"
+    },
+    "G_testimonial_review": {
+      "description": "Customer review. Navy or near-white field, a row of 5 GOLD stars (the one place gold is used), italic-serif customer quote, light attribution. Calm and premium.",
+      "when_to_use": "5-star reviews, social proof"
+    }
+  },
+
+  "REUSABLE_ELEMENTS": {
+    "eyebrow_pill": "small navy #005181 rounded pill, white ALL-CAPS wide-tracked label ('WAYS TO SAVE')",
+    "hollow_ring": "thin-ring navy #005181 circle (HOLLOW, ~3px stroke) with a navy numeral centered inside — for numbered lists",
+    "star_row": "row of 5 GOLD #FDD314 stars — REVIEW posts only",
+    "headline": "serif display + 1 italic accent word, navy on light / white on navy"
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "Navy #005181 is dominant on every post.",
+    "Headlines are an ELEGANT SERIF (mixed-case) with ONE italic/script accent word — this serif+accent pairing is the signature; never all-caps bold-sans shouting.",
+    "Numbered lists use HOLLOW thin-ring navy circles with navy numerals — NEVER filled circles with white numerals.",
+    "Gold #FDD314 is ONLY for 5-star review graphics — never a primary fill on a normal feed post.",
+    "NO red anywhere (red is IEC, not Omega).",
+    "Photography: real, warm, inclusive families in real homes (interracial couples, families, multi-generation, elderly). Golden-hour / window light, cream interiors. NEVER stock-cheesy or fintech-flat illustration, never luxury fantasy.",
+    "DO NOT bake the logo, the OMEGA / MORTGAGE / GROUP wordmark, NMLS numbers, or any compliance/disclaimer text into the image — those are added after delivery. Leave the bottom ~10-12% as a calm quiet zone for the compliance overlay.",
+    "No hard-sell: never 'APPLY NOW', 'LIMITED TIME', 'instant approval'. Partnering, educational tone.",
+    "FULL-BLEED: the design fills the canvas edge-to-edge; no outer border/frame/rounded-corners/floating card.",
+    "Render every word crisply and correctly spelled."
+  ],
+
+  "GLOBAL_NEGATIVE_PROMPT": "logo, wordmark, OMEGA MORTGAGE GROUP text, NMLS, MLS, NMLS number, license number, lic #, DFPI, DBO, Infinity Equity Group, nmlsconsumeraccess.org, state license codes, compliance band, footer disclosure band, disclaimer text, red, filled numbered circles with white numerals, bright primary colors, rainbow gradients, gold as a background, fintech flat illustration, stock-photo cheese, emoji, luxury mansion fantasy, all-caps bold-sans shouting, border, outer frame, rounded outer corners, drop shadow, floating card, APPLY NOW, LIMITED TIME, misspelled or garbled text"
+}
