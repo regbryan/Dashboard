@@ -62,9 +62,15 @@ export default function SelectableDesignsGrid({
     });
   }, []);
 
-  const selectAll = () => setSelected(new Set(posts.map((p) => p.id)));
+  // Reels/videos/stories don't get a static design — exclude them from the
+  // bulk-select actions (the server also skips them defensively).
+  const isReel = (p: Post) =>
+    /reel|video|story/.test((p.post_type || "").toLowerCase());
+  const designable = posts.filter((p) => !isReel(p));
+
+  const selectAll = () => setSelected(new Set(designable.map((p) => p.id)));
   const selectNeedsGen = () =>
-    setSelected(new Set(posts.filter((p) => !p.file_path).map((p) => p.id)));
+    setSelected(new Set(designable.filter((p) => !p.file_path).map((p) => p.id)));
   const clear = () => setSelected(new Set());
 
   const generate = async () => {
@@ -106,7 +112,7 @@ export default function SelectableDesignsGrid({
   };
 
   const selectedCount = selected.size;
-  const needsGenCount = posts.filter((p) => !p.file_path).length;
+  const needsGenCount = designable.filter((p) => !p.file_path).length;
 
   return (
     <div>
@@ -120,7 +126,7 @@ export default function SelectableDesignsGrid({
             marginBottom: "16px",
           }}
         >
-          <ToolbarButton onClick={selectAll} label={`Select all (${posts.length})`} />
+          <ToolbarButton onClick={selectAll} label={`Select all (${designable.length})`} />
           {needsGenCount > 0 && (
             <ToolbarButton
               onClick={selectNeedsGen}

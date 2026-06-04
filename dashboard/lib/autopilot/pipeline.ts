@@ -126,6 +126,18 @@ export async function generateBrandPost(
 ): Promise<GenerateOneResult> {
   const admin = supabaseAdmin();
 
+  // Reels / videos / stories don't get a static design — their deliverable is
+  // the video itself (handled separately). Skip them so the design generator
+  // and the bulk "Generate designs" action never produce a still for a reel.
+  const ptype = (post.post_type ?? "").toLowerCase();
+  if (ptype.includes("reel") || ptype.includes("video") || ptype.includes("story")) {
+    return {
+      ok: false,
+      postId: post.id,
+      error: "skipped: reels/videos do not get a static design",
+    };
+  }
+
   if (!post.concept && !post.visual_direction) {
     return {
       ok: false,
