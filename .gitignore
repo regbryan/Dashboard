@@ -5,6 +5,7 @@
 !/.gitignore
 !/.github/
 !/dashboard/
+!/brand-assets/
 
 # Belt-and-suspenders for anything inside dashboard/ that should be ignored
 # regardless of the project's own .gitignore.

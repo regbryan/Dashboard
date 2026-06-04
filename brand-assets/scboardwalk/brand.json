@@ -1,0 +1,35 @@
+{
+  "slug": "scboardwalk",
+  "name": "SC Boardwalk Crew",
+  "handle": "@beachboardwalkjobs",
+  "platform": "instagram",
+  "cadence": {
+    "label": "3x/week (Tu/Th/Sa)",
+    "days": [
+      "Tue",
+      "Thu",
+      "Sat"
+    ]
+  },
+  "colors": {
+    "primary": "#1070B0",
+    "secondary": "#F07010",
+    "accent": "#F0D010",
+    "background": "#FFFFFF",
+    "_source": "extracted from 9 reference-posts",
+    "_locked_on": "2026-05-23"
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": "kit.md",
+  "post_template": null,
+  "logo_path": null,
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": true,
+    "has_brand_doc": false,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-25"
+}

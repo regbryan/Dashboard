@@ -1,0 +1,78 @@
+{
+  "slug": "csc",
+  "name": "Cyber Safety Cop",
+  "handle": "@cybersafetycop",
+  "platform": "instagram",
+  "cadence": {
+    "label": "2x/month",
+    "days": []
+  },
+  "colors": {
+    "primary": "#057AC0",
+    "secondary": "#66ABD3",
+    "accent": "#FFDE59",
+    "background": "#FFFFFF",
+    "_extra": {
+      "dark_gray": "#646668",
+      "medium_gray": "#AEAFB0",
+      "ice_blue": "#D9EDF8"
+    },
+    "_source": "csc/kit.md documented palette",
+    "_locked_on": "2026-05-23"
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": "kit.md",
+  "post_template": null,
+  "logo_path": "_brands/csc/cutouts/CSC-logo-newer.png",
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": true,
+    "has_brand_doc": true,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "aspect_ratio": "4:5",
+  "native_size": [
+    1080,
+    1350
+  ],
+  "generated_size": [
+    1856,
+    2304
+  ],
+  "color_zones": [],
+  "forbidden_text": [
+    "BRIGHT CANARY",
+    "OURPACT"
+  ],
+  "_forbidden_text_note": "Co-brand partner names are ONLY allowed on archetype CSC_I co-branded posts. For non-co-branded posts, OCR finding partner names = fail.",
+  "required_text": [],
+  "typography": {
+    "display": "Bold sans-serif HEAVY weight, often condensed (Montserrat / Poppins / Bebas Neue style)",
+    "body": "Regular sans-serif, navy or white, generous line height",
+    "rule": "NO italic serif emphasis (that's the IEC pattern, not CSC). Headlines command via weight and case, not italic."
+  },
+  "archetypes": {
+    "CSC_A_numbered_listicle_yellow": "Sunny yellow #FFDE59 full background. Header pill at top. 3 numbered rows with FILLED solid blue circles + white numerals. Most-used CSC archetype.",
+    "CSC_B_app_review": "Split layout. Phone on left, vertical text stack right with 'APP REVIEW' badge.",
+    "CSC_C_command_overlay_photo": "Full-bleed photo of child/teen with phone. Top-left bold sans ALL CAPS three-word command in white or yellow.",
+    "CSC_D_big_number_hero": "Yellow background. Huge electric blue numeral + topic headline. Photo of parent + child bottom half with blue swoosh.",
+    "CSC_E_webinar_promo_card": "Cream/white. Cursive script overhead text + bold sans below. Laptop mockup with webinar landing.",
+    "CSC_F_membership_promo": "Bright background with playful active kid photo. Bold mixed-case header. Value-stack list of 3-4 items.",
+    "CSC_G_image_overlay_callout": "Full-bleed photo + semi-transparent overlay covering lower 60%. CSC logo top-center on photo.",
+    "CSC_H_membership_launch_announcement": "Vibrant photo (kid in costume, megaphone). Red/yellow ribbon banner with announcement headline. Decorative starburst accents.",
+    "CSC_I_brand_deal_comparison": "Co-branded split-card. Two color-blocked panels side-by-side (CSC + partner colors). ONLY archetype where Bright Canary coral or other partner colors appear."
+  },
+  "hard_rules": [
+    "FILLED solid blue circles with white numerals (NOT hollow ring \u2014 that's OMG's pattern).",
+    "Sunny yellow #FFDE59 is the saturated brand yellow \u2014 NEVER muted/pastel yellow.",
+    "Bright Canary pink/coral palette appears ONLY on archetype CSC_I co-branded posts. Never mix into standard CSC posts.",
+    "Calm-not-alarmist tone \u2014 no fear-mongering, no shocked-mom clich\u00e9, no horror-movie palette, no predator panic imagery.",
+    "Logo (circular people icon) or CYBERSAFETYCOP.COM url lockup must be visible on every post.",
+    "When AI rendering for CSC, leave a clean solid-color top 12% zone for logo composite (no clean-band painting after the fact \u2014 color match will not be exact).",
+    "Logo composite via overlay_logo.py with --position top-center --max-logo-width 0.40. Do NOT use --clean-band on existing rendered posts (causes visible color seam).",
+    "NO italic serif emphasis in headlines (that's IEC pattern). CSC headlines command via weight and case."
+  ],
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-23"
+}
