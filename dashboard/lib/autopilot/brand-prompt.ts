@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "../supabase-admin";
 import { loadOrSynthesizeBrief, type ImageBrief } from "./brief";
 import { BRAND_CAPTION_FOOTERS, UNIVERSAL_NEGATIVE_RULES } from "./brand-rules";
+import { stripEmDashes } from "./sanitize-copy";
 
 // Builds the Gemini image-gen input from a structured JSON brief layered on
 // top of the brand kit. Everything the model sees is inspectable here —
@@ -130,7 +131,7 @@ export async function buildBrandImagePrompt(
   // Text rendering is where image models fail (garbled/misspelled words like
   // "therosaot"). Give the model the EXACT copy to render, or tell it to stay
   // text-free — never let it guess at words.
-  const overlay = (briefResult.brief.text_overlay ?? "").trim();
+  const overlay = stripEmDashes((briefResult.brief.text_overlay ?? "").trim());
   const textLine = overlay
     ? `TEXT — CRITICAL: Render this text in the image spelled letter-for-letter EXACTLY as written, and add NO other words, labels, or captions: "${overlay}". Keep it clean, legible, and well-composed. Never misspell, abbreviate, or invent words.`
     : `TEXT — CRITICAL: Do NOT place any headlines, labels, captions, or lettering in the image — keep it completely text-free. Never invent or guess at words (any copy is added later in a separate design step).`;

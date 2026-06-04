@@ -7,6 +7,7 @@ import {
   pickPillars,
   planMonthDates,
 } from "./calendar-plan";
+import { stripEmDashesOrNull } from "./sanitize-copy";
 
 // Authors a full calendar month of DRAFT posts (text only) for a brand, on its
 // cadence, grounded in the brand kit. No images are generated here — that's a
@@ -186,10 +187,10 @@ export async function generateCalendar(
       day: slot.day,
       post_type: slot.post_type,
       content_pillar: slot.content_pillar,
-      concept: concept || null,
-      caption: (copy.caption ?? "").trim() || null,
-      visual_direction: visual || null,
-      hashtags: (copy.hashtags ?? "").trim() || null,
+      concept: stripEmDashesOrNull(concept),
+      caption: stripEmDashesOrNull(copy.caption),
+      visual_direction: stripEmDashesOrNull(visual),
+      hashtags: stripEmDashesOrNull(copy.hashtags),
       status: "not_started",
       created_at: now,
       updated_at: now,
