@@ -17,7 +17,9 @@ import {
   type ArchetypeSpec,
 } from "./archetype-prompt";
 import { synthesizeArchetypeSpec } from "./archetype-spec";
-import { renderArchetypeDesign, type ArchetypeKey } from "./render-archetype";
+import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
+
+const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
 // The pro image model used for template (archetype) brands. Isolated to this
 // path so a model/access issue can't break the generic flow. Override via env.
@@ -215,14 +217,21 @@ export async function generateBrandPost(
       // the AI makes ONLY a text-free photo; the panel + all text are drawn here,
       // so the design can never frame, garble text, or drift off-brand.
       const letter = spec.archetype.split("_")[0].toUpperCase();
-      const satoriArch: ArchetypeKey | null =
-        letter === "A" ? "A" : letter === "C" ? "C" : null;
+      const satoriArch = (SATORI_ARCHETYPES.has(letter) ? letter : null) as ArchetypeKey | null;
 
-      if (satoriArch && spec.photo?.include !== false) {
-        const gen = await genImage(buildPhotoPrompt(template, spec));
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
+      if (satoriArch) {
+        // Code-rendered, full-bleed. A/C need a text-free AI photo; D/E/F/G/H
+        // are pure code (no AI image call at all).
+        let photo: Buffer | null = null;
+        let modelTag = "satori";
+        if (archetypeNeedsPhoto(satoriArch)) {
+          const gen = await genImage(buildPhotoPrompt(template, spec));
+          if (!gen.ok) {
+            await revert();
+            return { ok: false, postId: post.id, error: gen.error };
+          }
+          photo = gen.bytes;
+          modelTag = `${gen.model}+satori`;
         }
         bytes = await renderArchetypeDesign({
           archetype: satoriArch,
@@ -233,10 +242,14 @@ export async function generateBrandPost(
           body: spec.body_copy,
           trust: spec.trust_element,
           cta: spec.cta.text,
-          photo: gen.bytes,
+          photo,
+          listItems: spec.list_items ?? null,
+          quote: spec.quote ?? null,
+          attribution: spec.attribution ?? null,
+          bigStat: spec.big_stat ?? null,
         });
         mimeType = "image/png";
-        model = `${gen.model}+satori-${satoriArch}`;
+        model = `${modelTag}-${satoriArch}`;
       } else {
         // Other archetypes: the AI renders the whole designed graphic from the
         // full contract prompt (until those archetypes are built in Satori too).

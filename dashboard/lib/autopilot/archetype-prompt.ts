@@ -45,13 +45,18 @@ export type ArchetypeHeadlineLine = {
   style: "sans" | "italic-serif";
 };
 export type ArchetypeSpec = {
-  archetype: string; // e.g. "B", "D", "J2"
+  archetype: string; // canonical template key, e.g. "A_color_block_photo_split"
   eyebrow: { color: "red" | "navy" | "light-blue"; text: string };
   headline_lines: ArchetypeHeadlineLine[];
   body_copy: string;
   photo: { include: boolean; description: string };
   trust_element?: string | null;
   cta: { text: string };
+  // Per-archetype extras (only the relevant ones are filled):
+  list_items?: { number?: string | null; text: string }[] | null; // E (numbered list)
+  quote?: string | null; // D (testimonial)
+  attribution?: string | null; // D — e.g. "The Patel Family, Riverside"
+  big_stat?: string | null; // F/G/H — e.g. "78°F", "2009", "$99", "15+"
 };
 
 const ASPECT_LABEL: Record<string, string> = {
