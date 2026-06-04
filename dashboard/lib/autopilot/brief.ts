@@ -40,6 +40,7 @@ type KitRow = {
   tone: Record<string, unknown> | null;
   colors: Record<string, unknown> | null;
   photography_direction: string | null;
+  primary_platform: string | null;
 };
 
 const LOGO_TERMS_PATTERN =
@@ -68,7 +69,7 @@ export async function loadOrSynthesizeBrief(
   // Auto-synthesize from calendar + brand kit.
   const { data: kitData } = await admin
     .from("brand_kits")
-    .select("positioning, tone, colors, photography_direction")
+    .select("positioning, tone, colors, photography_direction, primary_platform")
     .eq("slug", post.brand_id)
     .maybeSingle();
   const kit = (kitData ?? null) as KitRow | null;
@@ -80,6 +81,19 @@ export async function loadOrSynthesizeBrief(
     ? stripLogoMentions(post.visual_direction)
     : post.concept ?? "";
 
+  // Default output dimensions per platform/post type: IG feed 4:5, reels/
+  // stories 9:16, LinkedIn 1:1. The panel shows this default and generation
+  // respects it (no longer hardcoded square).
+  const ptype = (post.post_type ?? "").toLowerCase();
+  const isVideo =
+    ptype.includes("reel") || ptype.includes("video") || ptype.includes("story");
+  const plat = (kit?.primary_platform ?? "instagram").toLowerCase();
+  const defaultAspect: "1:1" | "4:5" | "9:16" = isVideo
+    ? "9:16"
+    : plat === "linkedin" || plat === "facebook"
+      ? "1:1"
+      : "4:5";
+
   const brief: ImageBrief = {
     subject: subject.trim(),
     composition: undefined,
@@ -88,7 +102,7 @@ export async function loadOrSynthesizeBrief(
     style: kit?.photography_direction ?? undefined,
     palette: palette.length > 0 ? palette : undefined,
     text_overlay: null,
-    aspect_ratio: "1:1",
+    aspect_ratio: defaultAspect,
     notes: null,
   };
 
