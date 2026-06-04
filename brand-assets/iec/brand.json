@@ -106,7 +106,8 @@
     "IEC client adds the IEC logo MANUALLY to images \u2014 DO NOT use overlay_logo.py for IEC. Leave a clean top zone.",
     "Photo treatment when applicable: signature S-curve divider on the left edge of the photo column.",
     "TECHNICIAN UNIFORM (STRICT): IEC techs wear a SOLID NAVY short-sleeve POLO + dark navy work pants, with the circular IEC emblem on the BACK. ALWAYS shown from BEHIND or side profile, kneeling and actively working on a furnace or AC condenser (back to camera, face not visible). NEVER a light-blue/gray/white shirt, NEVER a collared button-up, NEVER any hat or cap, NEVER a front chest patch or text on clothing, NEVER front-facing or posed, NEVER a group/team lineup. Reference photos: photos/tech_back_logo_*.",
-    "Reels/videos/stories do NOT get a static design \u2014 the video is the deliverable."
+    "Reels/videos/stories do NOT get a static design \u2014 the video is the deliverable.",
+    "FULL-BLEED (STRICT): the design fills the entire canvas edge-to-edge. No outer margin/padding, no border or frame, no rounded outer corners, no drop shadow, no device/mockup frame, never a card floating on a separate background. The image IS the design, not a picture of a design."
   ],
   "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
   "_last_updated": "2026-05-23"
