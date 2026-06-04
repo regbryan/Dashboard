@@ -10,6 +10,7 @@ export const UNIVERSAL_NEGATIVE_RULES: string[] = [
   "DO NOT include random, irrelevant, or nonsensical objects (e.g. toys or clutter unrelated to the subject).",
   "Any text that appears must be real, correctly spelled words — never gibberish, garbled, or warped lettering. Keep on-image text minimal.",
   "DO NOT output a generic stock-photo look. The result should read as an intentionally designed, on-brand graphic.",
+  "CRITICAL: any vehicles, vans, uniforms, shirts, signage, buildings, or equipment in the scene MUST be plain and unbranded — NO invented company names, business names, slogans, or logos on them. Never make up a brand name. The real logo is composited in afterward.",
 ];
 
 export type CaptionFooterBlock = {
