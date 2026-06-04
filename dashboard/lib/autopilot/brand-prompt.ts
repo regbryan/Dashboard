@@ -127,12 +127,21 @@ export async function buildBrandImagePrompt(
         }. The image must feel unmistakably on-brand.`
       : "";
 
+  // Text rendering is where image models fail (garbled/misspelled words like
+  // "therosaot"). Give the model the EXACT copy to render, or tell it to stay
+  // text-free — never let it guess at words.
+  const overlay = (briefResult.brief.text_overlay ?? "").trim();
+  const textLine = overlay
+    ? `TEXT — CRITICAL: Render this text in the image spelled letter-for-letter EXACTLY as written, and add NO other words, labels, or captions: "${overlay}". Keep it clean, legible, and well-composed. Never misspell, abbreviate, or invent words.`
+    : `TEXT — CRITICAL: Do NOT place any headlines, labels, captions, or lettering in the image — keep it completely text-free. Never invent or guess at words (any copy is added later in a separate design step).`;
+
   const text = [
     `Generate a high-quality, polished social media image for ${brand.name} based on the JSON brief below.`,
     `Honor every field. Treat the negative constraints as hard rules.`,
     frameLine,
     `Aim for an intentionally designed, on-brand result: one clear focal subject, clean professional composition, balanced and full — no dead space, no sparse empty backdrops, no generic stock-photo clichés.`,
     colorLine,
+    textLine,
     "",
     "```json",
     JSON.stringify(envelope, null, 2),
