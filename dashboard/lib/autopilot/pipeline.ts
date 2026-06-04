@@ -3,13 +3,24 @@ import { supabaseAdmin } from "../supabase-admin";
 import { generateImage } from "./gemini";
 import { buildBrandImagePrompt, ensureBrandCaptionFooter } from "./brand-prompt";
 import { BRAND_CAPTION_FOOTERS } from "./brand-rules";
-import type { DesignMode } from "./brief";
+import type { DesignMode, ImageBrief } from "./brief";
 import {
   renderDesignedCard,
   renderPhotoOverlay,
   type DesignColors,
   type DesignFont,
 } from "./render-template";
+import {
+  loadBrandTemplate,
+  buildArchetypePrompt,
+  type ArchetypeSpec,
+} from "./archetype-prompt";
+import { synthesizeArchetypeSpec } from "./archetype-spec";
+
+// The pro image model used for template (archetype) brands. Isolated to this
+// path so a model/access issue can't break the generic flow. Override via env.
+const ARCHETYPE_IMAGE_MODEL =
+  process.env.GEMINI_IMAGE_MODEL_PRO || "gemini-3-pro-image-preview";
 
 const BUCKET = "post-images";
 
@@ -135,6 +146,10 @@ export async function generateBrandPost(
   const { width, height } = aspectToSize(aspect);
   const headline = (design.headline || post.concept || "").trim();
 
+  // Template brands (e.g. IEC) generate from their locked archetype contract.
+  const template = loadBrandTemplate(post.brand_id);
+  let specToPersist: ArchetypeSpec | null = null;
+
   const previousStatus = post.status ?? "not_started";
   await admin
     .from("posts")
@@ -153,7 +168,41 @@ export async function generateBrandPost(
   let model: string;
 
   try {
-    if (mode === "card") {
+    if (template) {
+      // ARCHETYPE PATH: build the prompt from the locked brand contract and
+      // let the pro image model render the full designed graphic. No logo, no
+      // Satori overlay — the contract enforces colors, layout, and hard rules.
+      let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
+      if (!spec) {
+        const s = await synthesizeArchetypeSpec(template, {
+          concept: post.concept,
+          content_pillar: post.content_pillar,
+          post_type: post.post_type,
+        });
+        if (!s.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: `spec synthesis: ${s.error}` };
+        }
+        spec = s.spec;
+      }
+      specToPersist = spec;
+      const archetypePrompt = buildArchetypePrompt(template, spec, {
+        aspectRatio: aspect,
+        platform: "Instagram",
+      });
+      const gen = await generateImage({
+        prompt: archetypePrompt,
+        aspectRatio: aspect,
+        model: ARCHETYPE_IMAGE_MODEL,
+      });
+      if (!gen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: gen.error };
+      }
+      bytes = gen.bytes;
+      mimeType = gen.mimeType;
+      model = `${gen.model}+archetype`;
+    } else if (mode === "card") {
       const ctx = await loadDesignContext(post.brand_id);
       bytes = await renderDesignedCard({
         width,
@@ -224,14 +273,25 @@ export async function generateBrandPost(
 
   const nextCaption = ensureBrandCaptionFooter(post.brand_id, post.caption);
 
+  const updatePayload: Record<string, unknown> = {
+    file_path: filePath,
+    caption: nextCaption,
+    status: "in_review",
+    updated_at: new Date().toISOString(),
+  };
+  // Persist the archetype spec so a future regenerate is reproducible and the
+  // operator can edit it in the brief panel.
+  if (specToPersist) {
+    const nextBrief: ImageBrief = {
+      ...brief,
+      design: { ...(brief.design ?? {}), archetypeSpec: specToPersist },
+    };
+    updatePayload.image_brief = nextBrief;
+  }
+
   const { error: updateErr } = await admin
     .from("posts")
-    .update({
-      file_path: filePath,
-      caption: nextCaption,
-      status: "in_review",
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", post.id);
   if (updateErr) {
     return {

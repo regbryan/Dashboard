@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "../supabase-admin";
+import type { ArchetypeSpec } from "./archetype-prompt";
 
 // Structured image-generation brief. This is what gets sent to Gemini as
 // the JSON portion of the prompt. Stored on posts.image_brief so users
@@ -21,6 +22,10 @@ export type PostDesign = {
   eyebrow?: string | null;
   headline?: string | null;
   rows?: DesignRow[];
+  // For template brands (e.g. IEC): the chosen archetype + structured copy used
+  // to build the contract prompt. Persisted so a regenerate is reproducible and
+  // the operator can edit it in the brief panel.
+  archetypeSpec?: ArchetypeSpec | null;
 };
 
 export type ImageBrief = {
