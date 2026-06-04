@@ -2,7 +2,6 @@ import "server-only";
 import { supabaseAdmin } from "../supabase-admin";
 import { loadOrSynthesizeBrief, type ImageBrief } from "./brief";
 import { BRAND_CAPTION_FOOTERS, UNIVERSAL_NEGATIVE_RULES } from "./brand-rules";
-import { stripEmDashes } from "./sanitize-copy";
 
 // Builds the Gemini image-gen input from a structured JSON brief layered on
 // top of the brand kit. Everything the model sees is inspectable here —
@@ -102,6 +101,9 @@ export async function buildBrandImagePrompt(
       no_watermark: true,
       no_footer_band: true,
       no_brand_name_text: true,
+      // Hard rule: the model never draws text. All copy is composited later
+      // in real fonts via Satori, so the image must be entirely text-free.
+      no_text: true,
     },
     negative: [
       ...UNIVERSAL_NEGATIVE_RULES,
@@ -129,12 +131,12 @@ export async function buildBrandImagePrompt(
       : "";
 
   // Text rendering is where image models fail (garbled/misspelled words like
-  // "therosaot"). Give the model the EXACT copy to render, or tell it to stay
-  // text-free — never let it guess at words.
-  const overlay = stripEmDashes((briefResult.brief.text_overlay ?? "").trim());
-  const textLine = overlay
-    ? `TEXT — CRITICAL: Render this text in the image spelled letter-for-letter EXACTLY as written, and add NO other words, labels, or captions: "${overlay}". Keep it clean, legible, and well-composed. Never misspell, abbreviate, or invent words.`
-    : `TEXT — CRITICAL: Do NOT place any headlines, labels, captions, or lettering in the image — keep it completely text-free. Never invent or guess at words (any copy is added later in a separate design step).`;
+  // "therosaot", "for hr optimal"). They CANNOT be trusted to spell — so we
+  // never let them draw text at all. Every word on the final image is rendered
+  // later in real fonts via Satori (renderPhotoOverlay / renderDesignedCard),
+  // driven by the JSON brief. The model's only job is clean, text-free imagery.
+  const textLine =
+    `TEXT — CRITICAL: Do NOT place ANY text in the image — no headlines, labels, captions, callout boxes, signs, badges, numbers, letters, or lettering of any kind. The image must be completely text-free. All copy is composited later in a separate design step. Do NOT invent or guess at words.`;
 
   const text = [
     `Generate a high-quality, polished social media image for ${brand.name} based on the JSON brief below.`,
