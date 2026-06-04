@@ -1,0 +1,77 @@
+{
+  "_engine": "blitz",
+  "_meta": {
+    "name": "Blitz Organization Instagram Template",
+    "brand": "Blitz Organization (@blitzyourspace) — professional home organizing, El Dorado Hills / Sacramento",
+    "usage": "Soft, feminine, calming, photo-first. Dusty rose + sage + warm beige on white. CASUAL SCRIPT hook (handwritten-note feel) paired with LIGHT clean sans for info. Airy — lots of breathing room. Warm-encourager voice, question-driven, never shaming. Logo is composited on top later (keep a calm corner)."
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "rose": "#ECB7B9",
+    "sage": "#9CAF9C",
+    "beige": "#DAD6CF",
+    "cream": "#FBF8F4",
+    "white": "#FFFFFF",
+    "charcoal": "#595959",
+    "color_roles": {
+      "#ECB7B9": "Dusty rose — the signature Blitz accent. Pills, banners, soft CTA buttons, list markers, quote backgrounds. The single most distinctive color; always present somewhere.",
+      "#9CAF9C": "Sage green — organic secondary. Alternate markers, dividers, soft panels that pair with the rose.",
+      "#DAD6CF": "Warm beige — soft neutral background panel, card fill, photo overlay band. Warmer than white for a lived-in feel.",
+      "#FBF8F4": "Warm cream — primary airy background for text cards (softer than pure white).",
+      "#FFFFFF": "White — clean background, breathing room.",
+      "#595959": "Charcoal gray — all headline + body text. Never pure black."
+    },
+    "FORBIDDEN": ["navy", "red", "bright/neon colors", "electric blue (that's CSC)", "patriotic palette (that's IEC)", "elegant formal calligraphy (that's Omega — Blitz script is CASUAL/handwritten)", "heavy bold ALL-CAPS headline dominance", "dark/moody backgrounds"]
+  },
+
+  "BRAND": {
+    "name": "Blitz Organization",
+    "short": "Blitz",
+    "tagline": "DESIGN | ORGANIZE | RELOCATE",
+    "market": "busy moms / parents in El Dorado Hills & Sacramento; people moving or downsizing",
+    "voice": "Warm encourager + question-driven + practical tipster + calm confidence. Like a supportive friend who organizes your pantry without making you feel bad about the mess. Never shaming, never hard-sell.",
+    "logo_usage": "Stylized B monogram + BLITZ ORGANIZATION wordmark is composited ON TOP afterward — never generated. Keep a calm, uncluttered corner (top-center or bottom) with breathing room for it."
+  },
+
+  "FORMAT": { "platform": "Instagram feed", "aspect_ratio": "4:5 portrait", "native_size": "1080x1350" },
+
+  "TYPOGRAPHY": {
+    "script": "CASUAL handwritten script (Caveat / Sacramento style — a friendly note, NOT formal calligraphy). Carries the EMOTION: hook words, question starters, emotional phrases ('Maximize', 'Dear busy mom', 'What if…').",
+    "sans": "LIGHT/regular clean sans (Montserrat). Carries the INFORMATION: subheads, body, list items, CTAs. Never heavy-bold-shouting.",
+    "rule": "Script for emotion, light sans for info. Exactly ONE short script hook per design; everything else light sans. NO serif (that's Omega/IEC). NO heavy bold all-caps dominance.",
+    "eyebrow": "Small dusty-rose pill, charcoal or white spaced sans label."
+  },
+
+  "ARCHETYPES": {
+    "A_photo_hero": {
+      "description": "PRIMARY. A bright, airy photograph of a beautifully ORGANIZED SPACE (pantry, closet, drawer, shelves — clear bins, labeled jars, matching baskets) fills most of the frame. A soft dusty-rose or cream band carries a script hook + light-sans subhead + soft CTA. Warm natural light, breathing room.",
+      "when_to_use": "DEFAULT — portfolio reveals, 'before/after' after-shots, aspirational organized spaces, most posts"
+    },
+    "C_soft_listicle": {
+      "description": "Cream or beige airy background. Dusty-rose pill, a script hook headline, then 3-4 short tips each marked with a SOFT small rose/sage dot or thin ring (never heavy filled circles) + light-sans text. Generous white space.",
+      "when_to_use": "Educational tips — 'X ways to…', pantry/garage/closet steps, maintenance advice"
+    },
+    "D_question_card": {
+      "description": "Cream or white airy background. A large CASUAL SCRIPT question or empathetic hook ('How does clutter affect your mental health?', 'Dear busy mom…') + a short light-sans supporting line + a soft CTA. Lots of breathing room. Optional small lifestyle accent.",
+      "when_to_use": "Question hooks and empathetic/relational posts ('Dear busy mom'), fun facts"
+    },
+    "G_testimonial": {
+      "description": "Soft dusty-rose or beige field. A light quotation mark or small script flourish, a light-sans client quote, and a small charcoal attribution. Calm and warm.",
+      "when_to_use": "Client love / social proof / transformation testimonials"
+    }
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "Dusty rose #ECB7B9 is the signature accent and must appear somewhere on every design (pill, band, marker, or CTA).",
+    "Palette is dusty rose + sage + warm beige + cream/white + charcoal. NO navy, NO red, NO bright/neon colors.",
+    "Script (CASUAL handwritten) carries emotion; LIGHT clean sans carries information. Exactly one short script hook per design. NO serif. NO heavy bold ALL-CAPS dominance.",
+    "Airy and calm: generous white space, layouts breathe, text is never crammed.",
+    "Warm-encourager tone: never shaming, never 'messy/dirty/disaster/hoarder', never hard-sell ('BOOK NOW!'). Soft CTAs only ('save this', 'follow for more', 'DM us', 'let's get started').",
+    "PHOTOS are of organized SPACES and soft lifestyle objects (clear bins, labeled jars, baskets, flowers on a stool) in warm natural light — NEVER fake named people (the real Blitz team can't be fabricated).",
+    "DO NOT bake the logo or wordmark into the image — it is composited on top afterward. Keep a calm, uncluttered corner with breathing room for it.",
+    "FULL-BLEED: fills the canvas edge-to-edge; no outer border/frame/rounded-corners/floating card.",
+    "Render every word crisply and correctly spelled."
+  ],
+
+  "GLOBAL_NEGATIVE_PROMPT": "navy, red, bright colors, neon, electric blue, bold all-caps headline, formal calligraphy, serif font, dark moody background, cluttered busy layout, text cramming, people, faces, person, hands, fake named staff, shaming language, messy before-shot, harsh fluorescent light, corporate office stock, logo, wordmark, watermark, border, outer frame, rounded outer corners, drop shadow, floating card, misspelled or garbled text"
+}
