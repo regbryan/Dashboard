@@ -70,9 +70,11 @@ export async function buildBrandImagePrompt(
   const platform = (brand.platform ?? "instagram").toLowerCase();
 
   // Output dimensions per platform/post type — IG feed 4:5, reels/stories
-  // 9:16, LinkedIn 1:1. Only override a synthesized brief; respect an explicit
-  // aspect a user saved on the brief.
-  if (!briefResult.saved) {
+  // 9:16, LinkedIn 1:1. The brief default is 1:1 AND the brief panel saves that
+  // before generating, so we must correct a missing/square aspect even on a
+  // saved brief. An explicitly-chosen non-square aspect (4:5/9:16/16:9) is kept.
+  const current = briefResult.brief.aspect_ratio;
+  if (!current || current === "1:1") {
     briefResult.brief.aspect_ratio = chooseAspectRatio(platform, isVideoCover);
   }
 
