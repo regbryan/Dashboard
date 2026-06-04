@@ -101,7 +101,10 @@ export async function loadOrSynthesizeBrief(
     mood: moodKeywords.length > 0 ? moodKeywords.join(", ") : undefined,
     style: kit?.photography_direction ?? undefined,
     palette: palette.length > 0 ? palette : undefined,
-    text_overlay: null,
+    // Auto-fill the on-image headline from the post's concept so the operator
+    // doesn't retype it. The prompt renders text_overlay verbatim; clear it in
+    // the panel for photo-only posts.
+    text_overlay: post.concept ? post.concept.trim() : null,
     aspect_ratio: defaultAspect,
     notes: null,
   };
