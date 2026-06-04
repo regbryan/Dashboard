@@ -75,7 +75,15 @@ export default async function BrandDetailPage({
   const defaultMonth = now.getUTCMonth() + 1;
   const todayIso = now.toISOString().slice(0, 10);
 
-  const gridPosts = filteredPosts.map((post) => ({
+  // Designs tab leads with the most recently generated/updated posts so freshly
+  // generated work is at the top — no scrolling to find what you just made.
+  // (ISO timestamps sort lexically; missing timestamps sink to the bottom.)
+  // The calendar tab keeps its own chronological order — this sort is local.
+  const recentFirst = [...filteredPosts].sort((a, b) =>
+    (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
+  );
+
+  const gridPosts = recentFirst.map((post) => ({
     id: String(post.id),
     concept: post.concept ?? "",
     date: post.date ?? "",
