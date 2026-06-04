@@ -69,6 +69,13 @@ export async function buildBrandImagePrompt(
 
   const platform = (brand.platform ?? "instagram").toLowerCase();
 
+  // Output dimensions per platform/post type — IG feed 4:5, reels/stories
+  // 9:16, LinkedIn 1:1. Only override a synthesized brief; respect an explicit
+  // aspect a user saved on the brief.
+  if (!briefResult.saved) {
+    briefResult.brief.aspect_ratio = chooseAspectRatio(platform, isVideoCover);
+  }
+
   // The structured envelope sent to Gemini. Plain JSON. Each field is what
   // the user sees and edits in the ImageBriefPanel — plus brand context
   // that's pulled from brand_kit so it stays current automatically.
@@ -183,6 +190,21 @@ function readToneKeywords(tone: Record<string, unknown> | null | undefined): str
   const kw = (tone as { keywords?: unknown }).keywords;
   if (!Array.isArray(kw)) return [];
   return kw.filter((k) => typeof k === "string").slice(0, 6) as string[];
+}
+
+/**
+ * Correct output dimensions per platform/post type:
+ *   - Reels / Stories / video covers → 9:16 vertical
+ *   - LinkedIn / Facebook feed → 1:1 square
+ *   - Instagram / TikTok feed image → 4:5 portrait (IG-recommended)
+ */
+function chooseAspectRatio(
+  platform: string,
+  isVideoCover: boolean
+): "1:1" | "4:5" | "9:16" {
+  if (isVideoCover) return "9:16";
+  if (platform === "linkedin" || platform === "facebook") return "1:1";
+  return "4:5";
 }
 
 export function ensureBrandCaptionFooter(

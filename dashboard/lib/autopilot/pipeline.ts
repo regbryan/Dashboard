@@ -65,7 +65,13 @@ export async function generateBrandPost(
     .update({ status: "generating", updated_at: new Date().toISOString() })
     .eq("id", post.id);
 
-  const gen = await generateImage({ prompt, aspectRatio: "1:1" });
+  // Aspect ratio comes from the brief, which buildBrandImagePrompt sets per
+  // platform/post type (IG feed 4:5, reels 9:16, LinkedIn 1:1) — no longer
+  // hardcoded square.
+  const gen = await generateImage({
+    prompt,
+    aspectRatio: promptResult.brief.aspect_ratio ?? "1:1",
+  });
   if (!gen.ok) {
     await admin
       .from("posts")
