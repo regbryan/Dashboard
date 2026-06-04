@@ -190,11 +190,24 @@ export async function generateBrandPost(
         aspectRatio: aspect,
         platform: "Instagram",
       });
-      const gen = await generateImage({
+      let gen = await generateImage({
         prompt: archetypePrompt,
         aspectRatio: aspect,
         model: ARCHETYPE_IMAGE_MODEL,
       });
+      if (!gen.ok) {
+        // Pro model unavailable (wrong id / no access / quota). Log it and
+        // fall back to the flash image model so the post still generates from
+        // the same contract prompt (slightly higher text-garble risk).
+        console.error(
+          `[archetype] pro model ${ARCHETYPE_IMAGE_MODEL} failed (${gen.error}); falling back to gemini-2.5-flash-image`
+        );
+        gen = await generateImage({
+          prompt: archetypePrompt,
+          aspectRatio: aspect,
+          model: "gemini-2.5-flash-image",
+        });
+      }
       if (!gen.ok) {
         await revert();
         return { ok: false, postId: post.id, error: gen.error };

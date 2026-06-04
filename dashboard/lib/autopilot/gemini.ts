@@ -73,6 +73,9 @@ export async function generateImage(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    // Surface the exact Google API error (model not found, no access, quota /
+    // out-of-tokens, etc.) in the serverless logs for diagnosis.
+    console.error(`[gemini] image model "${model}" -> HTTP ${res.status}: ${text.slice(0, 400)}`);
     return {
       ok: false,
       error: `Gemini ${res.status}: ${text.slice(0, 500)}`,
