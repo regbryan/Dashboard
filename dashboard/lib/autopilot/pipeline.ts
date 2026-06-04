@@ -1,4 +1,6 @@
 import "server-only";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { supabaseAdmin } from "../supabase-admin";
 import { generateImage } from "./gemini";
 import { buildBrandImagePrompt, ensureBrandCaptionFooter } from "./brand-prompt";
@@ -8,7 +10,17 @@ import {
   renderDesignedCard,
   renderPhotoOverlay,
   type DesignColors,
+  type DesignFont,
 } from "./render-template";
+
+const LOGO_DIR = path.join(process.cwd(), "lib", "autopilot", "brand-logos");
+function loadBrandLogo(slug: string): Buffer | null {
+  try {
+    return readFileSync(path.join(LOGO_DIR, `${slug}.png`));
+  } catch {
+    return null;
+  }
+}
 
 const BUCKET = "post-images";
 
@@ -54,10 +66,13 @@ function parsePhone(text: string | undefined): string | undefined {
   return m ? m[1] : undefined;
 }
 
-/** Brand colors + CTA used by the Satori designed/overlay render. */
-async function loadDesignContext(
-  brandId: string
-): Promise<{ colors: DesignColors; cta: { name?: string; phone?: string; website?: string } }> {
+/** Brand colors + CTA + logo + display font used by the Satori render. */
+async function loadDesignContext(brandId: string): Promise<{
+  colors: DesignColors;
+  cta: { name?: string; phone?: string; website?: string };
+  logo: Buffer | null;
+  displayFont: DesignFont;
+}> {
   const admin = supabaseAdmin();
   const { data: brand } = await admin
     .from("brands")
@@ -66,7 +81,7 @@ async function loadDesignContext(
     .maybeSingle();
   const { data: kit } = await admin
     .from("brand_kits")
-    .select("colors, website_url")
+    .select("colors, website_url, fonts")
     .eq("slug", brandId)
     .maybeSingle();
 
@@ -80,6 +95,14 @@ async function loadDesignContext(
       ? (raw.palette.filter((x) => typeof x === "string") as string[])
       : null,
   };
+
+  // Serif (Playfair) for elegant brands; condensed (Oswald) otherwise.
+  const fontStr = JSON.stringify((kit as { fonts?: unknown })?.fonts ?? {}).toLowerCase();
+  const displayFont: DesignFont =
+    fontStr.includes("serif") || fontStr.includes("playfair") || brandId === "omega" || brandId === "stephanie"
+      ? "serif"
+      : "condensed";
+
   return {
     colors,
     cta: {
@@ -87,6 +110,8 @@ async function loadDesignContext(
       phone: parsePhone(BRAND_CAPTION_FOOTERS[brandId]?.text),
       website: formatWebsite(kit?.website_url as string | null | undefined),
     },
+    logo: loadBrandLogo(brandId),
+    displayFont,
   };
 }
 
@@ -151,6 +176,8 @@ export async function generateBrandPost(
         headline,
         rows: design.rows ?? [],
         cta: ctx.cta,
+        displayFont: ctx.displayFont,
+        logo: ctx.logo,
       });
       mimeType = "image/png";
       model = "satori-card";
@@ -170,6 +197,8 @@ export async function generateBrandPost(
           eyebrow: design.eyebrow ?? post.content_pillar,
           headline,
           cta: ctx.cta,
+          displayFont: ctx.displayFont,
+          logo: ctx.logo,
         });
         mimeType = "image/png";
         model = `${gen.model}+satori-overlay`;
