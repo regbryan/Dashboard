@@ -98,11 +98,13 @@ export function buildPhotoPrompt(template: BrandTemplate, spec: ArchetypeSpec): 
     r.startsWith("TECHNICIAN UNIFORM")
   );
   const scene = spec.photo?.description?.trim() || "a clean, on-brand lifestyle photo relevant to the topic";
+  const mentionsTech = /technician|tech\b|worker|crew|repair|service call/i.test(scene);
   return [
     `A single photorealistic PHOTOGRAPH only. ABSOLUTELY NO text, letters, numbers, words, captions, logos, watermarks, badges, signs, or graphic overlays of any kind anywhere in the image — a clean photo, nothing else. Fill the entire frame edge-to-edge; no border, frame, or margin.`,
     `Scene: ${scene}`,
-    uniform ? `If a technician appears: ${uniform}` : "",
-    `Natural light, professional, photorealistic. Not a stock-photo cliché. No people posing for the camera.`,
+    `Do NOT add any workers, technicians, or people unless the scene above explicitly describes them. Prefer a beautiful, magazine-quality scene.`,
+    mentionsTech && uniform ? uniform : "",
+    `Natural light, professional, photorealistic. Not a stock-photo cliché. No one posing for the camera.`,
   ]
     .filter(Boolean)
     .join("\n");
