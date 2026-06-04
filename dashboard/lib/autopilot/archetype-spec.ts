@@ -23,17 +23,6 @@ export type SynthSpecResult =
   | { ok: true; spec: ArchetypeSpec }
   | { ok: false; error: string };
 
-// Archetypes we render deterministically (code) — the selector only picks these.
-const SUPPORTED = new Set(["A", "C", "D", "E", "F", "G", "H"]);
-
-function archetypeCatalog(template: BrandTemplate): string {
-  const a = template.ARCHETYPES ?? {};
-  return Object.entries(a)
-    .filter(([key]) => SUPPORTED.has(key.split("_")[0].toUpperCase()))
-    .map(([key, v]) => `  ${key}: ${v.description ?? ""}${v.when_to_use ? ` (use for: ${v.when_to_use})` : ""}`)
-    .join("\n");
-}
-
 /**
  * Resolve the model's archetype choice to a real template key. Template keys are
  * full names like "A_color_block_photo_split"; the model may return the full key
@@ -49,6 +38,42 @@ function resolveArchetypeKey(template: BrandTemplate, chosen: string): string | 
   // Leading code match: "A" -> "A_color_block_photo_split", "J2" -> "J2_myth_busted_cutout".
   hit = keys.find((k) => k.split("_")[0].toUpperCase() === c);
   return hit ?? null;
+}
+
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+// Deterministic archetype choice by content pillar — guarantees variety across
+// a month instead of the model defaulting to the photo layouts (A/C).
+function pickArchetypeLetter(pillar: string | null, concept: string | null): string {
+  const p = (pillar ?? "").toLowerCase();
+  if (/(community|trust|review|testimon|spotlight|customer)/.test(p)) return "D";
+  if (/(education|maintenance|tips?|how[- ]to|guide|checklist|signs?|myth)/.test(p)) return "E";
+  if (/(sustainab|efficiency|energy|saving|lower|bill|cost)/.test(p)) return "G";
+  if (/(story|family|founder|about|values|history|years)/.test(p)) return "H";
+  // Promos / awareness / seasonal / everything else → photo layouts; alternate
+  // A vs C by a concept hash so two promos in a row don't look identical.
+  return hashStr(concept ?? p) % 2 === 0 ? "A" : "C";
+}
+
+function dataInstruction(letter: string, market: string): string {
+  switch (letter) {
+    case "D":
+      return `This is a TESTIMONIAL card. Fill "quote" (a realistic 1-2 sentence customer quote, ${market} homeowner voice) and "attribution" (e.g. "The Patel Family, Riverside"). headline_lines: a short 2-line lead-in (e.g. the gist of the review) is fine. photo.include MUST be false.`;
+    case "E":
+      return `This is a NUMBERED LIST. Fill "list_items" with EXACTLY 3 objects { "number": "1|2|3", "text": "<short, specific item>" }. headline_lines = the list's title (2-3 lines). photo.include MUST be false.`;
+    case "F":
+      return `This is a BIG-NUMBER hero. Fill "big_stat" with the single hero number/stat (<=5 chars, e.g. "$99", "0%", "24/7"). headline_lines = the supporting line. photo.include MUST be false.`;
+    case "G":
+      return `This is a BIG-STAT card. Fill "big_stat" with the hero number (<=5 chars, e.g. "78°F", "30%"). headline_lines = the supporting line. photo.include MUST be false.`;
+    case "H":
+      return `This is a BRAND-STORY. Fill "big_stat" with a year or number (<=5 chars, e.g. "2009", "15+"). headline_lines = the supporting line. photo.include MUST be false.`;
+    default:
+      return `This uses a PHOTO. Set photo.include = true and describe the scene per the photo rules below. Leave quote/list_items/big_stat empty.`;
+  }
 }
 
 export async function synthesizeArchetypeSpec(
@@ -67,42 +92,34 @@ export async function synthesizeArchetypeSpec(
     ? (brand.trust_marks as string[]).join("; ")
     : "";
 
+  const market = (brand.market as string) ?? "the local area";
+  // Archetype is chosen deterministically (by content pillar) for guaranteed
+  // variety — the model only writes the copy/data for that archetype.
+  const forcedLetter = pickArchetypeLetter(post.content_pillar, post.concept);
+  const forcedKey = resolveArchetypeKey(template, forcedLetter) ?? forcedLetter;
+  const archDesc = template.ARCHETYPES?.[forcedKey]?.description ?? "";
+
   const instruction = [
     `You are a senior brand designer for ${brand.name ?? "the brand"}. Voice: ${voice}.`,
-    `Turn the calendar post below into ONE structured design spec for a single social graphic.`,
+    `Write the copy for ONE social graphic. The LAYOUT (archetype) is already chosen for you below — do NOT change it; just fill its copy.`,
     ``,
     `POST:`,
     `- concept: ${post.concept ?? ""}`,
     `- content pillar: ${post.content_pillar ?? ""}`,
     `- post type: ${post.post_type ?? ""}`,
     ``,
-    `Choose the single best ARCHETYPE (return just its letter, e.g. "A") from this catalog:`,
-    archetypeCatalog(template),
-    ``,
-    `PICK FOR VARIETY — match the archetype to the content so a month of posts looks different, not all the same:`,
-    `- Customer reviews / social proof / trust → D (testimonial card).`,
-    `- Tips, checklists, warning signs, "X things" → E (numbered list, 3 items).`,
-    `- Efficiency / temperature / money stats → G (big-number stat card).`,
-    `- A financing offer, percentage, or "X years" milestone → F (big red number hero).`,
-    `- Founder story, family-owned, values, "since 2009" → H (brand story, huge year).`,
-    `- Seasonal promos / educational scenes that benefit from a real photo → A or C.`,
-    `Prefer a text-only archetype (D/E/F/G/H) when the message stands on its own — they are cleaner and add variety.`,
+    `ARCHETYPE (fixed): ${forcedLetter} — ${archDesc}`,
+    dataInstruction(forcedLetter, market),
     ``,
     `RULES:`,
     `- The headline mixes BOLD SANS lines with exactly 1-2 ITALIC-SERIF emphasis words/phrase (a short emotional or temporal phrase). 2-3 short lines.`,
     `- Body copy: 1-3 short sentences in the brand voice. No hype, no pressure.`,
     `- CTA text is overridden in code with the phone; just return "CALL ${IMAGE_PHONE}".`,
     `- Trust element (optional): pick from — ${trustMarks || "a 5-star review line"}.`,
-    `- PER-ARCHETYPE DATA (fill ONLY the one for your chosen archetype):`,
-    `   • D → "quote" (the customer's words, 1-2 sentences) and "attribution" (e.g. "The Patel Family, Riverside").`,
-    `   • E → "list_items": exactly 3 objects { "number": "1|2|3", "text": "<short item>" }.`,
-    `   • F, G, or H → "big_stat": the single hero number/stat/year (e.g. "78°F", "$99", "2009", "15+"). Keep it SHORT (<=5 chars).`,
-    `- Photo: ONLY A and C use a photo (include=true). All of D/E/F/G/H set photo.include=false. If include=true, describe a photorealistic scene. PEOPLE allowed (a homeowner, a single technician working) but NEVER a posed team/crew lineup.`,
-    `- If the photo shows an IEC technician: a single technician in a SOLID NAVY short-sleeve polo + dark navy work pants, shown FROM BEHIND or side profile, kneeling and actively working on a furnace or AC condenser — back to camera, face not visible, NO hat, NO logo/text on clothing.`,
+    `- If photo.include is true and it shows an IEC technician: a single technician in a SOLID NAVY short-sleeve polo + dark navy work pants, shown FROM BEHIND or side profile, kneeling and actively working on a furnace or AC condenser — back to camera, face not visible, NO hat, NO logo/text on clothing. NEVER a posed team/crew lineup.`,
     ``,
-    `Return ONLY a JSON object with this exact shape (include only the per-archetype field you filled):`,
+    `Return ONLY a JSON object with this exact shape (fill only the field(s) the archetype needs):`,
     `{`,
-    `  "archetype": "<letter from the catalog>",`,
     `  "eyebrow": { "color": "red" | "navy" | "light-blue", "text": "<ALL CAPS short label>" },`,
     `  "headline_lines": [ { "text": "<line>", "style": "sans" | "italic-serif" } ],`,
     `  "body_copy": "<1-3 sentences>",`,
@@ -151,14 +168,8 @@ export async function synthesizeArchetypeSpec(
     return { ok: false, error: "gemini spec was not valid JSON" };
   }
 
-  // Validate + normalize, forcing the phone rule deterministically.
-  const archetype = resolveArchetypeKey(
-    template,
-    typeof parsed.archetype === "string" ? parsed.archetype : ""
-  );
-  if (!archetype) {
-    return { ok: false, error: `gemini chose an unknown archetype: ${String(parsed.archetype)}` };
-  }
+  // Archetype was chosen deterministically (forcedKey) — the model only wrote copy.
+  const archetype = forcedKey;
   const lines = Array.isArray(parsed.headline_lines)
     ? parsed.headline_lines
         .filter((l): l is { text: string; style: "sans" | "italic-serif" } =>
