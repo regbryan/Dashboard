@@ -3,6 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type DesignMode = "ai" | "card" | "photo";
+type DesignRow = { label?: string | null; text: string };
+type DesignShape = {
+  mode?: DesignMode;
+  eyebrow?: string | null;
+  headline?: string | null;
+  rows?: DesignRow[];
+};
 type BriefShape = {
   subject?: string;
   composition?: string | null;
@@ -13,7 +21,23 @@ type BriefShape = {
   text_overlay?: string | null;
   aspect_ratio?: "1:1" | "4:5" | "9:16" | "16:9";
   notes?: string | null;
+  design?: DesignShape;
 };
+
+function rowsToText(rows: DesignRow[] | undefined): string {
+  return (rows ?? []).map((r) => (r.label ? `${r.label}: ${r.text}` : r.text)).join("\n");
+}
+function textToRows(text: string): DesignRow[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const i = line.indexOf(":");
+      if (i > 0 && i < 24) return { label: line.slice(0, i).trim(), text: line.slice(i + 1).trim() };
+      return { text: line };
+    });
+}
 
 const PANEL_BG = "#0f0f1a";
 const PANEL_BORDER = "1px solid #1a1a2e";
@@ -245,6 +269,66 @@ export default function ImageBriefPanel({ postId }: { postId: number }) {
                 <option value="16:9">16:9 (landscape)</option>
               </select>
             </label>
+          </div>
+
+          {/* Design mode — AI photo, full Satori card, or photo + text overlay */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              marginTop: "4px",
+              paddingTop: "14px",
+              borderTop: "1px solid #1a1a2e",
+            }}
+          >
+            <label style={{ fontSize: "12px", color: LABEL, display: "flex", alignItems: "center", gap: "8px" }}>
+              Design mode
+              <select
+                value={brief.design?.mode ?? "ai"}
+                onChange={(e) =>
+                  setBrief({ ...brief, design: { ...brief.design, mode: e.target.value as DesignMode } })
+                }
+                style={{
+                  background: "#1a1a2e",
+                  color: VALUE,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "6px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                }}
+              >
+                <option value="ai">AI photo (no overlay)</option>
+                <option value="card">Designed card (no photo)</option>
+                <option value="photo">Photo + text overlay</option>
+              </select>
+            </label>
+            {(brief.design?.mode ?? "ai") !== "ai" && (
+              <>
+                <Field
+                  label="Eyebrow"
+                  value={brief.design?.eyebrow ?? ""}
+                  onChange={(v) => setBrief({ ...brief, design: { ...brief.design, eyebrow: v || null } })}
+                  placeholder="e.g. Pro Tip"
+                />
+                <Field
+                  label="Headline"
+                  value={brief.design?.headline ?? ""}
+                  onChange={(v) => setBrief({ ...brief, design: { ...brief.design, headline: v || null } })}
+                />
+                {brief.design?.mode === "card" && (
+                  <Field
+                    label={'Rows (one per line, "Label: text")'}
+                    value={rowsToText(brief.design?.rows)}
+                    onChange={(v) => setBrief({ ...brief, design: { ...brief.design, rows: textToRows(v) } })}
+                    multiline
+                  />
+                )}
+                <p style={{ fontSize: "11px", color: MUTED }}>
+                  Brand colors and the CTA (name, phone, website) are added automatically from the brand kit.
+                </p>
+              </>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "8px" }}>

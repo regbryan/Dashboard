@@ -21,7 +21,16 @@ const nextConfig: NextConfig = {
     "@remotion/compositor-darwin-arm64",
     "@remotion/compositor-win32-x64-msvc",
     "esbuild",
+    // Native binaries — keep as runtime require()s, don't bundle.
+    "@resvg/resvg-js",
+    "sharp",
   ],
+  // The Satori designed-graphic render reads bundled .woff fonts at runtime;
+  // force them into the serverless functions that call generateBrandPost.
+  outputFileTracingIncludes: {
+    "/api/posts/[id]/regenerate": ["./lib/autopilot/fonts/**"],
+    "/api/cron/autopilot-generate": ["./lib/autopilot/fonts/**"],
+  },
 };
 
 // Wrap with Sentry so errors auto-ship to the configured project.

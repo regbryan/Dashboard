@@ -10,6 +10,19 @@ import { supabaseAdmin } from "../supabase-admin";
 // First time the user opens the panel, they see the auto-synthesized brief,
 // can edit, save (PATCH), then click Generate.
 
+// How the final image is produced:
+//   "ai"    — nano banana photo only (default, original behavior)
+//   "card"  — full Satori designed card (no photo), perfect text
+//   "photo" — nano banana photo + Satori headline/CTA overlay composited
+export type DesignMode = "ai" | "card" | "photo";
+export type DesignRow = { label?: string | null; text: string };
+export type PostDesign = {
+  mode?: DesignMode;
+  eyebrow?: string | null;
+  headline?: string | null;
+  rows?: DesignRow[];
+};
+
 export type ImageBrief = {
   subject: string;
   composition?: string;
@@ -23,6 +36,8 @@ export type ImageBrief = {
   aspect_ratio?: "1:1" | "4:5" | "9:16" | "16:9";
   // Free-text notes the human added — preserved verbatim into the prompt.
   notes?: string | null;
+  // Designed-graphic spec (Satori render). Defaults to mode "ai" = no change.
+  design?: PostDesign;
 };
 
 type PostRow = {
@@ -107,6 +122,14 @@ export async function loadOrSynthesizeBrief(
     text_overlay: post.concept ? post.concept.trim() : null,
     aspect_ratio: defaultAspect,
     notes: null,
+    // Default design = "ai" (no change); headline/eyebrow pre-filled so the
+    // operator can flip to a designed card or photo-overlay in one click.
+    design: {
+      mode: "ai",
+      eyebrow: post.content_pillar ?? null,
+      headline: post.concept ? post.concept.trim() : null,
+      rows: [],
+    },
   };
 
   return { ok: true, brief, saved: false };
