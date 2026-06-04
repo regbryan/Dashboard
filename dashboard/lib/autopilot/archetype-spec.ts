@@ -30,6 +30,23 @@ function archetypeCatalog(template: BrandTemplate): string {
     .join("\n");
 }
 
+/**
+ * Resolve the model's archetype choice to a real template key. Template keys are
+ * full names like "A_color_block_photo_split"; the model may return the full key
+ * OR just the leading code ("A", "J2"). Returns the canonical key or null.
+ */
+function resolveArchetypeKey(template: BrandTemplate, chosen: string): string | null {
+  const keys = Object.keys(template.ARCHETYPES ?? {});
+  const c = chosen.trim().toUpperCase();
+  if (!c) return null;
+  // Exact (case-insensitive) match.
+  let hit = keys.find((k) => k.toUpperCase() === c);
+  if (hit) return hit;
+  // Leading code match: "A" -> "A_color_block_photo_split", "J2" -> "J2_myth_busted_cutout".
+  hit = keys.find((k) => k.split("_")[0].toUpperCase() === c);
+  return hit ?? null;
+}
+
 export async function synthesizeArchetypeSpec(
   template: BrandTemplate,
   post: SpecPost
@@ -114,8 +131,11 @@ export async function synthesizeArchetypeSpec(
   }
 
   // Validate + normalize, forcing the phone rule deterministically.
-  const archetype = typeof parsed.archetype === "string" ? parsed.archetype.trim() : "";
-  if (!archetype || !template.ARCHETYPES?.[archetype]) {
+  const archetype = resolveArchetypeKey(
+    template,
+    typeof parsed.archetype === "string" ? parsed.archetype : ""
+  );
+  if (!archetype) {
     return { ok: false, error: `gemini chose an unknown archetype: ${String(parsed.archetype)}` };
   }
   const lines = Array.isArray(parsed.headline_lines)
