@@ -22,6 +22,17 @@ function loadBrandLogo(slug: string): Buffer | null {
   }
 }
 
+// Light card for light/warm primaries (blush, taupe), dark card otherwise.
+function luminance(hex?: string | null): number {
+  if (!hex) return 0;
+  const m = hex.replace("#", "");
+  const n = m.length === 3 ? m.split("").map((ch) => ch + ch).join("") : m;
+  if (n.length < 6) return 0;
+  const ch = (i: number) => parseInt(n.slice(i, i + 2), 16) / 255;
+  const f = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * f(ch(0)) + 0.7152 * f(ch(2)) + 0.0722 * f(ch(4));
+}
+
 const BUCKET = "post-images";
 
 type PostRow = {
@@ -72,6 +83,7 @@ async function loadDesignContext(brandId: string): Promise<{
   cta: { name?: string; phone?: string; website?: string };
   logo: Buffer | null;
   displayFont: DesignFont;
+  theme: "light" | "dark";
 }> {
   const admin = supabaseAdmin();
   const { data: brand } = await admin
@@ -112,6 +124,7 @@ async function loadDesignContext(brandId: string): Promise<{
     },
     logo: loadBrandLogo(brandId),
     displayFont,
+    theme: luminance(colors.primary) > 0.45 ? "light" : "dark",
   };
 }
 
@@ -148,6 +161,13 @@ export async function generateBrandPost(
   const { width, height } = aspectToSize(aspect);
   const headline = (design.headline || post.concept || "").trim();
 
+  // The AI image model no longer draws ANY text (it garbles words). A legacy
+  // brief still set to "ai" that has a headline would otherwise render as a
+  // bare photo with no copy — so upgrade it to the real-font photo overlay.
+  // This lets posts generated before the text-free change pick up the fix on
+  // regenerate without rewriting every saved brief.
+  const effectiveMode: DesignMode = mode === "ai" && headline ? "photo" : mode;
+
   const previousStatus = post.status ?? "not_started";
   await admin
     .from("posts")
@@ -166,7 +186,7 @@ export async function generateBrandPost(
   let model: string;
 
   try {
-    if (mode === "card") {
+    if (effectiveMode === "card") {
       const ctx = await loadDesignContext(post.brand_id);
       bytes = await renderDesignedCard({
         width,
@@ -177,6 +197,7 @@ export async function generateBrandPost(
         rows: design.rows ?? [],
         cta: ctx.cta,
         displayFont: ctx.displayFont,
+        theme: ctx.theme,
         logo: ctx.logo,
       });
       mimeType = "image/png";
@@ -187,7 +208,7 @@ export async function generateBrandPost(
         await revert();
         return { ok: false, postId: post.id, error: gen.error };
       }
-      if (mode === "photo") {
+      if (effectiveMode === "photo") {
         const ctx = await loadDesignContext(post.brand_id);
         bytes = await renderPhotoOverlay({
           photo: gen.bytes,
@@ -196,6 +217,7 @@ export async function generateBrandPost(
           colors: ctx.colors,
           eyebrow: design.eyebrow ?? post.content_pillar,
           headline,
+          rows: design.rows ?? [],
           cta: ctx.cta,
           displayFont: ctx.displayFont,
           logo: ctx.logo,

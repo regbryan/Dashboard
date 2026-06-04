@@ -109,6 +109,13 @@ export async function loadOrSynthesizeBrief(
       ? "1:1"
       : "4:5";
 
+  // The AI image model NEVER renders text (it garbles words). Every word on
+  // the final image is composited later in real fonts via Satori, driven by
+  // the design spec below. So the headline lives in design.headline, and
+  // text_overlay is left null (it would only ever instruct the model to draw
+  // text, which we no longer allow).
+  const headline = post.concept ? post.concept.trim() : null;
+
   const brief: ImageBrief = {
     subject: subject.trim(),
     composition: undefined,
@@ -116,18 +123,18 @@ export async function loadOrSynthesizeBrief(
     mood: moodKeywords.length > 0 ? moodKeywords.join(", ") : undefined,
     style: kit?.photography_direction ?? undefined,
     palette: palette.length > 0 ? palette : undefined,
-    // Auto-fill the on-image headline from the post's concept so the operator
-    // doesn't retype it. The prompt renders text_overlay verbatim; clear it in
-    // the panel for photo-only posts.
-    text_overlay: post.concept ? post.concept.trim() : null,
+    // Never ask the model to draw text — it's added later in real fonts.
+    text_overlay: null,
     aspect_ratio: defaultAspect,
     notes: null,
-    // Default design = "ai" (no change); headline/eyebrow pre-filled so the
-    // operator can flip to a designed card or photo-overlay in one click.
+    // Default design: posts with a headline get a text-free AI photo + a
+    // real-font Satori overlay ("photo"); purely visual posts with no headline
+    // stay text-free "ai". The operator can flip to a full designed "card" in
+    // the brief panel. Text is ALWAYS real fonts, never the AI's lettering.
     design: {
-      mode: "ai",
+      mode: headline ? "photo" : "ai",
       eyebrow: post.content_pillar ?? null,
-      headline: post.concept ? post.concept.trim() : null,
+      headline,
       rows: [],
     },
   };
