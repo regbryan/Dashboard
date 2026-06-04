@@ -74,11 +74,11 @@ function dataInstruction(letter: string, market: string): string {
     default:
       return [
         `This uses a PHOTO. Set photo.include = true and write a "photo.description" of a BEAUTIFUL, photorealistic, magazine-quality scene that fits the concept. Leave quote/list_items/big_stat empty.`,
-        `PHOTO SUBJECT — match it to the concept, and DEFAULT TO NO PEOPLE:`,
-        `  • AC/seasonal/efficiency → a clean outdoor AC condenser beside a tidy ${market} home, or a bright modern interior. No people.`,
-        `  • Comfort / gift / Father's or Mother's Day / "quiet home" → a warm, inviting living space (cozy sofa, soft light) OR a relaxed HOMEOWNER/FAMILY enjoying a comfortable home. NOT a technician.`,
-        `  • ONLY include a TECHNICIAN if the concept is explicitly about a service call, repair, tune-up visit, or "our crew" — otherwise NO worker at all.`,
-        `Never force a worker into a seasonal, gift, comfort, or lifestyle post.`,
+        `PHOTO SUBJECT — match it to the concept:`,
+        `  • Comfort / gift / Father's or Mother's Day / "quiet home" / family / people → SHOW a happy, relaxed PERSON or FAMILY enjoying a comfortable home (e.g. a content dad relaxing on the sofa for Father's Day; a mom for Mother's Day; a family together in a cozy living room). The person is the point — include them. A real homeowner/family, NOT a technician.`,
+        `  • AC / seasonal / efficiency / equipment → a clean outdoor AC condenser beside a tidy ${market} home, or a bright modern interior. No people needed.`,
+        `  • Service call / repair / tune-up visit / "our crew" → a single working technician (per the technician rule below) — this is the ONLY case that gets a worker.`,
+        `Never put a WORKER/technician in a gift, comfort, seasonal, or lifestyle post — but a relaxed homeowner/family is welcome and encouraged there.`,
       ].join("\n");
   }
 }
