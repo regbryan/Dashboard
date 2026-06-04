@@ -15,6 +15,7 @@ import path from "node:path";
 const TEMPLATE_DIR = path.join(process.cwd(), "lib", "autopilot", "brand-templates");
 
 export type BrandTemplate = {
+  _engine?: string;
   STRICT_COLOR_CONTRACT?: Record<string, unknown>;
   BRAND?: Record<string, unknown>;
   ARCHETYPES?: Record<string, { description?: string; when_to_use?: string }>;

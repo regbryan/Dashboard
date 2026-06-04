@@ -18,6 +18,8 @@ import {
 } from "./archetype-prompt";
 import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
+import { synthesizeOmegaSpec } from "./omega-spec";
+import { renderOmegaDesign, omegaArchetypeNeedsPhoto } from "./render-omega";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -183,11 +185,62 @@ export async function generateBrandPost(
   let mimeType: string;
   let model: string;
 
+  // Generate an image with the pro model, falling back to flash on failure.
+  const genImage = async (imgPrompt: string) => {
+    let g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: ARCHETYPE_IMAGE_MODEL });
+    if (!g.ok) {
+      console.error(`[archetype] pro model ${ARCHETYPE_IMAGE_MODEL} failed (${g.error}); falling back to gemini-2.5-flash-image`);
+      g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: "gemini-2.5-flash-image" });
+    }
+    return g;
+  };
+
   try {
-    if (template) {
-      // ARCHETYPE PATH: build the prompt from the locked brand contract and
-      // let the pro image model render the full designed graphic. No logo, no
-      // Satori overlay — the contract enforces colors, layout, and hard rules.
+    if (template?._engine === "omega") {
+      // OMEGA PATH: its own design language (serif + Allura script, navy/cream,
+      // hollow rings, photo-forward). Photo-hero needs a text-free AI photo;
+      // list/stat/review render fully in code. No logo / NMLS ever drawn.
+      const s = await synthesizeOmegaSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `omega spec: ${s.error}` };
+      }
+      const ospec = s.spec;
+      let omegaPhoto: Buffer | null = null;
+      let tag = "omega";
+      if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${ospec.photo.description}. Warm golden-hour / window light; real, diverse families or couples in or around a home; magazine quality. Never stock-cheesy or fintech illustration. No stiff posing.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        omegaPhoto = gen.bytes;
+        tag = `${gen.model}+omega`;
+      }
+      bytes = await renderOmegaDesign({
+        archetype: ospec.archetype,
+        width,
+        height,
+        eyebrow: ospec.eyebrow,
+        headlineLines: ospec.headlineLines,
+        body: ospec.body,
+        cta: ospec.cta,
+        listItems: ospec.listItems,
+        bigStat: ospec.bigStat,
+        quote: ospec.quote,
+        attribution: ospec.attribution,
+        photo: omegaPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${ospec.archetype}`;
+    } else if (template) {
+      // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
       if (!spec) {
         const s = await synthesizeArchetypeSpec(template, {
@@ -202,16 +255,6 @@ export async function generateBrandPost(
         spec = s.spec;
       }
       specToPersist = spec;
-
-      // Generate an image with the pro model, falling back to flash on failure.
-      const genImage = async (imgPrompt: string) => {
-        let g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: ARCHETYPE_IMAGE_MODEL });
-        if (!g.ok) {
-          console.error(`[archetype] pro model ${ARCHETYPE_IMAGE_MODEL} failed (${g.error}); falling back to gemini-2.5-flash-image`);
-          g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: "gemini-2.5-flash-image" });
-        }
-        return g;
-      };
 
       // Archetypes A and C render deterministically full-bleed in code (Satori):
       // the AI makes ONLY a text-free photo; the panel + all text are drawn here,
