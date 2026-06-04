@@ -13,9 +13,11 @@ import {
 import {
   loadBrandTemplate,
   buildArchetypePrompt,
+  buildPhotoPrompt,
   type ArchetypeSpec,
 } from "./archetype-prompt";
 import { synthesizeArchetypeSpec } from "./archetype-spec";
+import { renderArchetypeDesign, type ArchetypeKey } from "./render-archetype";
 
 // The pro image model used for template (archetype) brands. Isolated to this
 // path so a model/access issue can't break the generic flow. Override via env.
@@ -198,35 +200,57 @@ export async function generateBrandPost(
         spec = s.spec;
       }
       specToPersist = spec;
-      const archetypePrompt = buildArchetypePrompt(template, spec, {
-        aspectRatio: aspect,
-        platform: "Instagram",
-      });
-      let gen = await generateImage({
-        prompt: archetypePrompt,
-        aspectRatio: aspect,
-        model: ARCHETYPE_IMAGE_MODEL,
-      });
-      if (!gen.ok) {
-        // Pro model unavailable (wrong id / no access / quota). Log it and
-        // fall back to the flash image model so the post still generates from
-        // the same contract prompt (slightly higher text-garble risk).
-        console.error(
-          `[archetype] pro model ${ARCHETYPE_IMAGE_MODEL} failed (${gen.error}); falling back to gemini-2.5-flash-image`
-        );
-        gen = await generateImage({
-          prompt: archetypePrompt,
-          aspectRatio: aspect,
-          model: "gemini-2.5-flash-image",
+
+      // Generate an image with the pro model, falling back to flash on failure.
+      const genImage = async (imgPrompt: string) => {
+        let g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: ARCHETYPE_IMAGE_MODEL });
+        if (!g.ok) {
+          console.error(`[archetype] pro model ${ARCHETYPE_IMAGE_MODEL} failed (${g.error}); falling back to gemini-2.5-flash-image`);
+          g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: "gemini-2.5-flash-image" });
+        }
+        return g;
+      };
+
+      // Archetypes A and C render deterministically full-bleed in code (Satori):
+      // the AI makes ONLY a text-free photo; the panel + all text are drawn here,
+      // so the design can never frame, garble text, or drift off-brand.
+      const letter = spec.archetype.split("_")[0].toUpperCase();
+      const satoriArch: ArchetypeKey | null =
+        letter === "A" ? "A" : letter === "C" ? "C" : null;
+
+      if (satoriArch && spec.photo?.include !== false) {
+        const gen = await genImage(buildPhotoPrompt(template, spec));
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        bytes = await renderArchetypeDesign({
+          archetype: satoriArch,
+          width,
+          height,
+          eyebrow: spec.eyebrow,
+          headlineLines: spec.headline_lines.map((l) => ({ text: l.text, style: l.style })),
+          body: spec.body_copy,
+          trust: spec.trust_element,
+          cta: spec.cta.text,
+          photo: gen.bytes,
         });
+        mimeType = "image/png";
+        model = `${gen.model}+satori-${satoriArch}`;
+      } else {
+        // Other archetypes: the AI renders the whole designed graphic from the
+        // full contract prompt (until those archetypes are built in Satori too).
+        const gen = await genImage(
+          buildArchetypePrompt(template, spec, { aspectRatio: aspect, platform: "Instagram" })
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        bytes = gen.bytes;
+        mimeType = gen.mimeType;
+        model = `${gen.model}+archetype`;
       }
-      if (!gen.ok) {
-        await revert();
-        return { ok: false, postId: post.id, error: gen.error };
-      }
-      bytes = gen.bytes;
-      mimeType = gen.mimeType;
-      model = `${gen.model}+archetype`;
     } else if (mode === "card") {
       const ctx = await loadDesignContext(post.brand_id);
       bytes = await renderDesignedCard({
