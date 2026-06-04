@@ -111,20 +111,23 @@ function eyebrowPill(eyebrow: ArchetypeRenderInput["eyebrow"]): El[] {
   ];
 }
 
+// Uniform vertical rhythm between every block in a panel.
+const GAP = "30px";
+
 function headlineEls(lines: HeadlineLine[], sansColor: string, italicColor: string, size = 78): El {
   return h(
     "div",
-    { display: "flex", flexDirection: "column", marginTop: "20px" },
+    { display: "flex", flexDirection: "column", gap: "6px" },
     lines.map((l) =>
       l.style === "italic-serif"
         ? h(
             "div",
-            { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: `${size - 2}px`, lineHeight: 1.04, color: italicColor },
+            { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: `${size - 2}px`, lineHeight: 1.12, color: italicColor },
             l.text
           )
         : h(
             "div",
-            { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: `${size}px`, lineHeight: 1.02, letterSpacing: "0.5px", color: sansColor, textTransform: "uppercase" },
+            { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: `${size}px`, lineHeight: 1.08, letterSpacing: "0.5px", color: sansColor, textTransform: "uppercase" },
             l.text
           )
     )
@@ -136,7 +139,7 @@ function ctaPill(text: string, onLight: boolean): El {
   const txt = onLight ? WHITE : NAVY;
   return h(
     "div",
-    { display: "flex", alignItems: "center", alignSelf: "flex-start", background: pillBg, borderRadius: "999px", padding: "16px 18px 16px 28px", marginTop: "30px", gap: "16px" },
+    { display: "flex", alignItems: "center", alignSelf: "flex-start", background: pillBg, borderRadius: "999px", padding: "16px 18px 16px 28px", gap: "16px" },
     [
       h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "30px", color: txt }, text),
       h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", borderRadius: "999px", background: RED, color: WHITE, fontFamily: "Poppins", fontWeight: 800, fontSize: "28px" }, "›"),
@@ -146,11 +149,11 @@ function ctaPill(text: string, onLight: boolean): El {
 
 function bodyEl(body: string | undefined | null, color: string): El[] {
   if (!body?.trim()) return [];
-  return [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "30px", lineHeight: 1.32, color, marginTop: "24px", width: "92%" }, body.trim())];
+  return [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "30px", lineHeight: 1.34, color, width: "92%" }, body.trim())];
 }
 function trustEl(trust: string | undefined | null, color: string): El[] {
   if (!trust?.trim()) return [];
-  return [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "26px", color, marginTop: "22px" }, trust.trim())];
+  return [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "26px", color }, trust.trim())];
 }
 
 // --- A / C: panel + photo ---------------------------------------------------
@@ -166,7 +169,7 @@ function panel(input: ArchetypeRenderInput, surface: "navy" | "light-blue", widt
   ];
   return h(
     "div",
-    { display: "flex", flexDirection: "column", justifyContent: "center", background: onNavy ? NAVY : LIGHT_BLUE, padding: `${pad}px`, width: "100%" },
+    { display: "flex", flexDirection: "column", justifyContent: "center", gap: GAP, background: onNavy ? NAVY : LIGHT_BLUE, padding: `${pad}px`, width: "100%" },
     kids
   );
 }
@@ -177,17 +180,17 @@ async function testimonial(input: ArchetypeRenderInput, width: number): Promise<
   const initials = (input.attribution ?? "IEC").replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "IEC";
   const kids: El[] = [
     ...eyebrowPill(input.eyebrow),
-    h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "150px", color: RED, lineHeight: 0.8, marginTop: "10px", height: "90px" }, "“"),
-    h("div", { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: "52px", lineHeight: 1.22, color: WHITE, marginTop: "20px" }, input.quote ?? input.headlineLines.map((l) => l.text).join(" ")),
+    h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "150px", color: RED, lineHeight: 0.8, height: "70px" }, "“"),
+    h("div", { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: "52px", lineHeight: 1.24, color: WHITE }, input.quote ?? input.headlineLines.map((l) => l.text).join(" ")),
     await starRow(5, 52, 12),
-    h("div", { display: "flex", alignItems: "center", gap: "20px", marginTop: "30px" }, [
+    h("div", { display: "flex", alignItems: "center", gap: "20px" }, [
       h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "92px", height: "92px", borderRadius: "999px", background: LIGHT_BLUE, color: NAVY, fontFamily: "Poppins", fontWeight: 800, fontSize: "40px" }, initials),
       h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "34px", color: WHITE }, input.attribution ?? "Inland Empire Comfort"),
     ]),
     ...trustEl(input.trust, "#C7D6EC"),
     ctaPill(input.cta, false),
   ];
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", height: "100%", background: NAVY, padding: `${pad}px` }, kids);
+  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: GAP, width: "100%", height: "100%", background: NAVY, padding: `${pad}px` }, kids);
 }
 
 // --- E: numbered list (navy header + cream cards) ---------------------------
@@ -196,7 +199,7 @@ function numberedList(input: ArchetypeRenderInput, width: number): El {
   const items = (input.listItems ?? []).slice(0, 3);
   const header = h(
     "div",
-    { display: "flex", flexDirection: "column", background: NAVY, padding: `${pad}px ${pad}px ${Math.round(pad * 0.8)}px` },
+    { display: "flex", flexDirection: "column", gap: GAP, background: NAVY, padding: `${pad}px ${pad}px ${Math.round(pad * 0.8)}px` },
     [...eyebrowPill(input.eyebrow), headlineEls(input.headlineLines, WHITE, EMPHASIS_ON_NAVY, 64)]
   );
   const cards = h(
@@ -216,9 +219,9 @@ function numberedList(input: ArchetypeRenderInput, width: number): El {
 // --- F: big-number hero (navy) ----------------------------------------------
 function bigNumberHero(input: ArchetypeRenderInput, width: number): El {
   const pad = Math.round(width * 0.07);
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", height: "100%", background: NAVY, padding: `${pad}px` }, [
+  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: GAP, width: "100%", height: "100%", background: NAVY, padding: `${pad}px` }, [
     ...eyebrowPill(input.eyebrow),
-    h("div", { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: "320px", lineHeight: 0.9, color: RED, marginTop: "18px" }, input.bigStat ?? ""),
+    h("div", { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: "300px", lineHeight: 0.95, color: RED }, input.bigStat ?? ""),
     headlineEls(input.headlineLines, WHITE, EMPHASIS_ON_NAVY, 64),
     ...bodyEl(input.body, "#E6EEF8"),
     ctaPill(input.cta, false),
@@ -228,9 +231,9 @@ function bigNumberHero(input: ArchetypeRenderInput, width: number): El {
 // --- G: stat card (light-blue) ----------------------------------------------
 function statCard(input: ArchetypeRenderInput, width: number): El {
   const pad = Math.round(width * 0.07);
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", height: "100%", background: LIGHT_BLUE, padding: `${pad}px` }, [
+  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: GAP, width: "100%", height: "100%", background: LIGHT_BLUE, padding: `${pad}px` }, [
     ...eyebrowPill(input.eyebrow),
-    h("div", { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: "300px", lineHeight: 0.9, color: NAVY, marginTop: "18px" }, input.bigStat ?? ""),
+    h("div", { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: "290px", lineHeight: 0.95, color: NAVY }, input.bigStat ?? ""),
     headlineEls(input.headlineLines, NAVY, NAVY, 60),
     ...bodyEl(input.body, NEAR_BLACK),
     ctaPill(input.cta, true),
@@ -240,11 +243,13 @@ function statCard(input: ArchetypeRenderInput, width: number): El {
 // --- H: brand-story (cream) -------------------------------------------------
 function brandStory(input: ArchetypeRenderInput, width: number): El {
   const pad = Math.round(width * 0.07);
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", height: "100%", background: CREAM, padding: `${pad}px` }, [
+  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: GAP, width: "100%", height: "100%", background: CREAM, padding: `${pad}px` }, [
     ...eyebrowPill(input.eyebrow),
     headlineEls(input.headlineLines, NAVY, NAVY, 60),
-    h("div", { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: "260px", lineHeight: 0.95, color: NAVY }, input.bigStat ?? ""),
-    h("div", { display: "flex", width: "120px", height: "8px", background: RED, borderRadius: "4px", marginTop: "8px" }, []),
+    h("div", { display: "flex", flexDirection: "column", gap: "14px" }, [
+      h("div", { display: "flex", fontFamily: "Playfair", fontStyle: "italic", fontWeight: 700, fontSize: "240px", lineHeight: 1.0, color: NAVY }, input.bigStat ?? ""),
+      h("div", { display: "flex", width: "120px", height: "8px", background: RED, borderRadius: "4px" }, []),
+    ]),
     ...bodyEl(input.body, NEAR_BLACK),
     ctaPill(input.cta, true),
   ]);
