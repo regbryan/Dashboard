@@ -81,6 +81,7 @@ export async function synthesizeArchetypeSpec(
     `- CTA text will be set in code — return a short cta.text but it WILL be overridden with the phone; just suggest "CALL <phone>" or the website ${brand.website ?? ""}.`,
     `- Trust element (optional): pick from — ${trustMarks || "a 5-star review line"}.`,
     `- Photo: set include=false for text-only/listicle/review/stat archetypes. If include=true, describe a photorealistic scene. PEOPLE are allowed (a homeowner, a single technician working) but NEVER a posed team/crew lineup of fake employees.`,
+    `- If the photo shows an IEC technician, you MUST describe them as: a single technician in a SOLID NAVY short-sleeve polo and dark navy work pants, shown FROM BEHIND or in side profile, kneeling and actively working on a furnace or outdoor AC condenser — back to the camera, face not visible, NO hat, NO logo or text on the clothing. Never describe a front-facing, posed, light-blue/gray-shirted, or hatted technician.`,
     ``,
     `Return ONLY a JSON object with this exact shape:`,
     `{`,
