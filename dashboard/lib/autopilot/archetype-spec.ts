@@ -72,7 +72,14 @@ function dataInstruction(letter: string, market: string): string {
     case "H":
       return `This is a BRAND-STORY. Fill "big_stat" with a year or number (<=5 chars, e.g. "2009", "15+"). headline_lines = the supporting line. photo.include MUST be false.`;
     default:
-      return `This uses a PHOTO. Set photo.include = true and describe the scene per the photo rules below. Leave quote/list_items/big_stat empty.`;
+      return [
+        `This uses a PHOTO. Set photo.include = true and write a "photo.description" of a BEAUTIFUL, photorealistic, magazine-quality scene that fits the concept. Leave quote/list_items/big_stat empty.`,
+        `PHOTO SUBJECT — match it to the concept, and DEFAULT TO NO PEOPLE:`,
+        `  • AC/seasonal/efficiency → a clean outdoor AC condenser beside a tidy ${market} home, or a bright modern interior. No people.`,
+        `  • Comfort / gift / Father's or Mother's Day / "quiet home" → a warm, inviting living space (cozy sofa, soft light) OR a relaxed HOMEOWNER/FAMILY enjoying a comfortable home. NOT a technician.`,
+        `  • ONLY include a TECHNICIAN if the concept is explicitly about a service call, repair, tune-up visit, or "our crew" — otherwise NO worker at all.`,
+        `Never force a worker into a seasonal, gift, comfort, or lifestyle post.`,
+      ].join("\n");
   }
 }
 
@@ -116,7 +123,7 @@ export async function synthesizeArchetypeSpec(
     `- Body copy: 1-3 short sentences in the brand voice. No hype, no pressure.`,
     `- CTA text is overridden in code with the phone; just return "CALL ${IMAGE_PHONE}".`,
     `- Trust element (optional): pick from — ${trustMarks || "a 5-star review line"}.`,
-    `- If photo.include is true and it shows an IEC technician: a single technician in a SOLID NAVY short-sleeve polo + dark navy work pants, shown FROM BEHIND or side profile, kneeling and actively working on a furnace or AC condenser — back to camera, face not visible, NO hat, NO logo/text on clothing. NEVER a posed team/crew lineup.`,
+    `- Most photos should have NO worker. ONLY if the concept is genuinely about service/repair/the crew may the photo include a technician — and then: a single technician in a SOLID NAVY short-sleeve polo + dark navy work pants, shown FROM BEHIND or side profile, kneeling and actively working on a furnace or AC condenser — back to camera, face not visible, NO hat, NO logo/text on clothing. NEVER a posed team/crew lineup.`,
     ``,
     `Return ONLY a JSON object with this exact shape (fill only the field(s) the archetype needs):`,
     `{`,
