@@ -20,6 +20,8 @@ import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
 import { synthesizeOmegaSpec } from "./omega-spec";
 import { renderOmegaDesign, omegaArchetypeNeedsPhoto } from "./render-omega";
+import { synthesizeCscSpec } from "./csc-spec";
+import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -239,6 +241,50 @@ export async function generateBrandPost(
       });
       mimeType = "image/png";
       model = `${tag}-${ospec.archetype}`;
+    } else if (template?._engine === "csc") {
+      // CSC PATH: its own design language (heavy bold sans, sunny yellow +
+      // electric blue, FILLED numbered circles, calm-not-alarmist). Only the
+      // command-photo (C) needs a text-free AI photo; listicle/big-number/review
+      // render fully in code. Logo + CYBERSAFETYCOP.COM are composited on top.
+      const s = await synthesizeCscSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `csc spec: ${s.error}` };
+      }
+      const cspec = s.spec;
+      let cscPhoto: Buffer | null = null;
+      let tag = "csc";
+      if (cscArchetypeNeedsPhoto(cspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${cspec.photo.description}. Bright, warm, reassuring; a calm parent and child together — NEVER scared, shocked, panicked, or in danger. Natural light, real diverse families, magazine quality. No stock cheese.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        cscPhoto = gen.bytes;
+        tag = `${gen.model}+csc`;
+      }
+      bytes = await renderCscDesign({
+        archetype: cspec.archetype,
+        width,
+        height,
+        eyebrow: cspec.eyebrow,
+        headline: cspec.headline,
+        body: cspec.body,
+        cta: cspec.cta,
+        listItems: cspec.listItems,
+        bigStat: cspec.bigStat,
+        quote: cspec.quote,
+        attribution: cspec.attribution,
+        photo: cscPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${cspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
