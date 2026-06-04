@@ -18,12 +18,15 @@
     "audit": "npm run lint && npm run check:deps && npm run check:circular && tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/anton": "^5.2.7",
+    "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@remotion/bundler": "^4.0.462",
     "@remotion/cli": "^4.0.462",
     "@remotion/google-fonts": "^4.0.462",
     "@remotion/renderer": "^4.0.462",
     "@remotion/shapes": "^4.0.462",
     "@remotion/transitions": "^4.0.462",
+    "@resvg/resvg-js": "^2.6.2",
     "@sentry/nextjs": "^10.53.1",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
@@ -33,6 +36,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "remotion": "^4.0.462",
+    "satori": "^0.26.0",
     "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "stripe": "^22.1.1",
