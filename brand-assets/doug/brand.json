@@ -1,0 +1,35 @@
+{
+  "slug": "doug",
+  "name": "Doug Mitchell",
+  "handle": "doug-mitchell-esq",
+  "platform": "linkedin",
+  "cadence": {
+    "label": "3x/week (M/W/F)",
+    "days": [
+      "Mon",
+      "Wed",
+      "Fri"
+    ]
+  },
+  "colors": {
+    "primary": "#1F5560",
+    "secondary": "#D8EBE5",
+    "accent": null,
+    "background": "#FFFFFF",
+    "_source": "Scale LLP corporate identity (doug/cutouts/Scale Virtual Background.png)",
+    "_locked_on": "2026-05-23"
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": "kit.md",
+  "post_template": null,
+  "logo_path": null,
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": true,
+    "has_brand_doc": false,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-25"
+}

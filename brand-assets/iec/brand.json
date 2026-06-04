@@ -1,0 +1,111 @@
+{
+  "slug": "iec",
+  "name": "Inland Empire Comfort",
+  "handle": "@inlandempirecomfort",
+  "platform": "instagram",
+  "cadence": {
+    "label": "2x/week (Tu/Th)",
+    "days": [
+      "Tue",
+      "Thu"
+    ]
+  },
+  "colors": {
+    "primary": "#104B94",
+    "secondary": "#87ABCF",
+    "accent": "#DB222A",
+    "navy": {
+      "hex": "#19437B",
+      "role": "HERO \u2014 headline backgrounds, CTA text, primary fills, logo, strokes. Dominant brand color on every post."
+    },
+    "light_blue": {
+      "hex": "#97B5CF",
+      "role": "Soft secondary backgrounds, info cards, list-item backgrounds. Cool half of palette."
+    },
+    "red": {
+      "hex": "#DB2227",
+      "role": "DEFAULT ACCENT \u2014 stars, numerals in lists, CTA buttons, urgency pills, ribbons, quote marks."
+    },
+    "teal": {
+      "hex": "#68CCD1",
+      "role": "RESTRICTED accent only \u2014 tiny dots/underlines/icons. Never a fill, never a background."
+    },
+    "gold": {
+      "hex": "#F7CF21",
+      "role": "RESTRICTED \u2014 rare highlight bars only. Not the default accent."
+    },
+    "cream": {
+      "hex": "#EFE9F0",
+      "role": "Warm off-white background for light-mode cards"
+    },
+    "dark_brown": {
+      "hex": "#463939",
+      "role": "Body text only"
+    },
+    "white": {
+      "hex": "#FFFFFF",
+      "role": "Clean backgrounds, white text on navy"
+    }
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": null,
+  "post_template": "post-template.json",
+  "logo_path": null,
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": false,
+    "has_brand_doc": true,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "aspect_ratio": "4:5",
+  "native_size": [
+    1080,
+    1350
+  ],
+  "generated_size": [
+    1856,
+    2304
+  ],
+  "color_zones": [],
+  "forbidden_text": [
+    "(951) 482-7457",
+    "482-7457",
+    "482.7457"
+  ],
+  "required_text": [],
+  "typography": {
+    "display": "Oswald (bold, condensed, all-caps works well)",
+    "body": "Poppins / Source Sans Pro (clean, friendly sans)",
+    "ui_labels": "Montserrat",
+    "italic_accent": "Lora / Cormorant for emphasis words in headlines"
+  },
+  "phone_numbers": {
+    "social_tracking_line": "951.789.3238",
+    "_format_rule": "DOTS ONLY (no parens, no dashes). This is the social-media attribution line. MUST appear on every IEC social image AND in every IEC caption footer.",
+    "main_customer_line": "(951) 482-7457",
+    "_main_use": "Website CTAs and non-social copy ONLY. NEVER burned into a social media image."
+  },
+  "license_no": "1053697",
+  "caption_footer_block": "#InlandEmpireComfort\nLicense No.: 1053697\n\ud83d\udcde: 951.789.3238",
+  "archetypes": {
+    "IEC_A_photo_curved_divider": "Photo on right with signature S-curve left edge sweeping into cream/text panel on left. Headline + body + CTA. The IEC signature look.",
+    "IEC_B_navy_hero_with_photo_below": "Navy panel top with red ribbon eyebrow + serif/italic headline + white pill CTA. Photo of home or AC unit bottom half.",
+    "IEC_C_full_photo_overlay": "Full-bleed dramatic photo (technician at night, family with AC) with bottom dark overlay carrying ribbon + headline + CTA pill.",
+    "IEC_D_review_card": "Solid navy background. Big red opening quote. Italic serif customer quote. 5 red filled stars. Light-blue customer attribution pill. CTA pill.",
+    "IEC_E_listicle_cards": "Cream background. Red ribbon header. Bold all-caps Oswald headline (with red box around emphasized word). 3+ stacked alternating cards (navy, cream, light-blue) with numbered items. Red CTA pill.",
+    "IEC_F_seasonal_promo": "Photo top + light-blue panel bottom with red ribbon eyebrow + serif italic mixed headline + CTA pill."
+  },
+  "hard_rules": [
+    "Phone burned into image MUST be 951.789.3238 (social-tracking line, dots format).",
+    "NEVER burn (951) 482-7457 into a social image. That's website-only.",
+    "Caption MUST end with the footer block: #InlandEmpireComfort / License No.: 1053697 / \ud83d\udcde: 951.789.3238",
+    "Navy #19437B is the hero color \u2014 every post leans on it.",
+    "Red #DB2227 is the default accent.",
+    "Yellow #F7CF21 and Teal #68CCD1 are RESTRICTED \u2014 rare highlights only.",
+    "IEC client adds the IEC logo MANUALLY to images \u2014 DO NOT use overlay_logo.py for IEC. Leave a clean top zone.",
+    "Photo treatment when applicable: signature S-curve divider on the left edge of the photo column."
+  ],
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-23"
+}

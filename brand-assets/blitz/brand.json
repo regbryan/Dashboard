@@ -1,0 +1,31 @@
+{
+  "slug": "blitz",
+  "name": "Blitz Organization",
+  "handle": "@blitzyourspace",
+  "platform": "instagram",
+  "cadence": {
+    "label": "2x/week (M/Th)",
+    "days": [
+      "Mon",
+      "Thu"
+    ]
+  },
+  "colors": {
+    "primary": "#ECB7B9",
+    "secondary": "#9CAF9C",
+    "accent": "#DAD6CF"
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": "kit.md",
+  "post_template": null,
+  "logo_path": null,
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": true,
+    "has_brand_doc": true,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-23"
+}

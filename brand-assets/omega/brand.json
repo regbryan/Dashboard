@@ -1,0 +1,106 @@
+{
+  "slug": "omega",
+  "name": "Omega Mortgage Group",
+  "handle": "@omglending",
+  "platform": "instagram",
+  "cadence": {
+    "label": "3x/week (M/W/F)",
+    "days": [
+      "Mon",
+      "Wed",
+      "Fri"
+    ]
+  },
+  "colors": {
+    "primary": "#005181",
+    "secondary": "#FEFEFE",
+    "accent": "#FDD314",
+    "navy": {
+      "hex": "#005181",
+      "role": "PRIMARY \u2014 header pills, CTA bars, full backgrounds, logo monogram"
+    },
+    "near_black": {
+      "hex": "#231F20",
+      "role": "Logo wordmark 'MORTGAGE GROUP', dark text on light backgrounds"
+    },
+    "near_white": {
+      "hex": "#FEFEFE",
+      "role": "Default light background, card fills, listicle backgrounds"
+    },
+    "gold": {
+      "hex": "#FDD314",
+      "role": "RESERVED \u2014 5-star review graphics ONLY; never dominant in feed posts"
+    },
+    "white": {
+      "hex": "#FFFFFF",
+      "role": "Headlines and body over navy or photo"
+    }
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": "kit.md",
+  "post_template": null,
+  "logo_path": "_brands/omega/cutouts/Omega-logofullcolor-transparent-full.png",
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": true,
+    "has_brand_doc": true,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "aspect_ratio": "4:5",
+  "native_size": [
+    1080,
+    1350
+  ],
+  "generated_size": [
+    1856,
+    2304
+  ],
+  "color_zones": [],
+  "_color_zones_note": "Disclaimer-band sample zones removed 2026-05-06. The pipeline no longer renders a baked-in compliance band \u2014 the dashboard's Footer Overlay panel handles it server-side via sharp + brands.compliance. Verifier should not assert pure navy at the bottom edge.",
+  "forbidden_text": [
+    "GOLD",
+    "LIMITED TIME",
+    "APPLY NOW",
+    "OMEGA",
+    "MORTGAGE",
+    "GROUP",
+    "INFINITY EQUITY",
+    "NMLS",
+    "NMLSCONSUMERACCESS"
+  ],
+  "_forbidden_text_note": "Brand wordmark + compliance/disclaimer text are added AFTER delivery (logo via overlay_logo.py if ever, compliance via dashboard Footer Overlay). The pipeline must NOT bake any of these into the image \u2014 Gemini's typography on small dense text is unreliable, and a misrendered NMLS number is a compliance failure.",
+  "required_text": [],
+  "_required_text_note": "No image-burned text required. Compliance lives in brands.compliance and is rendered by the dashboard footer overlay at view time.",
+  "typography": {
+    "display_serif": "Playfair Display / Cormorant Garamond / Didot \u2014 used for hero numerals and topic headlines, mixed-case, italic for emphasis words",
+    "sans_serif": "Montserrat / Source Sans Pro \u2014 body, labels",
+    "logo": "Geometric sans wordmark stacked OMEGA / MORTGAGE / GROUP \u2014 NOT rendered into the image"
+  },
+  "archetypes": {
+    "OMG_A_photo_hero_navy_pill": "Dream-home / aspirational hero. Photo top half, near-white text panel below with small navy pill + serif headline + body.",
+    "OMG_B_listicle_navy_hero_panel": "Listicle on navy hero panel with cream content cards. Navy pill at top, cream cards below.",
+    "OMG_C_numbered_listicle": "OMG workhorse. Near-white background, navy pill, serif headline with italic accent, hollow thin-ring navy circles + navy numerals (NEVER filled), short list items.",
+    "OMG_D_big_number_hero": "Giant Playfair numeral as focal point + topic line. Used for stat-driven posts.",
+    "OMG_E_photo_collage_hero": "Multi-photo collage with text overlay panel.",
+    "OMG_F_loan_type_hero": "Photo + loan-type call-out (USDA, VA, FHA spotlight).",
+    "OMG_G_split_photo_listicle": "Two-column split \u2014 photo left, listicle right (or vice versa). Used for comparisons (FHA vs Conventional, Pre-Qual vs Pre-Approval)."
+  },
+  "hard_rules": [
+    "Hollow thin-ring navy circles ONLY for numbered lists. NEVER filled circles with white numerals \u2014 that is the IEC/CSC pattern.",
+    "Navy #005181 is the dominant color on every post.",
+    "Gold #FDD314 NEVER used as a primary fill on standard feed posts. Reserved for review graphics.",
+    "DO NOT bake the brand logo, wordmark, or 'OMEGA / MORTGAGE / GROUP' text into the image. Logo is added separately after delivery.",
+    "DO NOT bake a compliance/disclaimer band. The bottom edge of the canvas should be clean (no full-width navy stripe, no NMLS text). The dashboard's Footer Overlay panel adds the compliance text after delivery.",
+    "Reserve a quiet zone at the very bottom (last ~10\u201312% of canvas height) \u2014 usable but not crowded \u2014 so compliance text can be overlaid without colliding with key content. This is a soft design intent, not a solid-color reserve.",
+    "No 'APPLY NOW' / 'LIMITED TIME' / hard-sell language burned into images.",
+    "Photography: real, warm, inclusive families. NEVER stock-cheesy or fintech-flat illustration."
+  ],
+  "compliance_handling": {
+    "applied_via": "dashboard Footer Overlay panel (sharp + Pango)",
+    "source_of_truth": "brands.compliance DB column",
+    "_why": "Compliance text changes (license updates, state additions). Dashboard-rendering keeps it editable in one place; baking it into every render forces re-generation when legal copy changes."
+  },
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-23"
+}

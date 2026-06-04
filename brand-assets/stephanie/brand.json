@@ -1,0 +1,32 @@
+{
+  "slug": "stephanie",
+  "name": "Stephanie Perez",
+  "handle": "@stephanieperezhomeloans",
+  "platform": "instagram",
+  "cadence": {
+    "label": "3x/week (M/W/F)",
+    "days": [
+      "Mon",
+      "Wed",
+      "Fri"
+    ]
+  },
+  "colors": {
+    "primary": "#B69D81",
+    "secondary": "#3B3526",
+    "accent": "#545454"
+  },
+  "voice_doc": "voice.md",
+  "kit_doc": "kit.md",
+  "post_template": null,
+  "logo_path": null,
+  "status": {
+    "has_voice_doc": true,
+    "has_kit_doc": true,
+    "has_brand_doc": true,
+    "voice_confidence": "high",
+    "color_confidence": "high"
+  },
+  "_source": "merged from dashboard.brands + existing brand_contract.json + restructure",
+  "_last_updated": "2026-05-23"
+}

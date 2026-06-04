@@ -1,0 +1,213 @@
+{
+  "_meta": {
+    "name": "IEC Instagram Post Template",
+    "version": "1.0",
+    "brand": "Inland Empire Comfort (IEC) — Riverside CA HVAC",
+    "locked_on": "2026-04-09",
+    "usage": "Fill in the _FILL_ME_ fields, then pass this whole object as the `prompt` string to nanobanana generate_image with model_tier='pro', aspect_ratio='4:5', resolution='2k', thinking_level='high'.",
+    "do_not_edit": [
+      "STRICT_COLOR_CONTRACT",
+      "GLOBAL_HARD_RULES",
+      "GLOBAL_NEGATIVE_PROMPT"
+    ]
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "navy_hero": "#104B94",
+    "light_blue_secondary": "#87ABCF",
+    "red_accent_default": "#DB222A",
+    "near_black": "#191518",
+    "medium_gray": "#7E8792",
+    "light_gray": "#D3CFD1",
+    "white": "#FFFFFF",
+    "color_roles": {
+      "#104B94": "HERO — dominant on every post; headlines, primary blocks, CTAs (confirmed by client 2026-04-11)",
+      "#87ABCF": "SECONDARY — soft backgrounds, info cards, italic-serif emphasis on navy bg, name pills, letter-avatar chips (confirmed by client 2026-04-11)",
+      "#DB222A": "DEFAULT ACCENT — stars, numerals, trust pills, eyebrows, CTA arrows, dividers, bottom accent bars (replaces any orange or gold) (confirmed by client 2026-04-11)",
+      "#191518": "NEAR-BLACK — body copy on light backgrounds, dark text (confirmed by client 2026-04-11)",
+      "#7E8792": "MEDIUM GRAY — secondary text, muted labels, supporting elements (confirmed by client 2026-04-11)",
+      "#D3CFD1": "LIGHT GRAY — soft alt backgrounds, dividers, subtle cards (confirmed by client 2026-04-11)",
+      "#FFFFFF": "Text on navy, CTA pill fill over navy"
+    },
+    "FORBIDDEN": [
+      "yellow",
+      "gold",
+      "#F7CF21 (gold is reserved for rare highlight bars only, never default)",
+      "orange (no exceptions — substitute red #DB222A)",
+      "teal fills (teal #68CCD1 only as tiny accent, never a fill)"
+    ]
+  },
+
+  "BRAND": {
+    "name": "Inland Empire Comfort",
+    "short": "IEC",
+    "market": "Riverside, Moreno Valley, Corona, Inland Empire CA",
+    "phone": "(951) 482-7457",
+    "website": "IECOMFORTAC.COM",
+    "voice": "Neighbor, not salesman. Straight-talking, warm, confident, slightly conversational. No hype, no pressure, no corporate filler.",
+    "logo_file": "..\\iec-cutouts\\IEC logo-transparent.png",
+    "logo_usage": "Composite onto every post — top-left or top-center on a solid color block. Never over busy photography without a color block behind it.",
+    "cutout_assets": {
+      "house_transparent": "..\\iec-cutouts\\Transparent-house v2.png",
+      "house_white_bg": "..\\iec-cutouts\\house_ac_white_bg.png",
+      "ac_condenser": "..\\iec-cutouts\\ariconditioner-transparent.png",
+      "hvac_tech": "..\\iec-cutouts\\hvac-tech-transparent.png",
+      "usage": "Composite onto color block backgrounds. Tech for service posts, AC condenser for product myth-busting (J2), house for educational/seasonal."
+    },
+    "trust_marks": [
+      "Family-owned since 2009",
+      "500+ 5-star Google reviews",
+      "15+ years serving Riverside",
+      "Same-day service",
+      "24/7 emergency"
+    ]
+  },
+
+  "FORMAT": {
+    "platform": "Instagram feed",
+    "aspect_ratio": "4:5 portrait",
+    "native_size": "1080x1350",
+    "generated_size": "1856x2304 (2K)",
+    "safe_zone": "keep key text at least 8% from every edge"
+  },
+
+  "TYPOGRAPHY": {
+    "sans_headline": "bold sans (Inter, Helvetica Neue, or similar) — heavy weight for headlines and numerals",
+    "serif_italic": "italic serif (Playfair Display or similar) — ONLY for 1-3 emphasis words per post",
+    "pattern": "Mix bold sans + italic serif in the same headline. The italic serif phrase is always a short, emotional, or temporal phrase (e.g. 'cheapest time', '2 a.m.', '11 p.m.', 'quietly killing', '2009').",
+    "handwritten_script": "optional small accent line, navy, italic script — use sparingly"
+  },
+
+  "ARCHETYPES": {
+    "A_color_block_photo_split": {
+      "description": "Navy or light-blue block on top 50-55% with headline + eyebrow, photo on bottom 45-50%. Red star or divider at the seam.",
+      "when_to_use": "Tips, warnings, seasonal service reminders, pet/allergy content",
+      "examples": ["v4_01_spring_ac", "v5_03_pet_hair"]
+    },
+    "B_full_bleed_photo_gradient_panel": {
+      "description": "Cinematic photo full-bleed, dark gradient panel covers bottom 40% with headline, eyebrow pill, and CTA button.",
+      "when_to_use": "Emergency, dramatic moments, night scenes, hero service",
+      "examples": ["v4_02_emergency"]
+    },
+    "C_photo_top_light_block_bottom": {
+      "description": "Photo on top 50%, solid light blue #87ABCF block on bottom 50% with navy headline and italic serif emphasis.",
+      "when_to_use": "Educational check-up content, seasonal prep, friendly reminders",
+      "examples": ["v4_03_furnace"]
+    },
+    "D_testimonial_card": {
+      "description": "Full navy background, red opening quote mark, white italic serif quote, row of 5 red stars, circular avatar (photo OR letter initials), light-blue name pill, footer review count line.",
+      "when_to_use": "Customer reviews, social proof, trust-building",
+      "examples": ["v4_04_review", "v5_04_review_maria"],
+      "notes": "Letter-initial avatars (e.g. 'MG' in light blue circle) work great when you don't have permission for a real customer photo."
+    },
+    "E_educational_numbered_list": {
+      "description": "Navy header block + cream background with 3 white rounded cards. Huge red numerals 1/2/3 left of each card. Navy CTA pill at bottom.",
+      "when_to_use": "Warning signs, checklists, 3-step guides, myth-busting lists",
+      "examples": ["v4_05_heater_3signs"]
+    },
+    "F_big_number_hero": {
+      "description": "Solid navy canvas, enormous red numeral fills ~45% of canvas, headline underneath with light-blue italic serif emphasis phrase, white CTA pill at bottom.",
+      "when_to_use": "Financing offers, percentages, years in business, stat callouts",
+      "examples": ["v5_01_financing"]
+    },
+    "G_stat_card_lightblue": {
+      "description": "Full light-blue #87ABCF canvas, navy pill eyebrow, big navy numeral headline, red italic serif emphasis line, navy body, navy CTA pill.",
+      "when_to_use": "Money-saving stats, temperature tips, efficiency numbers",
+      "examples": ["v5_02_thermostat_78"]
+    },
+    "H_brand_story_cream": {
+      "description": "Cream #F5F1EA canvas, red pill eyebrow, navy headline, enormous navy italic serif year or number, red caps tagline, red divider, navy body, navy CTA pill.",
+      "when_to_use": "Founder story, brand values, years in business, family-owned messaging",
+      "examples": ["v5_05_family_2009"]
+    },
+    "I_myth_vs_truth_split": {
+      "description": "Left 55% cream column with red 'Myth Busted:' label, navy body, red divider, red 'Truth:' label, navy body, small handwritten script. Right 45% photo column. Full-width red bottom bar with white caption.",
+      "when_to_use": "Myth-busting, misconception callouts, educational contrarian posts",
+      "examples": ["v5_06_myth_busted"]
+    },
+    "J_myth_busted_stacked": {
+      "description": "Full cream #F5F1EA canvas. Top ~45%: red 'Myth Busted:' label, navy bold sans headline (2 lines), red 'Truth:' label, navy bold sans headline (2 lines), short red divider line, small italic navy handwritten accent line. Bottom ~55%: full-bleed rectangular photograph with SQUARE corners flush to the left, right, and bottom edges of the canvas. No sky (crop at rooftop or equivalent horizon line). NO red caption bar. NO rounded corners. NO margins around the photo.",
+      "when_to_use": "Myth-busting callouts where the photo is a real-world scene (house exterior, room interior, outdoor equipment context). The single canonical stacked myth layout.",
+      "canonical_reference": "v5_06f_myth_busted.png",
+      "examples": ["v5_06f_myth_busted"]
+    },
+    "J2_myth_busted_cutout": {
+      "description": "Full cream #F5F1EA canvas (NO block changes, cream top to bottom). Top ~45%: identical text stack to Archetype J — red 'Myth Busted:' label, navy bold sans headline (2 lines), red 'Truth:' label, navy bold sans headline (2 lines), short red divider line, small italic navy handwritten accent line. Bottom ~55%: a photorealistic PRODUCT CUTOUT (transparent background, cream showing through around and behind the object) with a soft realistic ground shadow. The object is large, centered horizontally, and sits near the bottom edge of the canvas. No photo frame, no rectangular block, no border, no rounded corners, no red caption bar.",
+      "when_to_use": "Myth-busting callouts focused on a single product/object (AC condenser, thermostat, vent register, filter, etc.) rather than a full scene. Cleaner and more minimal than J.",
+      "canonical_reference": "v5_07_myth_bigger_ac.png",
+      "examples": ["v5_07_myth_bigger_ac"],
+      "cutout_source_notes": "Cutout can be generated directly by nanobanana (describe as 'photorealistic cutout with no background, soft realistic ground shadow') OR composited deterministically via rembg/Pillow. See IEC_PROCESS.md §8 for the cutout pipeline."
+    }
+  },
+
+  "REUSABLE_ELEMENTS": {
+    "pill_eyebrow": "small rounded pill (red, navy, or light-blue), ALL CAPS short label like 'SPRING TUNE-UP', 'PET OWNERS READ THIS', 'FAMILY-OWNED & LOCAL'",
+    "star_row": "row of 5 large filled red #DB222A stars (never gold, never yellow)",
+    "trust_pill": "red rounded pill with white star + white caps text like '500+ 5-STAR GOOGLE REVIEWS'",
+    "cta_pill": {
+      "over_navy": "white rounded pill with navy text + small red arrow",
+      "over_cream_or_lightblue": "navy rounded pill with white text + small red arrow"
+    },
+    "letter_avatar": "solid circular light-blue #87ABCF chip with bold navy 2-letter initials (use when no customer photo)",
+    "name_pill": "rounded light-blue #87ABCF pill with navy caps text — '— FIRST L., CITY'",
+    "seam_star": "small red #DB222A star placed at the seam where a photo meets a color block",
+    "divider": "thin red #DB222A horizontal line, short, centered"
+  },
+
+  "POST_SPEC": {
+    "topic": "_FILL_ME_ (e.g. 'Spring AC tune-up reminder')",
+    "archetype": "_FILL_ME_ (pick one letter A-J or J2 from ARCHETYPES)",
+    "eyebrow_pill": {
+      "color": "_FILL_ME_ (red | navy | light-blue)",
+      "text": "_FILL_ME_ (ALL CAPS short label)"
+    },
+    "headline_text_lines": [
+      "_FILL_ME_ line 1 (bold sans, specify color)",
+      "[italic serif] _FILL_ME_ emphasis phrase [/italic serif]",
+      "_FILL_ME_ line 3 (bold sans, specify color)"
+    ],
+    "body_copy": "_FILL_ME_ short 2-3 sentence body in IEC voice (neighbor not salesman)",
+    "photo": {
+      "include_photo": "_FILL_ME_ (true | false) — NOT every post needs a photo; photo-free posts are faster to remix",
+      "description": "_FILL_ME_ (only if include_photo=true) — describe realistic photo, specify no people unless needed"
+    },
+    "trust_element": "_FILL_ME_ (optional: trust pill, star row, letter avatar, testimonial, etc.)",
+    "cta": {
+      "style": "_FILL_ME_ (pill over navy | pill over cream | full-width bar)",
+      "text": "CALL (951) 482-7457 | IECOMFORTAC.COM (pick one or combine with bullet separator)"
+    }
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "Navy #104B94 is dominant on every post",
+    "Red #DB222A is the default accent — stars, eyebrows, numerals, dividers, arrows, bars",
+    "Light blue #87ABCF is the soft secondary — backgrounds, italic emphasis on navy, name pills, avatars",
+    "NO yellow, NO gold, NO #F7CF21, NO orange, NO teal fills — ever, in any post, under any circumstance",
+    "Stars are ALWAYS red, NEVER gold or yellow",
+    "No pipe characters | in rendered text — use text_lines arrays instead of pipe-delimited strings",
+    "No logo watermark",
+    "Not every post needs a photograph — prefer text-only when the message is strong enough",
+    "Use cream #F5F1EA not pure white for warm brand-story backgrounds",
+    "Italic serif is ONLY for 1-3 emphasis words, never a whole headline",
+    "Keep text readable at 320px wide (Instagram feed thumbnail)"
+  ],
+
+  "GLOBAL_NEGATIVE_PROMPT": "yellow, gold, #F7CF21, orange, teal fills, pipe character, | symbol, logos, watermarks, stock-photo look, cheesy clipart, busy backgrounds, comic sans, multiple competing headlines, emoji clutter, lens flares, lower-third tv graphics, generic business template look",
+
+  "LOGO_OVERLAY_PIPELINE": {
+    "RULE": "NEVER pass logo files as input_image_path to nanobanana. AI generation re-renders logos inaccurately. Generate the post WITHOUT any logo. The CLIENT will add the IEC logo manually after generation.",
+    "step_1_generate": "Generate the post with 'logo, brand mark, watermark' added to the negative prompt. Leave clean space in the logo placement area (top-left for most posts, top-center for review cards).",
+    "step_2_overlay": "SKIP — the client handles IEC logo placement manually. Do NOT run overlay_logo.py for IEC posts.",
+    "logo_file": "..\\iec-cutouts\\IEC logo-transparent.png",
+    "client_handles_logo": true
+  },
+
+  "QUICK_WORKFLOW": {
+    "step_1": "Pick a topic and an archetype (A-J or J2)",
+    "step_2": "Copy POST_SPEC, fill in _FILL_ME_ fields",
+    "step_3": "Paste the full JSON (with STRICT_COLOR_CONTRACT, BRAND, archetype chosen, POST_SPEC filled, GLOBAL_HARD_RULES, GLOBAL_NEGATIVE_PROMPT) as the `prompt` string. Add 'logo, brand mark, watermark' to GLOBAL_NEGATIVE_PROMPT.",
+    "step_4": "Call nanobanana generate_image with: model_tier='pro', aspect_ratio='4:5', resolution='2k', thinking_level='high', output_path='...\\\\iec-posts\\\\vX_NN_topic.png'. Do NOT pass logo files as input_image_path.",
+    "step_5": "Run overlay_logo.py to composite the real IEC transparent logo onto the generated post.",
+    "step_6": "Review, audit against GLOBAL_HARD_RULES, re-fire if any rule was violated"
+  }
+}
