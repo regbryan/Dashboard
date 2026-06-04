@@ -6,9 +6,10 @@ import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
 
 // Renders a designed post graphic with REAL fonts (Satori → SVG → resvg PNG)
-// so text is pixel-perfect, then composites the brand's real logo via sharp.
-// Fonts + logos are bundled (lib/autopilot/fonts, lib/autopilot/brand-logos)
-// and traced into the serverless functions via next.config.
+// so text is pixel-perfect. The generation pipeline NEVER paints a logo — the
+// logo is composited later as a separate overlay (lib/overlay-logo.ts) or added
+// manually by the client (IEC). Fonts are bundled (lib/autopilot/fonts) and
+// traced into the serverless functions via next.config.
 
 const FONT_DIR = path.join(process.cwd(), "lib", "autopilot", "fonts");
 
@@ -38,7 +39,6 @@ export type DesignColors = {
 export type DesignRow = { label?: string | null; text: string };
 type CTA = { name?: string | null; phone?: string | null; website?: string | null };
 
-export type DesignTheme = "light" | "dark";
 export type DesignCardInput = {
   width?: number;
   height?: number;
@@ -48,8 +48,6 @@ export type DesignCardInput = {
   rows?: DesignRow[];
   cta?: CTA | null;
   displayFont?: DesignFont;
-  theme?: DesignTheme;
-  logo?: Buffer | null;
 };
 export type PhotoOverlayInput = {
   photo: Buffer;
@@ -58,10 +56,8 @@ export type PhotoOverlayInput = {
   colors: DesignColors;
   eyebrow?: string | null;
   headline: string;
-  rows?: DesignRow[];
   cta?: CTA | null;
   displayFont?: DesignFont;
-  logo?: Buffer | null;
 };
 
 type El = { type: string; props: { style: Record<string, unknown>; children: unknown } };
@@ -74,73 +70,21 @@ const dispFamily = (df?: DesignFont) => (df === "serif" ? "Playfair" : "Oswald")
 // Condensed (Oswald) reads best uppercase; serif (Playfair) keeps natural case.
 const head = (s: string, df?: DesignFont) => (df === "serif" ? s : s.toUpperCase());
 
-// Relative luminance for picking readable text/accent against a background.
-function lum(hex?: string | null): number {
-  if (!hex) return 0;
-  const m = hex.replace("#", "");
-  const n = m.length === 3 ? m.split("").map((ch) => ch + ch).join("") : m;
-  if (n.length < 6) return 0;
-  const ch = (i: number) => parseInt(n.slice(i, i + 2), 16) / 255;
-  const f = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  return 0.2126 * f(ch(0)) + 0.7152 * f(ch(2)) + 0.0722 * f(ch(4));
-}
-const contrastText = (bg?: string | null) => (lum(bg) > 0.45 ? "#23201C" : "#FFFFFF");
-const readableOn = (color?: string | null, bg?: string | null) =>
-  !!color && Math.abs(lum(color) - lum(bg)) > 0.28;
-
-async function compositeLogo(
-  base: Buffer,
-  logo: Buffer | null | undefined,
-  width: number
-): Promise<Buffer> {
-  if (!logo) return base;
-  const lw = Math.round(width * 0.17);
-  const pad = Math.round(width * 0.045);
-  try {
-    const resized = await sharp(logo).resize({ width: lw, fit: "inside" }).png().toBuffer();
-    return await sharp(base)
-      .composite([{ input: resized, top: pad, left: width - lw - pad }])
-      .png()
-      .toBuffer();
-  } catch {
-    return base; // never fail the whole render over a logo
-  }
-}
-
 export async function renderDesignedCard(input: DesignCardInput): Promise<Buffer> {
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
   const c = input.colors ?? {};
+  const accent = c.accent || c.primary || (c.palette && c.palette[0]) || "#90B0D0";
+  const deep = c.primary || "#1a2340";
+  const barBg = c.secondary || "#2a3358";
   const disp = dispFamily(input.displayFont);
-
-  const primary = c.primary || "#1a2340";
-  const accentRaw = c.accent || c.primary || (c.palette && c.palette[0]) || "#90B0D0";
-  const isLight = input.theme === "light";
-
-  // Background + primary text color.
-  const bgBase = isLight ? "#EFE7DC" : primary;
-  const bg = isLight
-    ? `linear-gradient(160deg, #FFFFFF 0%, ${bgBase} 100%)`
-    : `linear-gradient(160deg, #0b1124 0%, ${primary} 100%)`;
-  const text = contrastText(bgBase);
-
-  // Decorative accent that's guaranteed to read on the background (falls back
-  // through the palette, then to the text color for all-light brands).
-  const decor =
-    [accentRaw, c.secondary, primary, ...(c.palette ?? [])].find((x) => readableOn(x, bgBase)) ||
-    text;
-
-  // CTA bar — colored, with contrast-safe text.
-  const ctaBg = isLight ? primary : c.secondary || "#2a3358";
-  const ctaName = contrastText(ctaBg);
-  const ctaSub = readableOn(accentRaw, ctaBg) ? accentRaw : ctaName;
 
   const header = h("div", { display: "flex", flexDirection: "column", width: "72%" }, [
     ...(input.eyebrow
-      ? [h("div", { display: "flex", fontFamily: disp, fontSize: "36px", color: decor, letterSpacing: "2px" }, head(input.eyebrow, "condensed"))]
+      ? [h("div", { display: "flex", fontFamily: disp, fontSize: "36px", color: accent, letterSpacing: "2px" }, head(input.eyebrow, "condensed"))]
       : []),
-    h("div", { display: "flex", fontFamily: disp, fontSize: "84px", color: text, lineHeight: 1.04, letterSpacing: input.displayFont === "serif" ? "0px" : "-1px", marginTop: "16px" }, head(input.headline, input.displayFont)),
-    h("div", { display: "flex", width: "160px", height: "8px", background: decor, borderRadius: "4px", marginTop: "22px" }, []),
+    h("div", { display: "flex", fontFamily: disp, fontSize: "84px", color: "white", lineHeight: 1.04, letterSpacing: input.displayFont === "serif" ? "0px" : "-1px", marginTop: "16px" }, head(input.headline, input.displayFont)),
+    h("div", { display: "flex", width: "160px", height: "8px", background: accent, borderRadius: "4px", marginTop: "22px" }, []),
   ]);
 
   const rows =
@@ -151,19 +95,19 @@ export async function renderDesignedCard(input: DesignCardInput): Promise<Buffer
           input.rows.map((r) =>
             h("div", { display: "flex", flexDirection: "column", gap: "6px" }, [
               ...(r.label
-                ? [h("div", { display: "flex", fontFamily: disp, fontSize: "38px", color: decor, letterSpacing: "1px" }, head(r.label, "condensed"))]
+                ? [h("div", { display: "flex", fontFamily: disp, fontSize: "38px", color: accent, letterSpacing: "1px" }, head(r.label, "condensed"))]
                 : []),
-              h("div", { display: "flex", fontFamily: "Poppins", fontSize: "42px", fontWeight: 700, color: text, lineHeight: 1.18 }, r.text),
+              h("div", { display: "flex", fontFamily: "Poppins", fontSize: "42px", fontWeight: 700, color: "white", lineHeight: 1.18 }, r.text),
             ])
           )
         )
       : h("div", { display: "flex" }, []);
 
   const cta = input.cta
-    ? h("div", { display: "flex", flexDirection: "column", background: ctaBg, borderRadius: "18px", padding: "26px 32px", borderLeft: `10px solid ${decor}` }, [
-        ...(input.cta.name ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "34px", fontWeight: 800, color: ctaName }, input.cta.name)] : []),
+    ? h("div", { display: "flex", flexDirection: "column", background: barBg, borderRadius: "18px", padding: "26px 32px", borderLeft: `10px solid ${accent}` }, [
+        ...(input.cta.name ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "34px", fontWeight: 800, color: "white" }, input.cta.name)] : []),
         ...(input.cta.phone || input.cta.website
-          ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "27px", fontWeight: 700, color: ctaSub, marginTop: "6px" }, [input.cta.phone, input.cta.website].filter(Boolean).join("  ·  "))]
+          ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "27px", fontWeight: 700, color: accent, marginTop: "6px" }, [input.cta.phone, input.cta.website].filter(Boolean).join("  ·  "))]
           : []),
       ])
     : h("div", { display: "flex" }, []);
@@ -175,7 +119,7 @@ export async function renderDesignedCard(input: DesignCardInput): Promise<Buffer
       flexDirection: "column",
       width: "100%",
       height: "100%",
-      background: bg,
+      background: `linear-gradient(160deg, #0b1124 0%, ${deep} 100%)`,
       padding: "84px 64px 72px",
       justifyContent: "space-between",
       fontFamily: "Poppins",
@@ -184,13 +128,13 @@ export async function renderDesignedCard(input: DesignCardInput): Promise<Buffer
   );
 
   const svg = await satori(tree as unknown as Parameters<typeof satori>[0], { width, height, fonts: fonts() });
-  const png = Buffer.from(new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng());
-  return compositeLogo(png, input.logo, width);
+  return Buffer.from(new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng());
 }
 
 /**
  * "Photo + text" mode: nano banana makes the photo, this overlays the headline
- * on a top legibility band and a CTA bar at the bottom, plus the real logo.
+ * on a top legibility band and a CTA bar at the bottom. No logo (added later
+ * via the overlay step / manually by the client).
  */
 export async function renderPhotoOverlay(input: PhotoOverlayInput): Promise<Buffer> {
   const width = input.width ?? 1080;
@@ -198,8 +142,6 @@ export async function renderPhotoOverlay(input: PhotoOverlayInput): Promise<Buff
   const c = input.colors ?? {};
   const accent = c.accent || c.primary || (c.palette && c.palette[0]) || "#90B0D0";
   const barBg = c.primary || "#1a2340";
-  const barName = contrastText(barBg);
-  const barSub = readableOn(accent, barBg) ? accent : barName;
   const disp = dispFamily(input.displayFont);
 
   const topBand = h("div", { display: "flex", flexDirection: "column", background: "rgba(11,17,36,0.82)", padding: "48px 56px", borderBottom: `8px solid ${accent}` }, [
@@ -209,56 +151,20 @@ export async function renderPhotoOverlay(input: PhotoOverlayInput): Promise<Buff
     h("div", { display: "flex", width: "80%", fontFamily: disp, fontSize: "74px", color: "white", lineHeight: 1.04, letterSpacing: input.displayFont === "serif" ? "0px" : "-1px" }, head(input.headline, input.displayFont)),
   ]);
 
-  // Optional structured rows (e.g. MYTH / FACT, tips) rendered in REAL fonts
-  // over the photo in legible translucent cards — driven entirely by the JSON
-  // brief, so the words can never garble. Empty by default → headline + CTA only.
-  const rowsBlock =
-    input.rows && input.rows.length > 0
-      ? h(
-          "div",
-          { display: "flex", flexDirection: "column", gap: "22px", padding: "0 56px" },
-          input.rows.map((r) =>
-            h(
-              "div",
-              {
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                background: "rgba(11,17,36,0.82)",
-                padding: "26px 30px",
-                borderRadius: "16px",
-                borderLeft: `10px solid ${accent}`,
-              },
-              [
-                ...(r.label
-                  ? [h("div", { display: "flex", fontFamily: disp, fontSize: "34px", color: accent, letterSpacing: "1px" }, head(r.label, "condensed"))]
-                  : []),
-                h("div", { display: "flex", fontFamily: "Poppins", fontSize: "40px", fontWeight: 700, color: "white", lineHeight: 1.18 }, r.text),
-              ]
-            )
-          )
-        )
-      : null;
-
   const bottomBar = input.cta
     ? h("div", { display: "flex", flexDirection: "column", background: barBg, padding: "30px 56px", borderTop: `8px solid ${accent}` }, [
-        ...(input.cta.name ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "34px", fontWeight: 800, color: barName }, input.cta.name)] : []),
+        ...(input.cta.name ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "34px", fontWeight: 800, color: "white" }, input.cta.name)] : []),
         ...(input.cta.phone || input.cta.website
-          ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "27px", fontWeight: 700, color: barSub, marginTop: "6px" }, [input.cta.phone, input.cta.website].filter(Boolean).join("  ·  "))]
+          ? [h("div", { display: "flex", fontFamily: "Poppins", fontSize: "27px", fontWeight: 700, color: accent, marginTop: "6px" }, [input.cta.phone, input.cta.website].filter(Boolean).join("  ·  "))]
           : []),
       ])
     : h("div", { display: "flex" }, []);
 
-  const overlayTree = h(
-    "div",
-    { display: "flex", flexDirection: "column", width: "100%", height: "100%", justifyContent: "space-between", fontFamily: "Poppins" },
-    rowsBlock ? [topBand, rowsBlock, bottomBar] : [topBand, bottomBar]
-  );
+  const overlayTree = h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", justifyContent: "space-between", fontFamily: "Poppins" }, [topBand, bottomBar]);
 
   const svg = await satori(overlayTree as unknown as Parameters<typeof satori>[0], { width, height, fonts: fonts() });
   const overlayPng = new Resvg(svg, { fitTo: { mode: "width", value: width }, background: "rgba(0,0,0,0)" }).render().asPng();
 
   const bg = await sharp(input.photo).resize(width, height, { fit: "cover" }).toBuffer();
-  const composed = await sharp(bg).composite([{ input: Buffer.from(overlayPng), top: 0, left: 0 }]).png().toBuffer();
-  return compositeLogo(composed, input.logo, width);
+  return sharp(bg).composite([{ input: Buffer.from(overlayPng), top: 0, left: 0 }]).png().toBuffer();
 }
