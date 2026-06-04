@@ -28,8 +28,14 @@ const nextConfig: NextConfig = {
   // The Satori designed-graphic render reads bundled .woff fonts at runtime;
   // force them into the serverless functions that call generateBrandPost.
   outputFileTracingIncludes: {
-    "/api/posts/[id]/regenerate": ["./lib/autopilot/fonts/**"],
-    "/api/cron/autopilot-generate": ["./lib/autopilot/fonts/**"],
+    "/api/posts/[id]/regenerate": [
+      "./lib/autopilot/fonts/**",
+      "./lib/autopilot/brand-templates/**",
+    ],
+    "/api/cron/autopilot-generate": [
+      "./lib/autopilot/fonts/**",
+      "./lib/autopilot/brand-templates/**",
+    ],
   },
 };
 

@@ -15,6 +15,9 @@ export type GenerateImageInput = {
   prompt: string;
   // Square 1:1 Instagram post by default. Reels / portrait can pass "9:16".
   aspectRatio?: "1:1" | "4:5" | "9:16" | "16:9";
+  // Override the model for this call (e.g. the pro image model for the
+  // archetype path). Falls back to GEMINI_IMAGE_MODEL, then the flash default.
+  model?: string;
 };
 
 export type GenerateImageResult =
@@ -29,8 +32,17 @@ export async function generateImage(
     return { ok: false, error: "GEMINI_API_KEY not set" };
   }
 
-  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+  const model =
+    input.model || process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
   const url = `${ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
+
+  // imageConfig carries the aspect ratio and, where the model supports it, an
+  // image size (e.g. "2K" on the pro image model). imageSize is opt-in via env
+  // so we don't send an unknown field to models that reject it.
+  const imageSize = process.env.GEMINI_IMAGE_SIZE; // e.g. "1K" | "2K" | "4K"
+  const imageConfig: Record<string, string> = {};
+  if (input.aspectRatio) imageConfig.aspectRatio = input.aspectRatio;
+  if (imageSize) imageConfig.imageSize = imageSize;
 
   const body = {
     contents: [
@@ -41,9 +53,7 @@ export async function generateImage(
     ],
     generationConfig: {
       responseModalities: ["IMAGE"],
-      ...(input.aspectRatio
-        ? { imageConfig: { aspectRatio: input.aspectRatio } }
-        : {}),
+      ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {}),
     },
   };
 
