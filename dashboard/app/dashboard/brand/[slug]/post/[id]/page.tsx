@@ -96,8 +96,8 @@ export default async function PostDetailPage({
     !!post.hashtags || !!post.cta || !!post.post_type || !!post.content_pillar || !!post.archetype;
 
   return (
-    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "32px clamp(20px, 4vw, 56px) 64px" }}>
-      <div className="mx-auto" style={{ maxWidth: "1600px" }}>
+    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "16px 0 48px" }}>
+      <div style={{ maxWidth: "100%" }}>
         {/* Breadcrumbs */}
         <nav
           className="flex items-center flex-wrap"
