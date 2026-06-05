@@ -84,9 +84,11 @@ export default function StudioTabs({
                   textTransform: "uppercase",
                   textAlign: "center",
                   borderRadius: "7px",
-                  color: on ? "#ffffff" : "#9a9aa8",
-                  background: on ? "rgba(192,132,252,0.18)" : "transparent",
-                  border: on ? "1px solid rgba(192,132,252,0.45)" : "1px solid transparent",
+                  color: on ? "var(--accent-ink, #fff)" : "#9a9aa8",
+                  background: on ? "var(--accent-tint, rgba(255,255,255,0.08))" : "transparent",
+                  border: on
+                    ? "1px solid var(--accent-line, rgba(255,255,255,0.3))"
+                    : "1px solid transparent",
                   transition: "color 0.15s ease, background 0.15s ease",
                 }}
               >

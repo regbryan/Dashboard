@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import { getImageUrl } from "@/lib/image-url";
-import StatusBadge from "@/components/StatusBadge";
 import ApprovalHistory from "@/components/ApprovalHistory";
 import SocialPilotStatus from "@/components/SocialPilotStatus";
 import ClientReviewLink from "@/components/ClientReviewLink";
@@ -12,6 +11,94 @@ import { getBrandClientEmails } from "@/lib/brand-clients";
 import { buildClaudeRevisionLink } from "@/lib/claude-link";
 
 export const dynamic = "force-dynamic";
+
+/* ── Brand accent ────────────────────────────────────────────────────
+   The page themes itself from the brand's color_primary. Brand colors
+   range from dark navy/teal to light tan, so we lift each into a band
+   that reads on the near-black canvas: a saturated fill (CTA, status
+   dot, the rule under the kicker) and a lighter ink (accent text). */
+function hexToHsl(hex: string): [number, number, number] | null {
+  const m = hex.replace("#", "").match(/^([0-9a-fA-F]{6})$/);
+  if (!m) return null;
+  const int = parseInt(m[1], 16);
+  const r = ((int >> 16) & 255) / 255;
+  const g = ((int >> 8) & 255) / 255;
+  const b = (int & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return [h * 360, s, l];
+}
+
+type AccentVars = {
+  "--accent": string;
+  "--accent-ink": string;
+  "--accent-tint": string;
+  "--accent-line": string;
+};
+
+function brandAccentVars(hex: string | null | undefined): AccentVars {
+  const hsl = hex ? hexToHsl(hex) : null;
+  if (!hsl) {
+    return {
+      "--accent": "#cdd1da",
+      "--accent-ink": "#e8eaf0",
+      "--accent-tint": "rgba(255,255,255,0.07)",
+      "--accent-line": "rgba(255,255,255,0.26)",
+    };
+  }
+  const [h, s] = hsl;
+  const sat = Math.min(Math.max(s, 0.45), 0.85);
+  const satPct = Math.round(sat * 100);
+  const inkSatPct = Math.round(Math.min(sat, 0.7) * 100);
+  return {
+    "--accent": `hsl(${h.toFixed(0)} ${satPct}% 62%)`,
+    "--accent-ink": `hsl(${h.toFixed(0)} ${inkSatPct}% 80%)`,
+    "--accent-tint": `hsl(${h.toFixed(0)} ${satPct}% 62% / 0.14)`,
+    "--accent-line": `hsl(${h.toFixed(0)} ${satPct}% 62% / 0.42)`,
+  };
+}
+
+/* Status keeps semantic meaning (purple removed). "In review" is the
+   one state that keys to the brand accent — it's this brand's post
+   awaiting this brand's client. */
+type StatusTone = Partial<Record<"--st" | "--st-ink" | "--st-tint" | "--st-line", string>>;
+function statusTone(status: string): { label: string; vars: StatusTone } {
+  const tone = (h: number, sat = 70): StatusTone => ({
+    "--st": `hsl(${h} ${sat}% 60%)`,
+    "--st-ink": `hsl(${h} ${Math.min(sat, 55)}% 78%)`,
+    "--st-tint": `hsl(${h} ${sat}% 60% / 0.14)`,
+    "--st-line": `hsl(${h} ${sat}% 60% / 0.4)`,
+  });
+  const map: Record<string, { label: string; vars: StatusTone }> = {
+    not_started: {
+      label: "Approval not started",
+      vars: {
+        "--st": "hsl(240 6% 62%)",
+        "--st-ink": "#c2c4cf",
+        "--st-tint": "rgba(255,255,255,0.06)",
+        "--st-line": "rgba(255,255,255,0.2)",
+      },
+    },
+    generating: { label: "Generating", vars: tone(43, 90) },
+    in_review: { label: "In review", vars: {} /* → brand accent */ },
+    changes_requested: { label: "Changes requested", vars: tone(28, 90) },
+    approved: { label: "Approved", vars: tone(150, 60) },
+    scheduled: { label: "Scheduled", vars: tone(190, 70) },
+    posted: { label: "Posted", vars: tone(205, 80) },
+  };
+  return map[status] ?? { label: status.replace(/_/g, " "), vars: map.not_started.vars };
+}
 
 export default async function PostDetailPage({
   params,
@@ -29,20 +116,26 @@ export default async function PostDetailPage({
 
   if (!post) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" style={{ padding: "40px 24px" }}>
-        <div className="text-center">
-          <h1 className="display-heading" style={{ fontSize: "clamp(36px, 5vw, 48px)" }}>
-            Post <span className="accent">not found</span>
-          </h1>
-          <p style={{ marginTop: "12px", color: "#9999a6", fontSize: "14px" }}>
-            No post exists with ID &ldquo;{id}&rdquo; for this brand.
-          </p>
-          <Link
-            href={`/dashboard/brand/${slug}`}
-            style={{ marginTop: "20px", display: "inline-block", color: "#c084fc", fontSize: "13px", textDecoration: "none" }}
-          >
-            ← Back to brand
-          </Link>
+      <div className="post-studio" style={brandAccentVars(null) as React.CSSProperties}>
+        <div
+          className="min-h-[calc(100vh-64px)] flex items-center justify-center"
+          style={{ padding: "40px 24px" }}
+        >
+          <div className="text-center">
+            <h1 className="ps-title" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+              Post not found
+            </h1>
+            <p style={{ marginTop: "12px", color: "var(--ps-ink-3)", fontSize: "14px" }}>
+              No post exists with ID &ldquo;{id}&rdquo; for this brand.
+            </p>
+            <Link
+              href={`/dashboard/brand/${slug}`}
+              className="ps-btn"
+              style={{ marginTop: "20px" }}
+            >
+              ← Back to brand
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -62,6 +155,7 @@ export default async function PostDetailPage({
     compliance: string | null;
     color_primary: string | null;
   } | null;
+
   const imageUrl = getImageUrl(post.brand_id, post.file_path, post.updated_at);
   const clientEmails = await getBrandClientEmails(post.brand_id).catch(() => []);
   const thumbAspect: "portrait" | "landscape" =
@@ -74,81 +168,59 @@ export default async function PostDetailPage({
     .filter((a) => a.status === "changes_requested")
     .slice(-1)[0];
 
-  const crumbStyle: React.CSSProperties = {
-    color: "#9999a6",
-    textDecoration: "none",
-    transition: "color 0.2s ease",
-  };
-  const subLabel: React.CSSProperties = {
-    fontSize: "10px",
-    fontWeight: 600,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    color: "#8a8a98",
-    margin: 0,
-  };
-  const dividerTop: React.CSSProperties = {
-    borderTop: "1px solid rgba(255,255,255,0.06)",
-    paddingTop: "16px",
-  };
+  const accentVars = brandAccentVars(brandData?.color_primary);
+  const { label: statusLabel, vars: statusVars } = statusTone(post.status);
 
-  const hasMeta =
-    !!post.hashtags || !!post.cta || !!post.post_type || !!post.content_pillar || !!post.archetype;
+  const tags = [post.post_type, post.content_pillar, post.archetype].filter(Boolean) as string[];
+  const hasMeta = !!post.hashtags || !!post.cta || tags.length > 0;
 
   return (
-    <div className="min-h-[calc(100vh-64px)]" style={{ padding: "16px 0 48px" }}>
-      <div style={{ maxWidth: "100%" }}>
+    <div className="post-studio" style={accentVars as React.CSSProperties}>
+      <div style={{ padding: "16px 0 56px" }}>
         {/* Breadcrumbs */}
-        <nav
-          className="flex items-center flex-wrap"
-          style={{ gap: "8px", fontSize: "13px", marginBottom: "20px" }}
-        >
-          <Link href="/dashboard" style={crumbStyle}>Dashboard</Link>
-          <span style={{ color: "#4a4a55" }}>/</span>
-          <Link href={`/dashboard/brand/${slug}`} style={crumbStyle}>
-            {brandData?.name || slug}
-          </Link>
-          <span style={{ color: "#4a4a55" }}>/</span>
-          <span style={{ color: "white" }}>Post #{post.post_number}</span>
+        <nav className="ps-crumbs" aria-label="Breadcrumb">
+          <Link href="/dashboard">Dashboard</Link>
+          <span className="ps-crumbs-sep">/</span>
+          <Link href={`/dashboard/brand/${slug}`}>{brandData?.name || slug}</Link>
+          <span className="ps-crumbs-sep">/</span>
+          <span className="ps-crumbs-current">Post #{post.post_number}</span>
         </nav>
 
-        {/* Header band — what this post is (full width) */}
-        <div
-          className="flex flex-wrap items-start justify-between"
-          style={{
-            gap: "16px",
-            paddingBottom: "24px",
-            marginBottom: "32px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <span className="eyebrow" style={{ color: "#c084fc" }}>
-              #{post.post_number}
-              {post.date ? ` · ${post.date}` : ""}
-              {post.day ? ` · ${post.day}` : ""}
-            </span>
-            <h1
-              className="display-heading"
-              style={{ fontSize: "clamp(30px, 3.4vw, 46px)", marginTop: "8px" }}
+        {/* Header — what this post is */}
+        <header className="ps-header">
+          <div
+            className="flex flex-wrap items-end justify-between"
+            style={{ gap: "16px" }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <span className="ps-kicker">
+                #{post.post_number}
+                {post.date ? ` · ${post.date}` : ""}
+                {post.day ? ` · ${post.day}` : ""}
+              </span>
+              <h1 className="ps-title">{post.concept || "Untitled Post"}</h1>
+            </div>
+            <span
+              className="ps-status"
+              style={statusVars as React.CSSProperties}
+              title={`Status: ${statusLabel}`}
             >
-              {post.concept || "Untitled Post"}
-            </h1>
+              {statusLabel}
+            </span>
           </div>
-          <div style={{ flexShrink: 0, marginTop: "6px" }}>
-            <StatusBadge status={post.status} />
-          </div>
-        </div>
+        </header>
 
         {/* Three regions: Asset · Content · Workflow */}
-        <div className="post-detail-grid">
+        <div className="ps-grid">
           {/* ASSET — the design + the tools that operate on it (pinned) */}
-          <div className="flex flex-col post-detail-aside" style={{ gap: "24px" }}>
-            <PostImageViewer
-              imageUrl={imageUrl}
-              alt={post.concept || "Post image"}
-              thumbAspect={thumbAspect}
-            />
+          <div className="ps-rail ps-rise ps-rise-1 flex flex-col" style={{ gap: "20px" }}>
+            <div className="ps-asset-mat">
+              <PostImageViewer
+                imageUrl={imageUrl}
+                alt={post.concept || "Post image"}
+                thumbAspect={thumbAspect}
+              />
+            </div>
             <StudioTabs
               postId={post.id}
               brandId={post.brand_id}
@@ -161,69 +233,61 @@ export default async function PostDetailPage({
           </div>
 
           {/* CONTENT — read the post */}
-          <div className="flex flex-col" style={{ gap: "20px" }}>
+          <div className="ps-rise ps-rise-2 ps-read flex flex-col" style={{ gap: "4px" }}>
             {post.caption && (
-              <div className="surface-card" style={{ padding: "20px" }}>
-                <h2 className="eyebrow" style={{ marginBottom: "10px" }}>Copy</h2>
-                <div
-                  style={{
-                    maxHeight: "360px",
-                    overflowY: "auto",
-                    fontSize: "15px",
-                    color: "#bfbfcc",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.65,
-                  }}
-                >
-                  {post.caption}
+              <section>
+                <h2 className="ps-label ps-label--strong" style={{ marginBottom: "12px" }}>
+                  Caption
+                </h2>
+                <div className="ps-copy-scroll">
+                  <p className="ps-copy">{post.caption}</p>
                 </div>
-              </div>
+              </section>
             )}
 
+            {post.caption && hasMeta && <hr className="ps-hr" />}
+
             {hasMeta && (
-              <div className="surface-card flex flex-col" style={{ padding: "20px", gap: "16px" }}>
-                {post.hashtags && (
-                  <div>
-                    <h3 style={subLabel}>Hashtags</h3>
-                    <p style={{ fontSize: "13px", color: "#bfbfcc", lineHeight: 1.6, margin: "8px 0 0" }}>
-                      {post.hashtags}
-                    </p>
-                  </div>
-                )}
-                {post.cta && (
-                  <div style={post.hashtags ? dividerTop : undefined}>
-                    <h3 style={subLabel}>CTA</h3>
-                    <p style={{ fontSize: "14px", color: "#bfbfcc", lineHeight: 1.6, margin: "8px 0 0" }}>
-                      {post.cta}
-                    </p>
-                  </div>
-                )}
-                {(post.post_type || post.content_pillar || post.archetype) && (
-                  <div style={post.hashtags || post.cta ? dividerTop : undefined}>
-                    <h3 style={subLabel}>Details</h3>
-                    <div className="flex flex-wrap" style={{ gap: "6px", marginTop: "10px" }}>
-                      {post.post_type && <MetaChip>{post.post_type}</MetaChip>}
-                      {post.content_pillar && <MetaChip>{post.content_pillar}</MetaChip>}
-                      {post.archetype && <MetaChip>{post.archetype}</MetaChip>}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <section>
+                <dl className="ps-dl">
+                  {post.hashtags && (
+                    <>
+                      <dt>Hashtags</dt>
+                      <dd>{post.hashtags}</dd>
+                    </>
+                  )}
+                  {post.cta && (
+                    <>
+                      <dt>Call to action</dt>
+                      <dd>{post.cta}</dd>
+                    </>
+                  )}
+                  {tags.length > 0 && (
+                    <>
+                      <dt>Details</dt>
+                      <dd>
+                        <div className="ps-tags">
+                          {tags.map((t) => (
+                            <span key={t} className="ps-tag">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </dd>
+                    </>
+                  )}
+                </dl>
+              </section>
             )}
           </div>
 
           {/* WORKFLOW — act on the post (pinned) */}
-          <div className="flex flex-col post-detail-aside" style={{ gap: "20px" }}>
-            {/* Primary action zone — accented so it's clearly the page's job */}
-            <div
-              className="surface-card"
-              style={{
-                padding: "24px",
-                borderColor: "rgba(192,132,252,0.35)",
-                background: "rgba(192,132,252,0.05)",
-              }}
-            >
-              <h2 className="eyebrow" style={{ marginBottom: "14px", color: "#c9a8ff" }}>Actions</h2>
+          <div className="ps-rail ps-rise ps-rise-3 flex flex-col" style={{ gap: "16px" }}>
+            {/* Primary action zone — accent-weighted as the page's job */}
+            <div className="ps-panel ps-panel--action">
+              <div className="ps-panel-head">
+                <h2 className="ps-label ps-label--strong">Actions</h2>
+              </div>
               <PostActions
                 postId={post.id}
                 currentStatus={post.status}
@@ -232,27 +296,24 @@ export default async function PostDetailPage({
               />
             </div>
 
+            {/* Feedback */}
             <div
-              className="surface-card"
-              style={{
-                padding: "24px",
-                ...(changeRequested
+              className="ps-panel"
+              style={
+                changeRequested
                   ? {
-                      borderColor: "rgba(251,178,122,0.45)",
-                      background: "rgba(251,178,122,0.04)",
+                      borderColor: "hsl(28 90% 60% / 0.45)",
+                      background: "hsl(28 90% 60% / 0.05)",
                     }
-                  : {}),
-              }}
+                  : undefined
+              }
             >
-              <div
-                className="flex items-center justify-between"
-                style={{ marginBottom: "14px", gap: "12px" }}
-              >
-                <h2 className="eyebrow" style={{ margin: 0 }}>Feedback</h2>
+              <div className="ps-panel-head">
+                <h2 className="ps-label ps-label--strong">Feedback</h2>
                 <span
                   style={{
-                    fontSize: "11px",
-                    color: "#9999a6",
+                    fontSize: "var(--ps-fs-label)",
+                    color: "var(--ps-ink-3)",
                     fontFamily: "var(--font-mono, monospace)",
                   }}
                 >
@@ -262,7 +323,7 @@ export default async function PostDetailPage({
                 </span>
               </div>
               {approvalList.length === 0 ? (
-                <p style={{ fontSize: "13px", color: "#8a8a98", margin: 0 }}>
+                <p style={{ fontSize: "var(--ps-fs-meta)", color: "var(--ps-ink-3)", margin: 0, lineHeight: 1.55 }}>
                   No feedback yet. Use the actions above to leave a note, or share
                   the post with the client for them to review.
                 </p>
@@ -299,27 +360,19 @@ export default async function PostDetailPage({
                   })}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display: "inline-block",
-                    marginTop: "16px",
-                    padding: "10px 16px",
-                    background: "rgba(192,132,252,0.12)",
-                    border: "1px solid rgba(192,132,252,0.4)",
-                    borderRadius: "8px",
-                    color: "#e9d5ff",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    textDecoration: "none",
-                  }}
+                  className="ps-btn"
+                  style={{ marginTop: "14px", width: "100%" }}
                 >
                   Draft revision in Claude →
                 </a>
               )}
             </div>
 
+            {/* Share */}
             <ClientReviewLink
               path={`/client/${slug}/post/${post.id}`}
-              label="Share this post with client"
+              label="Share with client"
+              tone="studio"
               emailSubject={`${brandData?.name || "Your brand"}: Post #${post.post_number} ready for review`}
               emailBody={`Hi,\n\nPost #${post.post_number} (${post.concept || "Untitled"}) is ready for your review. Tap the link below to approve or request changes:\n\n`}
               to={clientEmails}
@@ -329,25 +382,5 @@ export default async function PostDetailPage({
         </div>
       </div>
     </div>
-  );
-}
-
-function MetaChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "4px 10px",
-        borderRadius: "999px",
-        fontSize: "11px",
-        fontWeight: 500,
-        letterSpacing: "0.04em",
-        background: "rgba(255,255,255,0.04)",
-        color: "#bfbfcc",
-        border: "1px solid rgba(255,255,255,0.1)",
-      }}
-    >
-      {children}
-    </span>
   );
 }

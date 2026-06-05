@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ShinyButton } from "@/components/ShinyButton";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "not_started", label: "Approval Not Started" },
@@ -138,15 +137,8 @@ export default function PostActions({
       {/* Status dropdown */}
       <div>
         <label
-          style={{
-            display: "block",
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "#8a8a98",
-            marginBottom: "8px",
-          }}
+          className="ps-label"
+          style={{ display: "block", marginBottom: "8px" }}
         >
           Status
         </label>
@@ -197,42 +189,47 @@ export default function PostActions({
             style={{ resize: "vertical", minHeight: "80px" }}
           />
           <div className="flex" style={{ gap: "8px" }}>
-            <ShinyButton
+            <button
+              type="button"
+              className="ps-cta"
+              style={{ width: "auto", flex: 1 }}
               onClick={handleSubmitChangesRequested}
               disabled={loading || !feedbackNote.trim()}
             >
-              Submit Feedback
-            </ShinyButton>
-            <ShinyButton
-              variant="secondary"
+              Submit feedback
+            </button>
+            <button
+              type="button"
+              className="ps-btn"
               onClick={() => { setPendingStatus(null); setFeedbackNote(""); }}
               disabled={loading}
             >
               Cancel
-            </ShinyButton>
+            </button>
           </div>
         </div>
       )}
 
       {/* Action buttons — Send to Client Review is the page's hero action */}
       <div className="flex flex-col" style={{ gap: "10px" }}>
-        <ShinyButton
-          className="sp-shiny--prominent"
-          fullWidth
+        <button
+          type="button"
+          className="ps-cta"
           onClick={handleSendToReview}
           disabled={loading || currentStatus === "in_review"}
         >
-          {currentStatus === "in_review" ? "Already in Review" : "Send to Client Review"}
-        </ShinyButton>
+          {currentStatus === "in_review" ? "Already in review" : "Send to client review"}
+        </button>
         {canHyperFrames && (
-          <ShinyButton
-            variant="secondary"
-            fullWidth
+          <button
+            type="button"
+            className="ps-btn"
+            style={{ width: "100%" }}
             onClick={handleRenderHyperFrames}
             disabled={renderStatus === "running"}
           >
-            {renderStatus === "running" ? "Rendering…" : "Render Reel (HyperFrames)"}
-          </ShinyButton>
+            {renderStatus === "running" ? "Rendering…" : "Render reel (HyperFrames)"}
+          </button>
         )}
       </div>
 

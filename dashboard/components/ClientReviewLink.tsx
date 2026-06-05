@@ -11,6 +11,9 @@ interface ClientReviewLinkProps {
   to?: string[];
   brandId?: string;
   postId?: string;
+  /** "studio" renders the action row as neutral .ps-btn pills (used on the
+   *  redesigned post-detail page). Default keeps the original colored pills. */
+  tone?: "default" | "studio";
 }
 
 export default function ClientReviewLink({
@@ -21,7 +24,9 @@ export default function ClientReviewLink({
   to = [],
   brandId,
   postId,
+  tone = "default",
 }: ClientReviewLinkProps) {
+  const studio = tone === "studio";
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [marked, setMarked] = useState<number | null>(null);
@@ -176,76 +181,97 @@ export default function ClientReviewLink({
           <button
             onClick={handleSendNow}
             disabled={sending}
-            style={{
-              padding: "8px 14px",
-              background: sending
-                ? "rgba(125,226,156,0.06)"
-                : "rgba(125,226,156,0.14)",
-              color: "#a7f3c4",
-              fontSize: "12px",
-              fontWeight: 600,
-              borderRadius: "999px",
-              border: "1px solid rgba(125,226,156,0.4)",
-              cursor: sending ? "default" : "pointer",
-              opacity: sending ? 0.7 : 1,
-            }}
+            className={studio ? "ps-btn" : undefined}
+            style={
+              studio
+                ? { opacity: sending ? 0.7 : 1, cursor: sending ? "default" : "pointer" }
+                : {
+                    padding: "8px 14px",
+                    background: sending
+                      ? "rgba(125,226,156,0.06)"
+                      : "rgba(125,226,156,0.14)",
+                    color: "#a7f3c4",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    borderRadius: "999px",
+                    border: "1px solid rgba(125,226,156,0.4)",
+                    cursor: sending ? "default" : "pointer",
+                    opacity: sending ? 0.7 : 1,
+                  }
+            }
           >
-            {sending ? "Sending…" : "✉ Send Email Now"}
+            {sending ? "Sending…" : studio ? "Send email now" : "✉ Send Email Now"}
           </button>
         )}
         <a
           href={mailtoHref}
           onClick={() => void markInReview()}
-          style={{
-            padding: "8px 14px",
-            background: "rgba(139,92,255,0.12)",
-            color: "#e9d5ff",
-            fontSize: "12px",
-            fontWeight: 500,
-            borderRadius: "999px",
-            border: "1px solid rgba(139,92,255,0.35)",
-            textDecoration: "none",
-            transition: "background 0.2s ease",
-          }}
+          className={studio ? "ps-btn" : undefined}
+          style={
+            studio
+              ? undefined
+              : {
+                  padding: "8px 14px",
+                  background: "rgba(139,92,255,0.12)",
+                  color: "#e9d5ff",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  borderRadius: "999px",
+                  border: "1px solid rgba(139,92,255,0.35)",
+                  textDecoration: "none",
+                  transition: "background 0.2s ease",
+                }
+          }
         >
-          ✉ Email Client{to.length === 0 ? " (no recipient)" : ""}
+          {studio ? "Email client" : "✉ Email Client"}
+          {to.length === 0 ? " (no recipient)" : ""}
         </a>
         <a
           href={gmailHref}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => void markInReview()}
-          style={{
-            padding: "8px 14px",
-            background: "rgba(220,80,80,0.12)",
-            color: "#fecaca",
-            fontSize: "12px",
-            fontWeight: 500,
-            borderRadius: "999px",
-            border: "1px solid rgba(220,80,80,0.35)",
-            textDecoration: "none",
-            transition: "background 0.2s ease",
-          }}
+          className={studio ? "ps-btn" : undefined}
+          style={
+            studio
+              ? undefined
+              : {
+                  padding: "8px 14px",
+                  background: "rgba(220,80,80,0.12)",
+                  color: "#fecaca",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  borderRadius: "999px",
+                  border: "1px solid rgba(220,80,80,0.35)",
+                  textDecoration: "none",
+                  transition: "background 0.2s ease",
+                }
+          }
         >
-          ✉ Open in Gmail
+          {studio ? "Open in Gmail" : "✉ Open in Gmail"}
         </a>
         <a
           href={fullUrl}
           target="_blank"
           rel="noopener noreferrer"
-          style={{
-            padding: "8px 14px",
-            background: "transparent",
-            color: "#bfbfcc",
-            fontSize: "12px",
-            fontWeight: 500,
-            borderRadius: "999px",
-            border: "1px solid rgba(255,255,255,0.12)",
-            textDecoration: "none",
-            transition: "background 0.2s ease",
-          }}
+          className={studio ? "ps-btn" : undefined}
+          style={
+            studio
+              ? undefined
+              : {
+                  padding: "8px 14px",
+                  background: "transparent",
+                  color: "#bfbfcc",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  borderRadius: "999px",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  textDecoration: "none",
+                  transition: "background 0.2s ease",
+                }
+          }
         >
-          ↗ Open
+          {studio ? "Open ↗" : "↗ Open"}
         </a>
       </div>
 

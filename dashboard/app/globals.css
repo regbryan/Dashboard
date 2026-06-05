@@ -412,3 +412,388 @@ body {
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   POST DETAIL STUDIO — scoped editorial redesign
+   ════════════════════════════════════════════════════════════════════
+   Every rule below is gated under `.post-studio`, the root class the
+   post-detail page (app/dashboard/brand/[slug]/post/[id]/page.tsx) puts
+   on its wrapper. Nothing here leaks to the brand grid, the client
+   review view, or the shared components those pages also render.
+
+   The page is themed per brand: page.tsx sets --accent / --accent-ink /
+   --accent-tint / --accent-line from the brand's color_primary (lifted
+   into a readable band on the near-black canvas). Swap the brand, the
+   whole page re-tones; no purple anywhere. */
+.post-studio {
+  /* Modular type scale (~1.22 ratio) */
+  --ps-fs-micro: 0.7rem;
+  --ps-fs-label: 0.76rem;
+  --ps-fs-meta: 0.83rem;
+  --ps-fs-body: 0.95rem;
+  --ps-fs-lead: 1.0625rem;
+  --ps-fs-h: 1.3rem;
+
+  /* Spacing rhythm */
+  --ps-1: 4px;
+  --ps-2: 8px;
+  --ps-3: 12px;
+  --ps-4: 16px;
+  --ps-5: 24px;
+  --ps-6: 32px;
+  --ps-7: 48px;
+
+  /* Neutral ink ramp tuned for contrast on #07070e */
+  --ps-ink: #eef0f5;       /* primary text  ~16:1 */
+  --ps-ink-2: #c2c4cf;     /* secondary     ~9:1  */
+  --ps-ink-3: #9396a3;     /* labels/meta   ~5:1  */
+  --ps-line: rgba(255, 255, 255, 0.08);
+  --ps-line-2: rgba(255, 255, 255, 0.14);
+  --ps-surface: rgba(255, 255, 255, 0.022);
+  --ps-surface-2: rgba(255, 255, 255, 0.045);
+
+  /* Accent fallbacks (page.tsx overrides these per brand) */
+  --accent: #cdd1da;
+  --accent-ink: #e8eaf0;
+  --accent-tint: rgba(255, 255, 255, 0.06);
+  --accent-line: rgba(255, 255, 255, 0.24);
+
+  color: var(--ps-ink-2);
+  font-size: var(--ps-fs-body);
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.ps-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ps-2);
+  font-size: var(--ps-fs-meta);
+  color: var(--ps-ink-3);
+}
+.ps-crumbs a {
+  color: var(--ps-ink-3);
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+.ps-crumbs a:hover {
+  color: var(--ps-ink);
+}
+.ps-crumbs .ps-crumbs-sep {
+  color: rgba(255, 255, 255, 0.18);
+}
+.ps-crumbs .ps-crumbs-current {
+  color: var(--ps-ink);
+}
+
+.ps-header {
+  margin-top: var(--ps-5);
+  padding-bottom: var(--ps-5);
+  border-bottom: 1px solid var(--ps-line);
+}
+/* The brand color earns one deliberate appearance: a short rule that
+   sits under the eyebrow and keys the whole page to the brand. */
+.ps-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ps-2);
+  font-size: var(--ps-fs-label);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.ps-kicker::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.ps-title {
+  font-family: var(--font-anton), "Anton", sans-serif;
+  text-transform: uppercase;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 0.92;
+  color: var(--ps-ink);
+  margin: var(--ps-3) 0 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  text-wrap: balance;
+}
+
+/* Status pill — themed by the brand accent (replaces the purple badge
+   from the shared StatusBadge, on this page only). */
+.ps-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ps-2);
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  font-size: var(--ps-fs-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* --st* are set inline per status; fall back to the brand accent
+     (used for the "in review" state, which keys to the brand). */
+  color: var(--st-ink, var(--accent-ink));
+  background: var(--st-tint, var(--accent-tint));
+  border: 1px solid var(--st-line, var(--accent-line));
+}
+.ps-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--st, var(--accent));
+  box-shadow: 0 0 0 3px var(--st-tint, var(--accent-tint));
+}
+
+/* ── Region grid (replaces .post-detail-grid on this page) ────────── */
+.ps-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ps-7);
+  margin-top: var(--ps-6);
+}
+@media (min-width: 1180px) {
+  .ps-grid {
+    grid-template-columns: minmax(380px, 0.92fr) minmax(0, 1.1fr) minmax(310px, 0.82fr);
+    align-items: start;
+    gap: var(--ps-6);
+  }
+  .ps-rail {
+    position: sticky;
+    top: 20px;
+    align-self: start;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .ps-rail > * {
+    flex-shrink: 0;
+  }
+}
+
+/* ── Section labels (used sparingly, not an eyebrow on every block) ── */
+.ps-label {
+  font-size: var(--ps-fs-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ps-ink-3);
+  text-transform: none;
+  margin: 0;
+}
+.ps-label--strong {
+  color: var(--ps-ink);
+  font-size: var(--ps-fs-meta);
+}
+
+/* ── Asset region — gallery mat around the design ─────────────────── */
+.ps-asset-mat {
+  padding: var(--ps-3);
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--accent-tint) 0%, transparent 60%),
+    var(--ps-surface);
+  border: 1px solid var(--ps-line);
+  box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
+}
+
+/* ── Content region — editorial reading surface, not a heavy card ─── */
+.ps-read {
+  max-width: 70ch;
+}
+.ps-copy {
+  font-size: var(--ps-fs-lead);
+  line-height: 1.7;
+  color: var(--ps-ink-2);
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+.ps-copy-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: var(--ps-3);
+  /* fade the scroll edges so long captions don't hard-cut */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+
+/* Meta as a definition list, not chips-in-a-card */
+.ps-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--ps-3) var(--ps-5);
+  align-items: baseline;
+}
+.ps-dl dt {
+  font-size: var(--ps-fs-label);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ps-ink-3);
+  white-space: nowrap;
+}
+.ps-dl dd {
+  margin: 0;
+  font-size: var(--ps-fs-meta);
+  color: var(--ps-ink-2);
+  line-height: 1.55;
+}
+.ps-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ps-2);
+}
+.ps-tag {
+  font-size: var(--ps-fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ps-ink-2);
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--ps-surface-2);
+  border: 1px solid var(--ps-line);
+}
+
+.ps-hr {
+  height: 1px;
+  border: 0;
+  margin: var(--ps-5) 0;
+  background: var(--ps-line);
+}
+
+/* ── Workflow region — the action surface ─────────────────────────── */
+.ps-panel {
+  padding: var(--ps-5);
+  border-radius: 16px;
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-line);
+}
+.ps-panel + .ps-panel {
+  margin-top: var(--ps-4);
+}
+/* The primary action panel is weighted with the brand accent so the
+   page's job (ship this post) reads first. */
+.ps-panel--action {
+  background:
+    linear-gradient(180deg, var(--accent-tint) 0%, transparent 70%),
+    var(--ps-surface-2);
+  border-color: var(--accent-line);
+}
+.ps-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ps-3);
+  margin-bottom: var(--ps-4);
+}
+
+/* Primary CTA — solid brand accent fill, the one loud element */
+.ps-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ps-2);
+  width: 100%;
+  padding: 12px 18px;
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  font-size: var(--ps-fs-body);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 11px;
+  border: 1px solid var(--accent);
+  color: #08080d;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, filter 0.2s ease;
+  box-shadow: 0 10px 30px -12px var(--accent);
+}
+.ps-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 16px 38px -14px var(--accent);
+}
+.ps-cta:active {
+  transform: translateY(0);
+}
+.ps-cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Quiet secondary button */
+.ps-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ps-2);
+  padding: 9px 14px;
+  font-size: var(--ps-fs-meta);
+  font-weight: 500;
+  border-radius: 10px;
+  color: var(--ps-ink-2);
+  background: var(--ps-surface-2);
+  border: 1px solid var(--ps-line-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.ps-btn:hover {
+  color: var(--ps-ink);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+/* ── Scoped overrides for shared children rendered on this page ────── */
+/* The shared review-link card: drop the violet card chrome, sit it on
+   the neutral panel surface. (Class-vs-class, so this wins without
+   touching the component.) */
+.post-studio .surface-card {
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-line);
+  border-radius: 16px;
+}
+.post-studio .surface-card:hover {
+  border-color: var(--accent-line);
+  box-shadow: none;
+}
+.post-studio .eyebrow {
+  color: var(--ps-ink-3);
+  letter-spacing: 0.04em;
+}
+/* Inputs/selects on this page focus to the brand accent, not the global
+   violet, so the status dropdown + feedback textarea stay on-theme. */
+.post-studio .sp-input:focus {
+  border-color: var(--accent-line);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Focus ring re-tinted to the brand accent on this page */
+.post-studio :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Entrance motion — one staggered reveal, reduced-motion safe ───── */
+@keyframes ps-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.post-studio .ps-rise {
+  animation: ps-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.post-studio .ps-rise-1 { animation-delay: 0.04s; }
+.post-studio .ps-rise-2 { animation-delay: 0.1s; }
+.post-studio .ps-rise-3 { animation-delay: 0.16s; }
+@media (prefers-reduced-motion: reduce) {
+  .post-studio .ps-rise {
+    animation: none;
+  }
+}
