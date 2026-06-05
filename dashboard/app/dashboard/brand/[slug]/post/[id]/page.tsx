@@ -92,8 +92,10 @@ export default async function PostDetailPage({
           <span style={{ color: "white" }}>Post #{post.post_number}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "40px" }}>
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 lg:items-start" style={{ gap: "40px" }}>
+          {/* Design column pins in view (sticky) on wide screens so the left
+              side isn't an empty void while the right-hand panels scroll. */}
+          <div className="lg:sticky lg:self-start" style={{ top: "24px" }}>
             <PostImageViewer
               imageUrl={imageUrl}
               alt={post.concept || "Post image"}
