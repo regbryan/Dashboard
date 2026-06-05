@@ -232,9 +232,9 @@ export async function applyOverlayFooter(
       const readableMax = Math.round(postW * 0.03);
       sizePt = clamp(Math.floor(sizeOneLine), readableMin, readableMax);
     } else {
-      const fontSizePct = clamp(vars.fontSizePct ?? 0.014, 0.005, 0.06);
+      const fontSizePct = clamp(vars.fontSizePct ?? 0.014, 0.004, 0.06);
       // Sharp's text input treats size in points; we approximate px≈pt here.
-      sizePt = Math.max(6, Math.round(postW * fontSizePct));
+      sizePt = Math.max(5, Math.round(postW * fontSizePct));
     }
 
     // Always wrap at the block width so ALL text is shown — short text lands on

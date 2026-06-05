@@ -251,7 +251,7 @@ export default function FooterOverlayPanel({
       ? `${bgColor}${Math.round((bgOpacity / 100) * 255).toString(16).padStart(2, "0")}`
       : "transparent",
     color,
-    fontSize: `clamp(6px, ${effFontFrac * 100 * 0.6}vw, 16px)`,
+    fontSize: `clamp(4px, ${effFontFrac * 100 * 0.6}vw, 16px)`,
     fontFamily: "Helvetica, Arial, sans-serif",
     fontWeight: 500,
     lineHeight: 1.3,
@@ -432,7 +432,7 @@ export default function FooterOverlayPanel({
           />
           Fit text to width
           <span style={{ fontSize: "11px", color: "#6f6f7e" }}>
-            (auto-sizes the font to span the design)
+            (auto-sizes — drag Font to set it yourself)
           </span>
         </label>
 
@@ -453,7 +453,7 @@ export default function FooterOverlayPanel({
               style={{ width: "100%", marginTop: "4px" }}
             />
           </div>
-          <div style={{ opacity: fitToWidth ? 0.4 : 1 }}>
+          <div>
             <div className="flex items-center justify-between">
               <span style={labelStyle}>Font</span>
               <span style={{ fontSize: "11px", color: "#bfbfcc" }}>
@@ -462,12 +462,17 @@ export default function FooterOverlayPanel({
             </div>
             <input
               type="range"
-              min={0.5}
+              min={0.4}
               max={4}
               step={0.1}
               value={fontSizePct}
-              onChange={(e) => setFontSizePct(Number(e.target.value))}
-              disabled={!!busy || fitToWidth}
+              // Dragging the font size is an explicit manual choice — turn off
+              // auto-fit so the chosen size (including very small) takes effect.
+              onChange={(e) => {
+                setFontSizePct(Number(e.target.value));
+                setFitToWidth(false);
+              }}
+              disabled={!!busy}
               style={{ width: "100%", marginTop: "4px" }}
             />
           </div>
