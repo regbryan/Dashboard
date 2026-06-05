@@ -24,7 +24,7 @@ export default async function PostDetailPage({
 
   const { data: post } = await supabase
     .from("posts")
-    .select("*, brands(name, folder_path, logo_path, platform, compliance)")
+    .select("*, brands(name, folder_path, logo_path, platform, compliance, color_primary)")
     .eq("id", id)
     .eq("brand_id", slug)
     .single();
@@ -62,6 +62,7 @@ export default async function PostDetailPage({
     logo_path: string | null;
     platform: string | null;
     compliance: string | null;
+    color_primary: string | null;
   } | null;
   const imageUrl = getImageUrl(post.brand_id, post.file_path, post.updated_at);
   const clientEmails = await getBrandClientEmails(post.brand_id).catch(() => []);
@@ -284,6 +285,7 @@ export default async function PostDetailPage({
                 postImageUrl={imageUrl}
                 thumbAspect={thumbAspect}
                 complianceText={brandData.compliance}
+                brandColor={brandData.color_primary}
               />
             )}
 

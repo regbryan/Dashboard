@@ -27,6 +27,9 @@ export type FooterVars = {
   widthPct?: number;
   // Font size as fraction of post width. Default 0.014 (1.4%).
   fontSizePct?: number;
+  // When true, auto-size the font so the text spans the block width on a single
+  // line (fontSizePct is ignored). Great for a full-width compliance strip.
+  fitToWidth?: boolean;
   // Foreground (text) color. Hex.
   color?: string;
   // Optional background bar. null = no bar.
@@ -206,19 +209,36 @@ export async function applyOverlayFooter(
 
     const widthPct = clamp(vars.widthPct ?? 0.92, 0.1, 1.0);
     const blockWidth = Math.max(64, Math.round(postW * widthPct));
-    const fontSizePct = clamp(vars.fontSizePct ?? 0.014, 0.005, 0.06);
-    // Convert "fraction of post width" to font size in points. Sharp's text
-    // input treats size in points; we approximate px≈pt for image-only output.
-    const sizePt = Math.max(6, Math.round(postW * fontSizePct));
     const align = vars.align ?? "center";
     const color = vars.color ?? "#FFFFFF";
 
-    // Render the text block at the requested width via Pango.
+    // Determine font size. In fit-to-width mode we measure the text's natural
+    // single-line width at a probe size, then scale so it fills the block width
+    // exactly. Otherwise the font is a fixed fraction of the post width.
+    let sizePt: number;
+    if (vars.fitToWidth) {
+      const probe = 100;
+      const probeImg = await sharp({
+        text: { text: buildPangoMarkup(text, color, probe), rgba: true },
+      })
+        .png()
+        .toBuffer({ resolveWithObject: true });
+      const naturalW = probeImg.info.width || blockWidth;
+      // Scale the probe size by the ratio of target width to measured width.
+      sizePt = clamp(Math.floor(probe * (blockWidth / naturalW)), 6, Math.round(postW * 0.12));
+    } else {
+      const fontSizePct = clamp(vars.fontSizePct ?? 0.014, 0.005, 0.06);
+      // Sharp's text input treats size in points; we approximate px≈pt here.
+      sizePt = Math.max(6, Math.round(postW * fontSizePct));
+    }
+
+    // Render the text block. Fit-to-width renders a single natural-width line
+    // (no wrap); otherwise Pango wraps the text within the block width.
     const textImg = await sharp({
       text: {
         text: buildPangoMarkup(text, color, sizePt),
         rgba: true,
-        width: blockWidth,
+        ...(vars.fitToWidth ? {} : { width: blockWidth }),
         align,
       },
     })

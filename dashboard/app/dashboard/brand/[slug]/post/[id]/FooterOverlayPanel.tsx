@@ -10,7 +10,15 @@ interface FooterOverlayPanelProps {
   // brand-level compliance text (source of truth). Empty string = brand has
   // no compliance text and the panel will render an empty-state message.
   complianceText: string;
+  // Brand primary color — powers the "Blue" text-color swatch so the footer
+  // can match the brand. Falls back to a default navy when absent.
+  brandColor?: string | null;
 }
+
+const FOOTER_BLACK = "#111111";
+const FOOTER_DEFAULT_BLUE = "#1C4E80";
+const isHex6 = (s: string | null | undefined): s is string =>
+  typeof s === "string" && /^#[0-9a-fA-F]{6}$/.test(s);
 
 const PRESETS: { value: string; label: string; xPct: number; yPct: number }[] = [
   { value: "bottom-center", label: "Bottom", xPct: 0.5, yPct: 0.96 },
@@ -26,12 +34,16 @@ export default function FooterOverlayPanel({
   postImageUrl,
   thumbAspect = "portrait",
   complianceText,
+  brandColor,
 }: FooterOverlayPanelProps) {
   const router = useRouter();
+  const brandBlue = isHex6(brandColor) ? brandColor : FOOTER_DEFAULT_BLUE;
   const [text, setText] = useState(complianceText ?? "");
   const [widthPct, setWidthPct] = useState(92); // % of post width
   const [fontSizePct, setFontSizePct] = useState(1.4); // % of post width
-  const [color, setColor] = useState("#FFFFFF");
+  const [fitToWidth, setFitToWidth] = useState(true); // span the design width
+  // Default to black — designs are on light backgrounds, so white is invisible.
+  const [color, setColor] = useState(FOOTER_BLACK);
   const [bgEnabled, setBgEnabled] = useState(true);
   const [bgColor, setBgColor] = useState("#000000");
   const [bgOpacity, setBgOpacity] = useState(55); // 0–100
@@ -50,9 +62,18 @@ export default function FooterOverlayPanel({
 
   const aspectRatio = thumbAspect === "landscape" ? "1.91 / 1" : "4 / 5";
   const blockWidthFrac = widthPct / 100;
+  // In fit-to-width mode the font is sized so one line spans the block width:
+  // font ≈ width / (charCount × ~0.5em). Used both for the preview text size
+  // and the Y-bound. Server side computes the exact size via Pango.
+  const fitFontFrac = text.trim()
+    ? blockWidthFrac / Math.max(text.replace(/\n/g, "").length * 0.5, 1)
+    : 0.02;
+  const effFontFrac = fitToWidth ? fitFontFrac : fontSizePct / 100;
   // Approximate rendered text-block height as a fraction of post height. Used
   // only for the preview overlay's Y-bound — server side computes exactly.
-  const textBlockHeightFrac = Math.min(0.4, (fontSizePct / 100) * estimateLines(text, blockWidthFrac, fontSizePct / 100) * 1.4);
+  const textBlockHeightFrac = fitToWidth
+    ? Math.min(0.4, fitFontFrac * 1.4)
+    : Math.min(0.4, (fontSizePct / 100) * estimateLines(text, blockWidthFrac, fontSizePct / 100) * 1.4);
 
   // Memoize so the function identity is stable per postId and can
   // safely sit in the useEffect deps below — keeps both eslint and
@@ -162,6 +183,7 @@ export default function FooterOverlayPanel({
             position: "custom",
             widthPct: blockWidthFrac,
             fontSizePct: fontSizePct / 100,
+            fitToWidth,
             color,
             background: bgEnabled ? bgColor : null,
             backgroundOpacity: bgEnabled ? bgOpacity / 100 : 0,
@@ -226,15 +248,16 @@ export default function FooterOverlayPanel({
       ? `${bgColor}${Math.round((bgOpacity / 100) * 255).toString(16).padStart(2, "0")}`
       : "transparent",
     color,
-    fontSize: `clamp(7px, ${fontSizePct * 0.6}vw, 14px)`,
+    fontSize: `clamp(6px, ${effFontFrac * 100 * 0.6}vw, 16px)`,
     fontFamily: "Helvetica, Arial, sans-serif",
     fontWeight: 500,
     lineHeight: 1.3,
     padding: bgEnabled ? "6px 10px" : 0,
     borderRadius: bgEnabled ? "4px" : 0,
     textAlign: align,
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
+    whiteSpace: fitToWidth ? "nowrap" : "pre-wrap",
+    wordBreak: fitToWidth ? "normal" : "break-word",
+    overflow: "hidden",
   };
 
   return (
@@ -395,6 +418,22 @@ export default function FooterOverlayPanel({
           </div>
         </div>
 
+        <label
+          className="flex items-center"
+          style={{ gap: "8px", fontSize: "12px", color: "#bfbfcc", cursor: "pointer" }}
+        >
+          <input
+            type="checkbox"
+            checked={fitToWidth}
+            onChange={(e) => setFitToWidth(e.target.checked)}
+            disabled={!!busy}
+          />
+          Fit text to width
+          <span style={{ fontSize: "11px", color: "#6f6f7e" }}>
+            (auto-sizes the font to span the design)
+          </span>
+        </label>
+
         <div className="grid grid-cols-2" style={{ gap: "12px" }}>
           <div>
             <div className="flex items-center justify-between">
@@ -412,10 +451,12 @@ export default function FooterOverlayPanel({
               style={{ width: "100%", marginTop: "4px" }}
             />
           </div>
-          <div>
+          <div style={{ opacity: fitToWidth ? 0.4 : 1 }}>
             <div className="flex items-center justify-between">
               <span style={labelStyle}>Font</span>
-              <span style={{ fontSize: "11px", color: "#bfbfcc" }}>{fontSizePct.toFixed(1)}%</span>
+              <span style={{ fontSize: "11px", color: "#bfbfcc" }}>
+                {fitToWidth ? "Auto" : `${fontSizePct.toFixed(1)}%`}
+              </span>
             </div>
             <input
               type="range"
@@ -424,7 +465,7 @@ export default function FooterOverlayPanel({
               step={0.1}
               value={fontSizePct}
               onChange={(e) => setFontSizePct(Number(e.target.value))}
-              disabled={!!busy}
+              disabled={!!busy || fitToWidth}
               style={{ width: "100%", marginTop: "4px" }}
             />
           </div>
@@ -457,25 +498,67 @@ export default function FooterOverlayPanel({
           })}
         </div>
 
-        <label
-          className="flex items-center"
-          style={{ gap: "8px", fontSize: "12px", color: "#bfbfcc", cursor: "pointer" }}
-        >
-          <span style={labelStyle}>Text color</span>
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            disabled={!!busy}
-            style={{
-              width: "32px",
-              height: "24px",
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-          />
-        </label>
+        <div>
+          <div style={labelStyle}>Text color</div>
+          <div className="flex items-center" style={{ gap: "6px", marginTop: "6px" }}>
+            {(
+              [
+                { label: "Black", value: FOOTER_BLACK },
+                { label: "Blue", value: brandBlue },
+                { label: "White", value: "#FFFFFF" },
+              ] as const
+            ).map((sw) => {
+              const on = color.toLowerCase() === sw.value.toLowerCase();
+              return (
+                <button
+                  key={sw.label}
+                  type="button"
+                  onClick={() => setColor(sw.value)}
+                  disabled={!!busy}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "5px 10px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    border: on ? "1px solid white" : "1px solid rgba(255,255,255,0.12)",
+                    background: on ? "rgba(255,255,255,0.08)" : "transparent",
+                    color: "#bfbfcc",
+                    cursor: busy ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "3px",
+                      background: sw.value,
+                      border: "1px solid rgba(255,255,255,0.25)",
+                    }}
+                  />
+                  {sw.label}
+                </button>
+              );
+            })}
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              disabled={!!busy}
+              title="Custom color"
+              style={{
+                width: "28px",
+                height: "26px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                marginLeft: "auto",
+              }}
+            />
+          </div>
+        </div>
 
         <div style={{ display: "grid", gap: "8px" }}>
           <label

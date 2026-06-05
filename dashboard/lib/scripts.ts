@@ -127,6 +127,7 @@ export async function runScript(opts: RunScriptOptions): Promise<number> {
         widthPct: typeof v.widthPct === "number" ? v.widthPct : undefined,
         fontSizePct:
           typeof v.fontSizePct === "number" ? v.fontSizePct : undefined,
+        fitToWidth: typeof v.fitToWidth === "boolean" ? v.fitToWidth : undefined,
         color: typeof v.color === "string" ? v.color : undefined,
         background:
           typeof v.background === "string" ? v.background : null,
