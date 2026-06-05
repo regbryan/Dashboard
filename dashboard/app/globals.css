@@ -352,3 +352,28 @@ body {
     -webkit-backdrop-filter: none;
   }
 }
+
+/* ── Post detail page: Asset · Content · Workflow three-region layout ──
+   Plain CSS so the minmax() column tracks survive (Tailwind v4 arbitrary
+   values choke on the commas inside minmax()). Single column on small
+   screens; three balanced regions with pinned side rails on desktop. */
+.post-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+@media (min-width: 1280px) {
+  .post-detail-grid {
+    grid-template-columns: minmax(400px, 460px) minmax(0, 1fr) minmax(320px, 380px);
+    align-items: start;
+  }
+  /* Side rails (the design+tools and the workflow controls) pin in view while
+     the middle content column scrolls; each scrolls internally if it overflows. */
+  .post-detail-aside {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+}
