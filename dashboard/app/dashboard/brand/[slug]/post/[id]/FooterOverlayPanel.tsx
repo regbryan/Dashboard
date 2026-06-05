@@ -39,7 +39,7 @@ export default function FooterOverlayPanel({
   const router = useRouter();
   const brandBlue = isHex6(brandColor) ? brandColor : FOOTER_DEFAULT_BLUE;
   const [text, setText] = useState(complianceText ?? "");
-  const [widthPct, setWidthPct] = useState(92); // % of post width
+  const [widthPct, setWidthPct] = useState(96); // % of post width
   const [fontSizePct, setFontSizePct] = useState(1.4); // % of post width
   const [fitToWidth, setFitToWidth] = useState(true); // span the design width
   // Default to black — designs are on light backgrounds, so white is invisible.
