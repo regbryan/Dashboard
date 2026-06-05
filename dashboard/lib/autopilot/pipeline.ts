@@ -24,6 +24,8 @@ import { synthesizeCscSpec } from "./csc-spec";
 import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
 import { synthesizeBlitzSpec } from "./blitz-spec";
 import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
+import { synthesizeStephanieSpec } from "./stephanie-spec";
+import { renderStephanieDesign, stephanieArchetypeNeedsPhoto } from "./render-stephanie";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -330,6 +332,50 @@ export async function generateBrandPost(
       });
       mimeType = "image/png";
       model = `${tag}-${bspec.archetype}`;
+    } else if (template?._engine === "stephanie") {
+      // STEPHANIE PATH: dusty steel-blue + white serif overlay cards, Allura
+      // script personal accent. TEXT-CARD-first (personal brand — real photos
+      // can't be fabricated). Only the photo-overlay (A) needs a people-free
+      // lifestyle photo; values/quote/testimonial render fully in code. AHL
+      // logo / NMLS / DRE / headshot / compliance composited (or manual) later.
+      const s = await synthesizeStephanieSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `stephanie spec: ${s.error}` };
+      }
+      const stspec = s.spec;
+      let stephaniePhoto: Buffer | null = null;
+      let tag = "stephanie";
+      if (stephanieArchetypeNeedsPhoto(stspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${stspec.photo.description}. A warm, inviting home/lifestyle moment in soft natural light — ABSOLUTELY NO people, faces, or hands. Editorial, magazine quality, calm and feminine. Never corporate stock or dark/moody.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        stephaniePhoto = gen.bytes;
+        tag = `${gen.model}+stephanie`;
+      }
+      bytes = await renderStephanieDesign({
+        archetype: stspec.archetype,
+        width,
+        height,
+        eyebrow: stspec.eyebrow,
+        headlineLines: stspec.headlineLines,
+        body: stspec.body,
+        cta: stspec.cta,
+        listItems: stspec.listItems,
+        quote: stspec.quote,
+        attribution: stspec.attribution,
+        photo: stephaniePhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${stspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
