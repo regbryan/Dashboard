@@ -353,60 +353,8 @@ body {
   }
 }
 
-/* ── Post detail page: Asset · Content · Workflow three-region layout ──
-   Plain CSS so the minmax() column tracks survive (Tailwind v4 arbitrary
-   values choke on the commas inside minmax()). Single column on small
-   screens; three balanced regions with pinned side rails on desktop. */
-.post-detail-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 40px;
-}
-@media (min-width: 1280px) {
-  .post-detail-grid {
-    grid-template-columns: minmax(400px, 460px) minmax(0, 1fr) minmax(320px, 380px);
-    align-items: start;
-  }
-  /* Side rails (the design+tools and the workflow controls) pin in view while
-     the middle content column scrolls; each scrolls internally if it overflows. */
-  .post-detail-aside {
-    position: sticky;
-    top: 24px;
-    align-self: start;
-    max-height: calc(100vh - 48px);
-    overflow-y: auto;
-  }
-  /* The rail is a flex column with a capped height — without this the flex
-     items shrink to fit and the design image collapses to a sliver. Keep them
-     at natural size and let the rail scroll instead. */
-  .post-detail-aside > * {
-    flex-shrink: 0;
-  }
-}
-
-/* ── Post detail polish (impeccable critique fixes) ── */
-
-/* The ONE hero action (Send to Client Review) should dominate: a bright filled
-   accent button, vs the dark-pill default sp-shiny used for secondary actions. */
-.sp-shiny.sp-shiny--prominent {
-  background: linear-gradient(180deg, #9a6bff 0%, #7c3aed 100%);
-  border-color: rgba(192, 132, 252, 0.9);
-  color: #ffffff;
-  font-weight: 600;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 10px 30px -8px rgba(124, 58, 237, 0.55);
-}
-.sp-shiny.sp-shiny--prominent:hover {
-  border-color: #c084fc;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 14px 36px -8px rgba(124, 58, 237, 0.7);
-}
-
-/* Keyboard focus visibility (a11y) for buttons and the Image Tools tabs. */
+/* Keyboard focus visibility (a11y) for the app's shiny buttons + Image Tools tabs. */
 .sp-shiny:focus-visible,
-.post-detail-aside button:focus-visible,
 .studio-tab:focus-visible {
   outline: 2px solid #c084fc;
   outline-offset: 2px;

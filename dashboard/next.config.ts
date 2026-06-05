@@ -37,6 +37,33 @@ const nextConfig: NextConfig = {
       "./lib/autopilot/brand-templates/**",
     ],
   },
+  // Baseline security headers on every response. Intentionally NO strict
+  // script-src/style-src CSP: the app uses inline styles throughout plus
+  // Sentry/Stripe/Google, which a tight CSP would break. We set the
+  // high-value, zero-risk headers — clickjacking (frame-ancestors +
+  // X-Frame-Options), MIME sniffing, referrer leakage, feature access,
+  // and HSTS. A full CSP can be layered in later behind report-only.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 // Wrap with Sentry so errors auto-ship to the configured project.
