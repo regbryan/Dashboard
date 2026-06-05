@@ -28,6 +28,8 @@ import { synthesizeStephanieSpec } from "./stephanie-spec";
 import { renderStephanieDesign, stephanieArchetypeNeedsPhoto } from "./render-stephanie";
 import { synthesizeRiversideSpec } from "./riverside-spec";
 import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-riverside";
+import { synthesizeDougSpec } from "./doug-spec";
+import { renderDougDesign, dougArchetypeNeedsPhoto } from "./render-doug";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -421,6 +423,48 @@ export async function generateBrandPost(
       });
       mimeType = "image/png";
       model = `${tag}-${rvspec.archetype}`;
+    } else if (template?._engine === "doug") {
+      // DOUG PATH: quiet corporate LinkedIn title cards (teal + cream-mint, no
+      // accent). Square 1:1 by brand convention. Only the photo title-card (C)
+      // needs a text-free corporate/architectural photo (no people); title/list/
+      // war-story render fully in code. SCALE LLP wordmark composited later.
+      const s = await synthesizeDougSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `doug spec: ${s.error}` };
+      }
+      const dgspec = s.spec;
+      let dougPhoto: Buffer | null = null;
+      let tag = "doug";
+      if (dougArchetypeNeedsPhoto(dgspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${dgspec.photo.description}. A quiet, corporate, architectural image (glass towers, a city skyline at dusk, an empty boardroom) — ABSOLUTELY NO people, faces, or hands. Restrained and professional. It will sit under a heavy teal overlay.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        dougPhoto = gen.bytes;
+        tag = `${gen.model}+doug`;
+      }
+      // LinkedIn title cards are square (1:1) by brand convention.
+      bytes = await renderDougDesign({
+        archetype: dgspec.archetype,
+        width: 1080,
+        height: 1080,
+        eyebrow: dgspec.eyebrow,
+        headline: dgspec.headline,
+        subtitle: dgspec.subtitle,
+        listItems: dgspec.listItems,
+        quote: dgspec.quote,
+        photo: dougPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${dgspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
