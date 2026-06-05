@@ -212,9 +212,11 @@ export async function applyOverlayFooter(
     const align = vars.align ?? "center";
     const color = vars.color ?? "#FFFFFF";
 
-    // Determine font size. In fit-to-width mode we measure the text's natural
-    // single-line width at a probe size, then scale so it fills the block width
-    // exactly. Otherwise the font is a fixed fraction of the post width.
+    // Determine font size. Fit-to-width measures the text's natural single-line
+    // width at a probe size and scales the font to fill the block width — but
+    // clamps to a READABLE range. A long disclaimer therefore stays legible and
+    // WRAPS across the full width (all text shown) instead of shrinking to an
+    // illegible single line. Short text lands on one full-width line.
     let sizePt: number;
     if (vars.fitToWidth) {
       const probe = 100;
@@ -224,21 +226,24 @@ export async function applyOverlayFooter(
         .png()
         .toBuffer({ resolveWithObject: true });
       const naturalW = probeImg.info.width || blockWidth;
-      // Scale the probe size by the ratio of target width to measured width.
-      sizePt = clamp(Math.floor(probe * (blockWidth / naturalW)), 6, Math.round(postW * 0.12));
+      // 0.97 keeps short text comfortably on one line; clamp to a readable band.
+      const sizeOneLine = probe * (blockWidth / naturalW) * 0.97;
+      const readableMin = Math.round(postW * 0.013);
+      const readableMax = Math.round(postW * 0.03);
+      sizePt = clamp(Math.floor(sizeOneLine), readableMin, readableMax);
     } else {
       const fontSizePct = clamp(vars.fontSizePct ?? 0.014, 0.005, 0.06);
       // Sharp's text input treats size in points; we approximate px≈pt here.
       sizePt = Math.max(6, Math.round(postW * fontSizePct));
     }
 
-    // Render the text block. Fit-to-width renders a single natural-width line
-    // (no wrap); otherwise Pango wraps the text within the block width.
+    // Always wrap at the block width so ALL text is shown — short text lands on
+    // a single full-width line; long text wraps to multiple readable lines.
     const textImg = await sharp({
       text: {
         text: buildPangoMarkup(text, color, sizePt),
         rgba: true,
-        ...(vars.fitToWidth ? {} : { width: blockWidth }),
+        width: blockWidth,
         align,
       },
     })

@@ -62,18 +62,21 @@ export default function FooterOverlayPanel({
 
   const aspectRatio = thumbAspect === "landscape" ? "1.91 / 1" : "4 / 5";
   const blockWidthFrac = widthPct / 100;
-  // In fit-to-width mode the font is sized so one line spans the block width:
-  // font ≈ width / (charCount × ~0.5em). Used both for the preview text size
-  // and the Y-bound. Server side computes the exact size via Pango.
-  const fitFontFrac = text.trim()
+  // Fit-to-width sizes the font to fill the block width on one line, clamped to
+  // a readable band — long text then WRAPS at that size so all of it shows.
+  // (Mirror of the server logic so the preview matches the output.)
+  const singleLineFrac = text.trim()
     ? blockWidthFrac / Math.max(text.replace(/\n/g, "").length * 0.5, 1)
     : 0.02;
-  const effFontFrac = fitToWidth ? fitFontFrac : fontSizePct / 100;
+  const effFontFrac = fitToWidth
+    ? Math.max(0.013, Math.min(0.03, singleLineFrac * 0.97))
+    : fontSizePct / 100;
   // Approximate rendered text-block height as a fraction of post height. Used
   // only for the preview overlay's Y-bound — server side computes exactly.
-  const textBlockHeightFrac = fitToWidth
-    ? Math.min(0.4, fitFontFrac * 1.4)
-    : Math.min(0.4, (fontSizePct / 100) * estimateLines(text, blockWidthFrac, fontSizePct / 100) * 1.4);
+  const textBlockHeightFrac = Math.min(
+    0.4,
+    effFontFrac * estimateLines(text, blockWidthFrac, effFontFrac) * 1.4
+  );
 
   // Memoize so the function identity is stable per postId and can
   // safely sit in the useEffect deps below — keeps both eslint and
@@ -255,9 +258,8 @@ export default function FooterOverlayPanel({
     padding: bgEnabled ? "6px 10px" : 0,
     borderRadius: bgEnabled ? "4px" : 0,
     textAlign: align,
-    whiteSpace: fitToWidth ? "nowrap" : "pre-wrap",
-    wordBreak: fitToWidth ? "normal" : "break-word",
-    overflow: "hidden",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   };
 
   return (
