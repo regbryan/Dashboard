@@ -452,11 +452,11 @@ body {
   --ps-surface: rgba(255, 255, 255, 0.022);
   --ps-surface-2: rgba(255, 255, 255, 0.045);
 
-  /* Accent fallbacks (page.tsx overrides these per brand) */
-  --accent: #cdd1da;
-  --accent-ink: #e8eaf0;
-  --accent-tint: rgba(255, 255, 255, 0.06);
-  --accent-line: rgba(255, 255, 255, 0.24);
+  /* Accent — the app's established violet (page.tsx also sets these). */
+  --accent: #8b5cff;
+  --accent-ink: #c084fc;
+  --accent-tint: rgba(139, 92, 255, 0.14);
+  --accent-line: rgba(139, 92, 255, 0.42);
 
   color: var(--ps-ink-2);
   font-size: var(--ps-fs-body);
@@ -692,7 +692,8 @@ body {
   margin-bottom: var(--ps-4);
 }
 
-/* Primary CTA — solid brand accent fill, the one loud element */
+/* Primary CTA — the established violet prominent button (matches the app's
+   sp-shiny--prominent), the one loud element. */
 .ps-cta {
   display: inline-flex;
   align-items: center;
@@ -705,17 +706,21 @@ body {
   font-weight: 600;
   line-height: 1;
   border-radius: 11px;
-  border: 1px solid var(--accent);
-  color: #08080d;
-  background: var(--accent);
+  border: 1px solid rgba(192, 132, 252, 0.9);
+  color: #ffffff;
+  background: linear-gradient(180deg, #9a6bff 0%, #7c3aed 100%);
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, filter 0.2s ease;
-  box-shadow: 0 10px 30px -12px var(--accent);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, border-color 0.2s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 10px 30px -12px rgba(124, 58, 237, 0.55);
 }
 .ps-cta:hover {
   transform: translateY(-1px);
-  filter: brightness(1.06);
-  box-shadow: 0 16px 38px -14px var(--accent);
+  border-color: #c084fc;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 16px 38px -12px rgba(124, 58, 237, 0.7);
 }
 .ps-cta:active {
   transform: translateY(0);

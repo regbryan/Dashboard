@@ -13,62 +13,17 @@ import { buildClaudeRevisionLink } from "@/lib/claude-link";
 
 export const dynamic = "force-dynamic";
 
-/* ── Brand accent ────────────────────────────────────────────────────
-   The page themes itself from the brand's color_primary. Brand colors
-   range from dark navy/teal to light tan, so we lift each into a band
-   that reads on the near-black canvas: a saturated fill (CTA, status
-   dot, the rule under the kicker) and a lighter ink (accent text). */
-function hexToHsl(hex: string): [number, number, number] | null {
-  const m = hex.replace("#", "").match(/^([0-9a-fA-F]{6})$/);
-  if (!m) return null;
-  const int = parseInt(m[1], 16);
-  const r = ((int >> 16) & 255) / 255;
-  const g = ((int >> 8) & 255) / 255;
-  const b = (int & 255) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  let h = 0;
-  let s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h /= 6;
-  }
-  return [h * 360, s, l];
-}
-
-type AccentVars = {
-  "--accent": string;
-  "--accent-ink": string;
-  "--accent-tint": string;
-  "--accent-line": string;
-};
-
-function brandAccentVars(hex: string | null | undefined): AccentVars {
-  const hsl = hex ? hexToHsl(hex) : null;
-  if (!hsl) {
-    return {
-      "--accent": "#cdd1da",
-      "--accent-ink": "#e8eaf0",
-      "--accent-tint": "rgba(255,255,255,0.07)",
-      "--accent-line": "rgba(255,255,255,0.26)",
-    };
-  }
-  const [h, s] = hsl;
-  const sat = Math.min(Math.max(s, 0.45), 0.85);
-  const satPct = Math.round(sat * 100);
-  const inkSatPct = Math.round(Math.min(sat, 0.7) * 100);
-  return {
-    "--accent": `hsl(${h.toFixed(0)} ${satPct}% 62%)`,
-    "--accent-ink": `hsl(${h.toFixed(0)} ${inkSatPct}% 80%)`,
-    "--accent-tint": `hsl(${h.toFixed(0)} ${satPct}% 62% / 0.14)`,
-    "--accent-line": `hsl(${h.toFixed(0)} ${satPct}% 62% / 0.42)`,
-  };
-}
+/* ── Accent ───────────────────────────────────────────────────────────
+   The dashboard has an established violet identity (the nav, the brand
+   tabs, and the app's buttons all use it). The post page uses that same
+   accent so it stays consistent with the rest of the site rather than
+   introducing a per-page color. */
+const ACCENT = {
+  "--accent": "#8b5cff",
+  "--accent-ink": "#c084fc",
+  "--accent-tint": "rgba(139,92,255,0.14)",
+  "--accent-line": "rgba(139,92,255,0.42)",
+} as React.CSSProperties;
 
 /* Status keeps semantic meaning (purple removed). "In review" is the
    one state that keys to the brand accent — it's this brand's post
@@ -117,7 +72,7 @@ export default async function PostDetailPage({
 
   if (!post) {
     return (
-      <div className="post-studio" style={brandAccentVars(null) as React.CSSProperties}>
+      <div className="post-studio" style={ACCENT}>
         <div
           className="min-h-[calc(100vh-64px)] flex items-center justify-center"
           style={{ padding: "40px 24px" }}
@@ -169,14 +124,13 @@ export default async function PostDetailPage({
     .filter((a) => a.status === "changes_requested")
     .slice(-1)[0];
 
-  const accentVars = brandAccentVars(brandData?.color_primary);
   const { label: statusLabel, vars: statusVars } = statusTone(post.status);
 
   const tags = [post.post_type, post.content_pillar, post.archetype].filter(Boolean) as string[];
   const hasMeta = !!post.hashtags || !!post.cta || tags.length > 0;
 
   return (
-    <div className="post-studio" style={accentVars as React.CSSProperties}>
+    <div className="post-studio" style={ACCENT}>
       <div style={{ padding: "16px 0 56px" }}>
         {/* Breadcrumbs */}
         <nav className="ps-crumbs" aria-label="Breadcrumb">
