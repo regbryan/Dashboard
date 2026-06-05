@@ -376,4 +376,10 @@ body {
     max-height: calc(100vh - 48px);
     overflow-y: auto;
   }
+  /* The rail is a flex column with a capped height — without this the flex
+     items shrink to fit and the design image collapses to a sliver. Keep them
+     at natural size and let the rail scroll instead. */
+  .post-detail-aside > * {
+    flex-shrink: 0;
+  }
 }
