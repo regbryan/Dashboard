@@ -44,14 +44,25 @@ export default function StudioTabs({
 
   return (
     <div className="flex flex-col" style={{ gap: "16px" }}>
-      <h2 className="eyebrow" style={{ margin: 0 }}>
-        Image Tools
-      </h2>
+      <div className="flex items-center" style={{ gap: "8px" }}>
+        <h2 className="eyebrow" style={{ margin: 0 }}>Image Tools</h2>
+        <span style={{ fontSize: "11px", color: "#9a9aa8" }}>
+          edit the design before it ships
+        </span>
+      </div>
 
       {tabs.length > 1 && (
+        // Segmented control — makes Logo/Footer obviously selectable, and the
+        // active tab is shown by fill + border (not color alone).
         <div
           className="flex items-center"
-          style={{ gap: "2px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+          style={{
+            gap: "4px",
+            padding: "4px",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "10px",
+          }}
         >
           {tabs.map((t) => {
             const on = t.key === activeKey;
@@ -60,20 +71,23 @@ export default function StudioTabs({
                 key={t.key}
                 type="button"
                 onClick={() => setActive(t.key)}
+                aria-pressed={on}
+                className="studio-tab"
                 style={{
+                  flex: 1,
                   appearance: "none",
-                  background: "transparent",
-                  border: "none",
                   cursor: "pointer",
-                  padding: "9px 14px",
+                  padding: "8px 10px",
                   fontSize: "11px",
                   fontWeight: 600,
-                  letterSpacing: "0.08em",
+                  letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  color: on ? "#ffffff" : "#8a8a98",
-                  borderBottom: on ? "2px solid #c084fc" : "2px solid transparent",
-                  marginBottom: "-1px",
-                  transition: "color 0.15s ease",
+                  textAlign: "center",
+                  borderRadius: "7px",
+                  color: on ? "#ffffff" : "#9a9aa8",
+                  background: on ? "rgba(192,132,252,0.18)" : "transparent",
+                  border: on ? "1px solid rgba(192,132,252,0.45)" : "1px solid transparent",
+                  transition: "color 0.15s ease, background 0.15s ease",
                 }}
               >
                 {t.label}

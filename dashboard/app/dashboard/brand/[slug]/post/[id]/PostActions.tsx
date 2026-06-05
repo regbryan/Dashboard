@@ -214,23 +214,26 @@ export default function PostActions({
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap" style={{ gap: "10px" }}>
+      {/* Action buttons — Send to Client Review is the page's hero action */}
+      <div className="flex flex-col" style={{ gap: "10px" }}>
+        <ShinyButton
+          className="sp-shiny--prominent"
+          fullWidth
+          onClick={handleSendToReview}
+          disabled={loading || currentStatus === "in_review"}
+        >
+          {currentStatus === "in_review" ? "Already in Review" : "Send to Client Review"}
+        </ShinyButton>
         {canHyperFrames && (
           <ShinyButton
             variant="secondary"
+            fullWidth
             onClick={handleRenderHyperFrames}
             disabled={renderStatus === "running"}
           >
             {renderStatus === "running" ? "Rendering…" : "Render Reel (HyperFrames)"}
           </ShinyButton>
         )}
-        <ShinyButton
-          onClick={handleSendToReview}
-          disabled={loading || currentStatus === "in_review"}
-        >
-          Send to Client Review
-        </ShinyButton>
       </div>
 
       {/* HyperFrames render status */}

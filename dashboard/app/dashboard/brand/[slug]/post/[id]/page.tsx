@@ -214,8 +214,16 @@ export default async function PostDetailPage({
 
           {/* WORKFLOW — act on the post (pinned) */}
           <div className="flex flex-col post-detail-aside" style={{ gap: "20px" }}>
-            <div className="surface-card" style={{ padding: "24px" }}>
-              <h2 className="eyebrow" style={{ marginBottom: "14px" }}>Actions</h2>
+            {/* Primary action zone — accented so it's clearly the page's job */}
+            <div
+              className="surface-card"
+              style={{
+                padding: "24px",
+                borderColor: "rgba(192,132,252,0.35)",
+                background: "rgba(192,132,252,0.05)",
+              }}
+            >
+              <h2 className="eyebrow" style={{ marginBottom: "14px", color: "#c9a8ff" }}>Actions</h2>
               <PostActions
                 postId={post.id}
                 currentStatus={post.status}
