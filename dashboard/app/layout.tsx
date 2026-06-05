@@ -39,6 +39,7 @@ export default async function RootLayout({
       className={`${anton.variable} ${jakarta.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
+        <a href="#main-content" className="skip-link">Skip to content</a>
         <nav
           className="sticky top-0 z-50 flex items-center justify-between"
           style={{
@@ -73,7 +74,7 @@ export default async function RootLayout({
             </div>
           )}
         </nav>
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1">{children}</main>
       </body>
     </html>
   );

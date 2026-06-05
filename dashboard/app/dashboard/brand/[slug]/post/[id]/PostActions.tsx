@@ -137,12 +137,15 @@ export default function PostActions({
       {/* Status dropdown */}
       <div>
         <label
+          htmlFor="post-status-select"
           className="ps-label"
           style={{ display: "block", marginBottom: "8px" }}
         >
           Status
         </label>
         <select
+          id="post-status-select"
+          aria-label="Post status"
           value={pendingStatus ?? currentStatus}
           onChange={(e) => handleStatusChange(e.target.value)}
           disabled={loading}

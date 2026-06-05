@@ -23,6 +23,28 @@
   box-sizing: border-box;
 }
 
+/* Skip-to-content link — off-screen until keyboard focus, then pinned
+   top-left so keyboard/screen-reader users can bypass the nav. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #8b5cff;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.18s ease;
+}
+.skip-link:focus {
+  top: 12px;
+  outline: 2px solid #c084fc;
+  outline-offset: 2px;
+}
+
 html,
 body {
   background-color: var(--bg-main);
