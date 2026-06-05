@@ -720,11 +720,15 @@ body {
 .ps-cta:active {
   transform: translateY(0);
 }
+/* Disabled CTA reads as a settled neutral state (e.g. "Already in review"),
+   not a dimmed brand fill. */
 .ps-cta:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
   transform: none;
   box-shadow: none;
+  color: var(--ps-ink-3);
+  background: var(--ps-surface-2);
+  border-color: var(--ps-line-2);
 }
 
 /* Quiet secondary button */
@@ -763,9 +767,15 @@ body {
   border-color: var(--accent-line);
   box-shadow: none;
 }
+/* The shared .eyebrow (Image Tools, Share with client) is re-cast on this
+   page as a sentence-case strong label so it matches Caption / Actions /
+   Feedback instead of being a tracked all-caps kicker. */
 .post-studio .eyebrow {
-  color: var(--ps-ink-3);
-  letter-spacing: 0.04em;
+  color: var(--ps-ink);
+  font-size: var(--ps-fs-meta);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 /* Inputs/selects on this page focus to the brand accent, not the global
    violet, so the status dropdown + feedback textarea stay on-theme. */
