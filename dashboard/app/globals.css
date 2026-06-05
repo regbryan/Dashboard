@@ -727,6 +727,22 @@ body {
   .ps-spinner { animation-duration: 1.6s; }
 }
 
+/* Inline confirm (replaces window.confirm on the Generate button) */
+.ps-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--ps-2);
+  padding: 6px 6px 6px 12px;
+  border-radius: 12px;
+  background: var(--ps-surface-2);
+  border: 1px solid var(--accent-line);
+}
+.ps-confirm-text {
+  font-size: var(--ps-fs-meta);
+  color: var(--ps-ink);
+  white-space: nowrap;
+}
+
 /* Quiet secondary button */
 .ps-btn {
   display: inline-flex;

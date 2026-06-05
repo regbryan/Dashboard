@@ -73,6 +73,7 @@ export async function proxy(request: NextRequest) {
     "/login",
     "/auth/callback",
     "/auth/error",
+    "/api/health", // public liveness probe for uptime monitors (no data, no DB)
     "/api/cron/", // Vercel Cron — gated by CRON_SECRET inside the route
     "/api/stripe/webhook", // Stripe — gated by webhook signature
     "/api/stripe/checkout", // unauthenticated buyers from marketing site
