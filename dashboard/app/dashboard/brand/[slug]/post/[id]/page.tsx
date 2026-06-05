@@ -7,6 +7,7 @@ import PostImageViewer from "@/components/PostImageViewer";
 import Link from "next/link";
 import PostActions from "./PostActions";
 import StudioTabs from "./StudioTabs";
+import GenerateDesignButton from "./GenerateDesignButton";
 import { getBrandClientEmails } from "@/lib/brand-clients";
 import { buildClaudeRevisionLink } from "@/lib/claude-link";
 
@@ -200,13 +201,16 @@ export default async function PostDetailPage({
               </span>
               <h1 className="ps-title">{post.concept || "Untitled Post"}</h1>
             </div>
-            <span
-              className="ps-status"
-              style={statusVars as React.CSSProperties}
-              title={`Status: ${statusLabel}`}
-            >
-              {statusLabel}
-            </span>
+            <div className="flex flex-col items-end" style={{ gap: "12px", flexShrink: 0 }}>
+              <span
+                className="ps-status"
+                style={statusVars as React.CSSProperties}
+                title={`Status: ${statusLabel}`}
+              >
+                {statusLabel}
+              </span>
+              <GenerateDesignButton postId={post.id} hasDesign={!!post.file_path} />
+            </div>
           </div>
         </header>
 

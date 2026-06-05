@@ -731,6 +731,27 @@ body {
   border-color: var(--ps-line-2);
 }
 
+/* Compact CTA for the header (auto width, sits beside the status pill). */
+.ps-cta--compact {
+  width: auto;
+  padding: 10px 16px;
+  font-size: var(--ps-fs-meta);
+}
+.ps-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(8, 8, 13, 0.35);
+  border-top-color: #08080d;
+  animation: ps-spin 0.7s linear infinite;
+}
+@keyframes ps-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ps-spinner { animation-duration: 1.6s; }
+}
+
 /* Quiet secondary button */
 .ps-btn {
   display: inline-flex;
