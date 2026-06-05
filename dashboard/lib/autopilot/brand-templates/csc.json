@@ -1,0 +1,75 @@
+{
+  "_engine": "csc",
+  "_meta": {
+    "name": "Cyber Safety Cop Instagram Template",
+    "brand": "Cyber Safety Cop (@cybersafetycop) — online child-safety education for parents",
+    "usage": "Bright, calm, empowering. Sunny yellow + electric blue, HEAVY bold sans (no italic/serif/script). Filled solid-blue numbered circles. Calm-not-alarmist tone. Logo is composited on top later (leave a clean top zone)."
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "yellow": "#FFDE59",
+    "blue": "#057AC0",
+    "light_blue": "#66ABD3",
+    "ice_blue": "#D9EDF8",
+    "dark_gray": "#646668",
+    "white": "#FFFFFF",
+    "color_roles": {
+      "#FFDE59": "Sunny brand yellow — dominant background on listicle/stat posts. NEVER muted or pastel.",
+      "#057AC0": "Electric blue — pills, FILLED numbered circles, big numerals, CTAs, swooshes.",
+      "#66ABD3": "Light blue — soft secondary fills.",
+      "#646668": "Dark gray — headline + body text on yellow/white.",
+      "#FFFFFF": "White text on blue, card fills.",
+      "#D9EDF8": "Ice blue — soft alt background."
+    },
+    "FORBIDDEN": ["italic serif (that's IEC)", "flowing script (that's a different brand)", "HOLLOW numbered circles (that's Omega — CSC circles are FILLED solid blue with white numerals)", "muted/pastel yellow", "coral / Bright Canary pink (only on co-branded CSC_I posts)", "alarmist / horror / predator-panic imagery"]
+  },
+
+  "BRAND": {
+    "name": "Cyber Safety Cop",
+    "short": "CSC",
+    "market": "parents of kids and teens",
+    "voice": "Calm, empowering, practical guide — helps parents feel capable, never scared. No fear-mongering, no shocked-mom cliché, no predator panic.",
+    "logo_usage": "Logo (circular people icon) + CYBERSAFETYCOP.COM appears on every post, but is COMPOSITED ON TOP afterward — never generated. Leave a clean solid-color top ~12% zone for it."
+  },
+
+  "FORMAT": { "platform": "Instagram feed", "aspect_ratio": "4:5 portrait", "native_size": "1080x1350" },
+
+  "TYPOGRAPHY": {
+    "display": "HEAVY bold geometric sans (Poppins ExtraBold / Montserrat / Bebas style), mixed-case. Headlines command via WEIGHT and CASE.",
+    "rule": "NO italic, NO serif, NO script — that is another brand's pattern. CSC is bold sans only.",
+    "body": "Regular/medium sans, dark gray or white, generous line height.",
+    "eyebrow": "Solid blue pill, white ALL-CAPS bold label."
+  },
+
+  "ARCHETYPES": {
+    "A_numbered_listicle_yellow": {
+      "description": "Sunny yellow full background. Blue header pill, bold heavy-sans headline (dark gray), then 3-4 numbered rows each with a FILLED solid-blue circle + white numeral + a short item. The workhorse.",
+      "when_to_use": "PRIMARY — tips, settings, 'X things parents should…', step lists"
+    },
+    "D_big_number_hero": {
+      "description": "Yellow background. Huge electric-blue numeral as the focal point + a bold heavy-sans topic headline + short body. Optional warm parent+child photo on the bottom half.",
+      "when_to_use": "Stat / 'the 1 setting' / 'X% of kids…' posts"
+    },
+    "C_command_overlay_photo": {
+      "description": "Full-bleed warm photo of a parent + child (calm, positive — NOT scared). A blue or yellow translucent band over the lower portion carries a bold heavy-sans command headline (white) + short body.",
+      "when_to_use": "Photo-led tips, reassurance, 'talk to your kids' moments"
+    },
+    "G_review_card": {
+      "description": "Blue or white field. A row of yellow stars, a bold-sans parent quote, light attribution.",
+      "when_to_use": "Parent testimonials / social proof"
+    }
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "Sunny yellow #FFDE59 (saturated, never pastel) + electric blue #057AC0 are the brand colors.",
+    "Numbered lists use FILLED solid-blue circles with WHITE numerals — NEVER hollow rings.",
+    "Headlines are HEAVY bold sans, mixed-case — NO italic, NO serif, NO script. Command via weight and case.",
+    "Calm, empowering, NEVER alarmist — no fear-mongering, no shocked/panicked parent, no horror palette, no predator imagery. Warm, positive parent-and-child moments.",
+    "Coral / Bright Canary pink appears ONLY on co-branded comparison posts — never on standard posts.",
+    "DO NOT bake the logo or CYBERSAFETYCOP.COM into the image — it is composited on top afterward. Leave a clean solid-color top ~12% zone for it.",
+    "FULL-BLEED: fills the canvas edge-to-edge; no outer border/frame/rounded-corners/floating card.",
+    "Render every word crisply and correctly spelled."
+  ],
+
+  "GLOBAL_NEGATIVE_PROMPT": "italic, serif, script font, hollow numbered circles, muted yellow, pastel yellow, coral, pink, Bright Canary palette, alarmist, fear-mongering, shocked parent, panicked face, scared child, predator, horror palette, dark moody, logo, CYBERSAFETYCOP.COM, watermark, border, outer frame, rounded outer corners, drop shadow, floating card, misspelled or garbled text"
+}

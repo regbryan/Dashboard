@@ -20,6 +20,10 @@ import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
 import { synthesizeOmegaSpec } from "./omega-spec";
 import { renderOmegaDesign, omegaArchetypeNeedsPhoto } from "./render-omega";
+import { synthesizeCscSpec } from "./csc-spec";
+import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
+import { synthesizeBlitzSpec } from "./blitz-spec";
+import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -239,6 +243,93 @@ export async function generateBrandPost(
       });
       mimeType = "image/png";
       model = `${tag}-${ospec.archetype}`;
+    } else if (template?._engine === "csc") {
+      // CSC PATH: its own design language (heavy bold sans, sunny yellow +
+      // electric blue, FILLED numbered circles, calm-not-alarmist). Only the
+      // command-photo (C) needs a text-free AI photo; listicle/big-number/review
+      // render fully in code. Logo + CYBERSAFETYCOP.COM are composited on top.
+      const s = await synthesizeCscSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `csc spec: ${s.error}` };
+      }
+      const cspec = s.spec;
+      let cscPhoto: Buffer | null = null;
+      let tag = "csc";
+      if (cscArchetypeNeedsPhoto(cspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${cspec.photo.description}. Bright, warm, reassuring; a calm parent and child together — NEVER scared, shocked, panicked, or in danger. Natural light, real diverse families, magazine quality. No stock cheese.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        cscPhoto = gen.bytes;
+        tag = `${gen.model}+csc`;
+      }
+      bytes = await renderCscDesign({
+        archetype: cspec.archetype,
+        width,
+        height,
+        eyebrow: cspec.eyebrow,
+        headline: cspec.headline,
+        body: cspec.body,
+        cta: cspec.cta,
+        listItems: cspec.listItems,
+        bigStat: cspec.bigStat,
+        quote: cspec.quote,
+        attribution: cspec.attribution,
+        photo: cscPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${cspec.archetype}`;
+    } else if (template?._engine === "blitz") {
+      // BLITZ PATH: soft, feminine, airy design language (dusty rose + sage +
+      // beige, casual script hook + light sans). Only the photo-hero (A) needs
+      // a text-free AI photo of an ORGANIZED SPACE (never people); listicle/
+      // question/testimonial render fully in code. Logo/wordmark composited later.
+      const s = await synthesizeBlitzSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `blitz spec: ${s.error}` };
+      }
+      const bspec = s.spec;
+      let blitzPhoto: Buffer | null = null;
+      let tag = "blitz";
+      if (blitzArchetypeNeedsPhoto(bspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${bspec.photo.description}. A bright, airy, beautifully ORGANIZED home space — clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, lots of breathing room. ABSOLUTELY NO people, hands, or faces. Magazine quality, never cluttered or moody.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        blitzPhoto = gen.bytes;
+        tag = `${gen.model}+blitz`;
+      }
+      bytes = await renderBlitzDesign({
+        archetype: bspec.archetype,
+        width,
+        height,
+        eyebrow: bspec.eyebrow,
+        headlineLines: bspec.headlineLines,
+        body: bspec.body,
+        cta: bspec.cta,
+        listItems: bspec.listItems,
+        quote: bspec.quote,
+        attribution: bspec.attribution,
+        photo: blitzPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${bspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
