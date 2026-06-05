@@ -1,0 +1,72 @@
+{
+  "_engine": "riverside",
+  "_meta": {
+    "name": "Riverside Hat Co Instagram Template",
+    "brand": "Riverside Hat Co (@riversidehatco) — small-batch custom Western hat shop, Riverside CA, EST. 2021",
+    "usage": "Modern Western, NOT costume (Yellowstone/Stagecoach, never yeehaw-kitsch). Warm earthy palette — tan + dark saddle brown + rust + cream. Warm crafted SLAB serif (Bitter) + tall condensed labels (Oswald). Product photography on rich dark backgrounds. Confidently casual, craft-forward, locally proud voice. Logo (EST. 2021 oval) is added later, not generated."
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "tan": "#B89A6D",
+    "brown": "#3A2E1F",
+    "rust": "#C9572C",
+    "cream": "#F2E6D5",
+    "color_roles": {
+      "#B89A6D": "Warm tan — secondary fills, labels on dark, subtle accents.",
+      "#3A2E1F": "Dark saddle brown — rich dark backgrounds (the product-photo and drop-card field), headline text on cream.",
+      "#C9572C": "Rust — THE accent. Eyebrow labels, list markers, rules, CTA underlines, small flourishes. Use sparingly for punch.",
+      "#F2E6D5": "Cream — primary warm background for panels and cards; headline text on dark brown."
+    },
+    "FORBIDDEN": ["bright blue", "neon", "pastels", "jewel tones", "rhinestone / costume-cowboy color", "any cool/clinical color", "navy (that's Omega/Stephanie)"]
+  },
+
+  "BRAND": {
+    "name": "Riverside Hat Co",
+    "short": "Riverside",
+    "tagline": "EST. 2021 · Riverside, CA",
+    "market": "Inland Empire locals 18-45, Western-fashion-curious; brides & bridal parties; event bookings for the Hat Bar Trailer",
+    "voice": "Confidently casual, Western-not-costume (modern, lived-in, Yellowstone-era), craft-forward (name what was done — 're-creased the crown', 'swapped the band'), locally proud (Riverside / the IE). Never 'yeehaw / howdy / partner', never costume kitsch.",
+    "logo_usage": "The EST. 2021 oval brand mark is added later (overlay/manual) — never generated. Leave a calm corner for it."
+  },
+
+  "FORMAT": { "platform": "Instagram feed", "aspect_ratio": "4:5 portrait", "native_size": "1080x1350" },
+
+  "TYPOGRAPHY": {
+    "display": "Warm, crafted SLAB SERIF (Bitter), mixed-case or refined caps. Sturdy and lived-in — the modern-Western headline voice.",
+    "label": "Tall CONDENSED sans (Oswald), ALL-CAPS, letter-spaced — the western-poster eyebrow / category label, usually in rust.",
+    "body": "Regular slab serif (Bitter), warm and readable.",
+    "rule": "Slab serif headline + condensed rust label. NO flowing script (too dainty), NO bold geometric sans dominance, NO costume-western display faces."
+  },
+
+  "ARCHETYPES": {
+    "A_product_hero": {
+      "description": "A rich, warmly-lit PHOTOGRAPH of a hat in context (on a dark wood credenza, leather, rope — NO people/faces) fills the top. A cream panel below carries a rust condensed label, a slab-serif headline, a short craft detail line, and a rust-underline CTA.",
+      "when_to_use": "PRIMARY — new arrivals / drops, product features"
+    },
+    "C_process_card": {
+      "description": "Cream background. Rust condensed label, slab-serif headline, then 3-4 steps each marked with a small filled RUST SQUARE + slab body (custom process or care steps). Warm and uncluttered.",
+      "when_to_use": "Custom-shape process, care tips, how-to"
+    },
+    "D_drop_card": {
+      "description": "Dark saddle-brown background. Rust condensed label, a big cream slab-serif announcement headline, a thin rust rule, a short detail line, and a CTA. Bold and warm.",
+      "when_to_use": "New-drop announcements, Hat Bar events, promos, gift cards"
+    },
+    "G_customer_feature": {
+      "description": "Dark saddle-brown field. A rust mark, a cream slab-serif customer quote or feature line, and a tan first-name attribution (text only — NEVER a fabricated customer face).",
+      "when_to_use": "Customer features / social proof (name the customer by first name)"
+    }
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "Warm earthy palette only — tan + dark saddle brown + rust + cream. NO blue, NO neon, NO pastels, NO jewel tones, NO costume-cowboy color.",
+    "Modern Western, NOT costume: lived-in and confident (Yellowstone/Stagecoach), never yeehaw / rhinestone / Halloween-cowboy.",
+    "Warm crafted SLAB serif headline + tall condensed rust label. NO flowing script, NO costume-western display faces.",
+    "Craft-forward: when there's a product, show the hat in context on a rich dark background — NEVER floating-product-on-white.",
+    "Real customers can't be fabricated: photos are of HATS and product/location (no people, faces, or hands). Customer features are text cards naming a first name.",
+    "DO NOT bake the EST. 2021 oval logo, the phone number, or any brand mark into the image — added later. Leave a calm corner.",
+    "FULL-BLEED: fills the canvas edge-to-edge; no outer border/frame/rounded-corners/floating card.",
+    "Render every word crisply and correctly spelled."
+  ],
+
+  "GLOBAL_NEGATIVE_PROMPT": "blue, neon, pastel, jewel tones, rhinestone, costume cowboy, yeehaw, Halloween cowboy, cool colors, clinical, people, faces, person, hands, model, floating product on white, studio seamless white, bright lighting, logo, brand mark, phone number, watermark, border, outer frame, rounded outer corners, drop shadow, floating card, misspelled or garbled text"
+}

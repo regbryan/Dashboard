@@ -26,6 +26,8 @@ import { synthesizeBlitzSpec } from "./blitz-spec";
 import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
 import { synthesizeStephanieSpec } from "./stephanie-spec";
 import { renderStephanieDesign, stephanieArchetypeNeedsPhoto } from "./render-stephanie";
+import { synthesizeRiversideSpec } from "./riverside-spec";
+import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-riverside";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -376,6 +378,49 @@ export async function generateBrandPost(
       });
       mimeType = "image/png";
       model = `${tag}-${stspec.archetype}`;
+    } else if (template?._engine === "riverside") {
+      // RIVERSIDE PATH: modern-Western design language (warm earthy palette,
+      // crafted slab serif + condensed rust labels). Only the product-hero (A)
+      // needs a text-free AI photo of a HAT in context (never people); process/
+      // drop/customer-feature render fully in code. EST. 2021 logo added later.
+      const s = await synthesizeRiversideSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `riverside spec: ${s.error}` };
+      }
+      const rvspec = s.spec;
+      let riversidePhoto: Buffer | null = null;
+      let tag = "riverside";
+      if (riversideArchetypeNeedsPhoto(rvspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${rvspec.photo.description}. A richly-lit Western HAT in context on a rich dark background (dark wood, tooled leather, rope), warm side-light, shallow depth of field. ABSOLUTELY NO people, faces, or hands. Modern Western, never costume. Never floating-product-on-white.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        riversidePhoto = gen.bytes;
+        tag = `${gen.model}+riverside`;
+      }
+      bytes = await renderRiversideDesign({
+        archetype: rvspec.archetype,
+        width,
+        height,
+        eyebrow: rvspec.eyebrow,
+        headline: rvspec.headline,
+        body: rvspec.body,
+        cta: rvspec.cta,
+        listItems: rvspec.listItems,
+        quote: rvspec.quote,
+        attribution: rvspec.attribution,
+        photo: riversidePhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${rvspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
