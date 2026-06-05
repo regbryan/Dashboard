@@ -120,9 +120,14 @@ function warStoryCardTree(input: DougRenderInput): El {
   ]);
 }
 
+// LinkedIn feed images are SQUARE. The layout is authored on a fixed 1080
+// logical canvas (the proven proportions) and the PNG is rendered at LinkedIn's
+// native 1200x1200, so the look is identical — just at the platform-native size.
+const DOUG_LOGICAL = 1080;
+const DOUG_OUTPUT = 1200;
+
 export async function renderDougDesign(input: DougRenderInput): Promise<Buffer> {
-  const width = input.width ?? 1080;
-  const height = input.height ?? 1080;
+  const outputWidth = input.width ?? DOUG_OUTPUT;
   let root: El;
   if (input.archetype === "C") {
     const jpeg = await sharp(input.photo as Buffer).jpeg({ quality: 90 }).toBuffer();
@@ -134,8 +139,10 @@ export async function renderDougDesign(input: DougRenderInput): Promise<Buffer> 
   } else {
     root = titleCardTree(input);
   }
-  const svg = await satori(root as unknown as Parameters<typeof satori>[0], { width, height, fonts: fonts() });
-  return Buffer.from(new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng());
+  // Square logical canvas keeps the proofed proportions; resvg upscales to the
+  // native LinkedIn output size while preserving the 1:1 aspect.
+  const svg = await satori(root as unknown as Parameters<typeof satori>[0], { width: DOUG_LOGICAL, height: DOUG_LOGICAL, fonts: fonts() });
+  return Buffer.from(new Resvg(svg, { fitTo: { mode: "width", value: outputWidth } }).render().asPng());
 }
 
 export function dougArchetypeNeedsPhoto(a: DougArchetype): boolean {

@@ -451,11 +451,12 @@ export async function generateBrandPost(
         dougPhoto = gen.bytes;
         tag = `${gen.model}+doug`;
       }
-      // LinkedIn title cards are square (1:1) by brand convention.
+      // LinkedIn title cards are square — native 1200x1200 (NOT the 4:5 used
+      // for the Instagram brands).
       bytes = await renderDougDesign({
         archetype: dgspec.archetype,
-        width: 1080,
-        height: 1080,
+        width: 1200,
+        height: 1200,
         eyebrow: dgspec.eyebrow,
         headline: dgspec.headline,
         subtitle: dgspec.subtitle,
