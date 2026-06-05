@@ -24,6 +24,12 @@ import { synthesizeCscSpec } from "./csc-spec";
 import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
 import { synthesizeBlitzSpec } from "./blitz-spec";
 import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
+import { synthesizeStephanieSpec } from "./stephanie-spec";
+import { renderStephanieDesign, stephanieArchetypeNeedsPhoto } from "./render-stephanie";
+import { synthesizeRiversideSpec } from "./riverside-spec";
+import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-riverside";
+import { synthesizeDougSpec } from "./doug-spec";
+import { renderDougDesign, dougArchetypeNeedsPhoto } from "./render-doug";
 
 const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 
@@ -330,6 +336,135 @@ export async function generateBrandPost(
       });
       mimeType = "image/png";
       model = `${tag}-${bspec.archetype}`;
+    } else if (template?._engine === "stephanie") {
+      // STEPHANIE PATH: dusty steel-blue + white serif overlay cards, Allura
+      // script personal accent. TEXT-CARD-first (personal brand — real photos
+      // can't be fabricated). Only the photo-overlay (A) needs a people-free
+      // lifestyle photo; values/quote/testimonial render fully in code. AHL
+      // logo / NMLS / DRE / headshot / compliance composited (or manual) later.
+      const s = await synthesizeStephanieSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `stephanie spec: ${s.error}` };
+      }
+      const stspec = s.spec;
+      let stephaniePhoto: Buffer | null = null;
+      let tag = "stephanie";
+      if (stephanieArchetypeNeedsPhoto(stspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${stspec.photo.description}. A warm, inviting home/lifestyle moment in soft natural light — ABSOLUTELY NO people, faces, or hands. Editorial, magazine quality, calm and feminine. Never corporate stock or dark/moody.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        stephaniePhoto = gen.bytes;
+        tag = `${gen.model}+stephanie`;
+      }
+      bytes = await renderStephanieDesign({
+        archetype: stspec.archetype,
+        width,
+        height,
+        eyebrow: stspec.eyebrow,
+        headlineLines: stspec.headlineLines,
+        body: stspec.body,
+        cta: stspec.cta,
+        listItems: stspec.listItems,
+        quote: stspec.quote,
+        attribution: stspec.attribution,
+        photo: stephaniePhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${stspec.archetype}`;
+    } else if (template?._engine === "riverside") {
+      // RIVERSIDE PATH: modern-Western design language (warm earthy palette,
+      // crafted slab serif + condensed rust labels). Only the product-hero (A)
+      // needs a text-free AI photo of a HAT in context (never people); process/
+      // drop/customer-feature render fully in code. EST. 2021 logo added later.
+      const s = await synthesizeRiversideSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `riverside spec: ${s.error}` };
+      }
+      const rvspec = s.spec;
+      let riversidePhoto: Buffer | null = null;
+      let tag = "riverside";
+      if (riversideArchetypeNeedsPhoto(rvspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${rvspec.photo.description}. A richly-lit Western HAT in context on a rich dark background (dark wood, tooled leather, rope), warm side-light, shallow depth of field. ABSOLUTELY NO people, faces, or hands. Modern Western, never costume. Never floating-product-on-white.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        riversidePhoto = gen.bytes;
+        tag = `${gen.model}+riverside`;
+      }
+      bytes = await renderRiversideDesign({
+        archetype: rvspec.archetype,
+        width,
+        height,
+        eyebrow: rvspec.eyebrow,
+        headline: rvspec.headline,
+        body: rvspec.body,
+        cta: rvspec.cta,
+        listItems: rvspec.listItems,
+        quote: rvspec.quote,
+        attribution: rvspec.attribution,
+        photo: riversidePhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${rvspec.archetype}`;
+    } else if (template?._engine === "doug") {
+      // DOUG PATH: quiet corporate LinkedIn title cards (teal + cream-mint, no
+      // accent). Square 1:1 by brand convention. Only the photo title-card (C)
+      // needs a text-free corporate/architectural photo (no people); title/list/
+      // war-story render fully in code. SCALE LLP wordmark composited later.
+      const s = await synthesizeDougSpec({
+        concept: post.concept,
+        content_pillar: post.content_pillar,
+        post_type: post.post_type,
+      });
+      if (!s.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: `doug spec: ${s.error}` };
+      }
+      const dgspec = s.spec;
+      let dougPhoto: Buffer | null = null;
+      let tag = "doug";
+      if (dougArchetypeNeedsPhoto(dgspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${dgspec.photo.description}. A quiet, corporate, architectural image (glass towers, a city skyline at dusk, an empty boardroom) — ABSOLUTELY NO people, faces, or hands. Restrained and professional. It will sit under a heavy teal overlay.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        dougPhoto = gen.bytes;
+        tag = `${gen.model}+doug`;
+      }
+      // LinkedIn title cards are square (1:1) by brand convention.
+      bytes = await renderDougDesign({
+        archetype: dgspec.archetype,
+        width: 1080,
+        height: 1080,
+        eyebrow: dgspec.eyebrow,
+        headline: dgspec.headline,
+        subtitle: dgspec.subtitle,
+        listItems: dgspec.listItems,
+        quote: dgspec.quote,
+        photo: dougPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${dgspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;

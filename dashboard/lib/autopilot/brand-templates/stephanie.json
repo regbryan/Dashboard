@@ -1,0 +1,78 @@
+{
+  "_engine": "stephanie",
+  "_meta": {
+    "name": "Stephanie Perez Home Loans Instagram Template",
+    "brand": "Stephanie Perez (@stephanieperezhomeloans) — personal-brand mortgage loan consultant, El Dorado Hills / Sacramento Valley",
+    "usage": "Soft, feminine, calming, editorial. White SERIF text on dusty steel-blue overlay cards is THE signature. Deep blue + light sky + ice blue + white + black. Flowing SCRIPT for the personal signature / celebrations. First-person, values-forward, calm voice. TEXT-CARD-FIRST (she is a personal brand — her real photos can't be fabricated). NMLS/DRE/AHL logo are NEVER baked (added via overlay/manual)."
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "deep_blue": "#3D5A80",
+    "sky_blue": "#98C1D9",
+    "ice_blue": "#E0FBFC",
+    "white": "#FFFFFF",
+    "black": "#000000",
+    "cream": "#FBF9F5",
+    "color_roles": {
+      "#3D5A80": "Deep dusty steel-blue — THE signature. Overlay cards, solid value/checklist cards, serif headline fields. Editorial anchor.",
+      "#98C1D9": "Light sky blue — softer secondary cards, dividers, accents that add depth with the deep blue.",
+      "#E0FBFC": "Ice blue — very light cool wash for airy backgrounds and breathing-room panels (almost white).",
+      "#FFFFFF": "White — serif text on blue, polaroid frames, clean backgrounds.",
+      "#000000": "Black/near-black — body text and credentials on light backgrounds.",
+      "#FBF9F5": "Warm cream — soft alternate background that keeps the blues from feeling clinical."
+    },
+    "FORBIDDEN": ["tan/earthy #B69D81 as a DESIGN fill (it is ambient wardrobe color only, never a structural design color)", "navy #005181 (that's Omega)", "gold (that's Omega)", "red", "bright/neon colors", "bold sans headline dominance", "hollow numbered rings (that's Omega)"]
+  },
+
+  "BRAND": {
+    "name": "Stephanie Perez",
+    "short": "Stephanie",
+    "market": "first-time homebuyers in Sacramento Valley / El Dorado Hills; refinancing families; law-enforcement families",
+    "voice": "First-person authentic ('I/me/my', never 'we'), values-forward (honesty, integrity, calm), unhurried, relational closer. A trusted friend who happens to be your loan officer. 15 years in law enforcement before mortgage.",
+    "logo_usage": "No standalone logo — the brand IS Stephanie. The AHL (Answer Home Loans) co-brand, NMLS #1081264, DRE #02423262, and her headshot/signature are added via overlay/manual afterward — NEVER generated into the design."
+  },
+
+  "FORMAT": { "platform": "Instagram feed", "aspect_ratio": "4:5 portrait", "native_size": "1080x1350" },
+
+  "TYPOGRAPHY": {
+    "display_serif": "Elegant display serif (Playfair/Bodoni/Didot weight), mixed-case or refined caps. White on blue cards. Carries hero headlines — 'The truth about working with me', 'The quiet power of equity'.",
+    "body_serif": "Lighter-weight serif, centered, sentence case. Carousel/quote body copy.",
+    "script": "Flowing personal script (Allura) — the PERSONAL/celebratory mark: signatures, 'In Contract', warm accents. Used sparingly.",
+    "sans": "Clean sans for small functional details (category labels).",
+    "rule": "Serif is the voice; script is the personal signature accent (one short accent max). NO bold-sans headline dominance."
+  },
+
+  "ARCHETYPES": {
+    "A_photo_overlay_card": {
+      "description": "A warm lifestyle PHOTOGRAPH (cozy home interior, sunlit porch, keys on a counter, a neighborhood — NO people) with a semi-transparent deep-blue overlay card carrying a white serif headline + a short script accent + a soft CTA. Her real lifestyle-post look.",
+      "when_to_use": "Lifestyle, seasonal, warm aspirational moments"
+    },
+    "C_values_card": {
+      "description": "Solid deep-blue full card. White serif headline + white serif body or a short serif checklist (small white serif lines). The 'Truth About Working With Me' / 'My Services' look. Generous breathing room.",
+      "when_to_use": "PRIMARY — personal-brand values, services checklist, plain-English education"
+    },
+    "D_quote_card": {
+      "description": "Ice-blue or cream airy background. A deep-blue serif quote or inspirational line, a small script attribution or accent, optional soft CTA. Calm and uplifting.",
+      "when_to_use": "Inspirational / motivational, calm educational hooks"
+    },
+    "G_testimonial_card": {
+      "description": "Deep-blue field. A white serif client quote with a script accent ('In Contract', client celebration as text — never a fabricated headshot), small white attribution.",
+      "when_to_use": "Client celebrations / social proof (text-only, no fabricated faces)"
+    }
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "White SERIF text on dusty steel-blue #3D5A80 cards/overlays is the signature look and must anchor text-heavy designs.",
+    "Palette is deep blue + light sky + ice blue + white + black (+ warm cream). NO navy #005181, NO gold, NO red, NO tan as a design fill, NO neon.",
+    "Serif carries the voice; flowing script (Allura) is the personal signature accent only (one short accent max). NO bold-sans headline dominance.",
+    "First-person, calm, values-forward, unhurried. Soft relational CTAs only ('I'd love to help', 'DM me') — NEVER 'Apply now' / 'Limited time' / 'Best rates'.",
+    "She is a PERSONAL brand: her real photos can't be fabricated. Photos are warm lifestyle scenes (homes, porches, keys, neighborhoods) with NO people/faces. Most designs are TEXT CARDS.",
+    "DO NOT bake the AHL logo, NMLS #1081264, DRE #02423262, 'Answer Home Loans', 'Stevenson Lending Group', any license number, her headshot, or a compliance footer into the image — all added via overlay/manual afterward.",
+    "FULL-BLEED: fills the canvas edge-to-edge; no outer border/frame/rounded-corners/floating card.",
+    "Render every word crisply and correctly spelled."
+  ],
+
+  "FORBIDDEN_TEXT": ["NMLS", "1081264", "DRE", "02423262", "Answer Home Loans", "AHL", "Stevenson Lending Group", "Apply now", "Best rates guaranteed", "Limited time"],
+
+  "GLOBAL_NEGATIVE_PROMPT": "navy, gold, red, tan fill, bright colors, neon, bold sans headline, hollow rings, people, faces, person, headshot, hands, corporate office stock, dark moody background, urgent salesy text, logo, AHL, NMLS, DRE, license number, compliance footer, watermark, border, outer frame, rounded outer corners, drop shadow, floating card, misspelled or garbled text"
+}

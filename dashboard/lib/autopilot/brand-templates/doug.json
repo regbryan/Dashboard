@@ -1,0 +1,80 @@
+{
+  "_engine": "doug",
+  "_meta": {
+    "name": "Doug Mitchell (Scale LLP) LinkedIn Template",
+    "brand": "Doug Mitchell, Esq. — Partner at Scale LLP, M&A thought-leadership on LinkedIn",
+    "usage": "Quiet, authoritative, corporate-restrained LinkedIn title cards. Teal-charcoal + cream-mint, NO accent color. Large display sans headline broken across lines, smaller subtitle, a 'Doug Mitchell, Partner' attribution band. Advisory headline grammar. Square 1:1. The SCALE LLP wordmark is added via overlay (not generated). No emoji, no flourishes, no gradients."
+  },
+
+  "STRICT_COLOR_CONTRACT": {
+    "teal": "#1F5560",
+    "mint": "#D8EBE5",
+    "white": "#FFFFFF",
+    "color_roles": {
+      "#1F5560": "Teal-charcoal — THE field. Solid card background, photo overlay, attribution band.",
+      "#D8EBE5": "Cream-mint — display headline + subtitle text on teal, dividers, the single tonal companion.",
+      "#FFFFFF": "White — rare bright text where mint is too soft."
+    },
+    "FORBIDDEN": ["any accent color (intentionally NONE — quiet by design)", "gold", "rust", "red", "bright/neon colors", "gradient text", "emoji", "flourishes", "warm earthy palette (that's Riverside)"]
+  },
+
+  "BRAND": {
+    "name": "Doug Mitchell",
+    "short": "Doug",
+    "firm": "Scale LLP",
+    "title": "Partner",
+    "market": "founders & CEOs 12-36 months from an exit/acquisition/raise; M&A attorneys, PE, bankers; in-house counsel",
+    "voice": "Expert but plain-spoken (no Latin, define legalese on first use), advisory framing (give a frame, not a to-do list), specific over general (anonymized real examples), quiet authority (no bravado/hustle). Tone test: McKinsey partner's LinkedIn, not a hustle bro's.",
+    "logo_usage": "The SCALE LLP wordmark is added via overlay/manual afterward — NEVER generated. Leave a clean corner for it. The 'Doug Mitchell, Partner' textual attribution IS rendered (it defines the thought-leadership card)."
+  },
+
+  "FORMAT": { "platform": "LinkedIn feed", "aspect_ratio": "1:1", "native_size": "1080x1080" },
+
+  "TYPOGRAPHY": {
+    "display": "Large display SANS (Montserrat bold), cream-mint, broken across 2-3 lines for rhythm. Authoritative, clean.",
+    "subtitle": "Smaller, lighter sans, cream-mint at reduced opacity.",
+    "attribution": "Small sans in a footer band — 'Doug Mitchell, Partner'.",
+    "rule": "Sans only. NO serif, NO script, NO emoji, NO gradient/flourish. Quiet and precise."
+  },
+
+  "HEADLINE_GRAMMAR": [
+    "The Hidden Cost of [X]",
+    "[X] vs [Y]: The Winning Formula for [outcome]",
+    "Embracing [counterintuitive concept] in M&A",
+    "Avoiding [bad outcome]: The Power of [Y]",
+    "Why [established belief] is Wrong About [topic]",
+    "The [N] [things] Every [founder/buyer/seller] Should [know/avoid] Before [milestone]"
+  ],
+
+  "ARCHETYPES": {
+    "A_title_card": {
+      "description": "Solid teal-charcoal field. A large cream-mint display-sans headline broken across 2-3 lines, an optional lighter subtitle, and a 'Doug Mitchell, Partner' attribution band. A clean corner is left for the SCALE LLP overlay.",
+      "when_to_use": "PRIMARY — M&A education, practical advice, most thought-leadership posts"
+    },
+    "C_photo_title_card": {
+      "description": "A corporate PHOTOGRAPH (glass towers, a skyline, a boardroom table — NO people) under a heavy teal overlay, with the cream-mint display headline + attribution. Quiet and editorial.",
+      "when_to_use": "Occasional visual variety on flagship posts"
+    },
+    "D_list_card": {
+      "description": "Solid teal field. A display-sans headline ('The 3 Things Every Founder Should Know Before an LOI') then 3-4 numbered cream-mint lines. No accent — numbers are plain mint.",
+      "when_to_use": "List-promise education ('The N things…')"
+    },
+    "G_war_story_card": {
+      "description": "Solid teal field. A short, anonymized war-story pull-quote in cream-mint display sans, plus a small 'Doug Mitchell, Partner' attribution. Specific and quietly authoritative.",
+      "when_to_use": "Anonymized war stories ('A founder I advised last year…')"
+    }
+  },
+
+  "GLOBAL_HARD_RULES": [
+    "Teal-charcoal #1F5560 + cream-mint #D8EBE5 only. NO accent color (the restraint is the brand). NO bright/neon, NO gradients.",
+    "Sans-serif only. NO serif, NO script, NO emoji, NO flourishes. Quiet, precise, McKinsey-partner register.",
+    "Advisory headlines that LAND an idea (not curiosity-gap clickbait). The reader can predict the angle.",
+    "Specific over general; anonymized real examples beat hypotheticals. No bravado, no hustle language, nothing political.",
+    "Photos (when used) are corporate/architectural with a heavy teal overlay and NO people or faces.",
+    "DO NOT bake the SCALE LLP wordmark/logo into the image — added via overlay afterward. Leave a clean corner. The 'Doug Mitchell, Partner' textual attribution IS rendered.",
+    "FULL-BLEED: fills the canvas edge-to-edge; no outer border/frame/rounded-corners/floating card.",
+    "Render every word crisply and correctly spelled."
+  ],
+
+  "GLOBAL_NEGATIVE_PROMPT": "accent color, bright colors, neon, gradient, emoji, flourish, serif, script, people, faces, person, hands, headshot, hustle imagery, charts with fake numbers, SCALE LLP logo, wordmark, watermark, border, outer frame, rounded outer corners, drop shadow, floating card, misspelled or garbled text"
+}
