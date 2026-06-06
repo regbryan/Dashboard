@@ -14,51 +14,62 @@ export type OmegaSpec = {
   headlineLines: OmegaHeadlineLine[];
   body: string;
   cta: string;
-  listItems?: { number?: string | null; text: string }[] | null;
+  listItems?: { number?: string | null; lead?: string | null; text: string }[] | null;
   bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
   photo: { include: boolean; description: string };
 };
 
-type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
+type SpecPost = {
+  concept: string | null;
+  content_pillar: string | null;
+  post_type: string | null;
+  post_number?: number | null;
+};
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
-function pickArchetype(concept: string | null): OmegaArchetype {
-  // Omega is PHOTO-FORWARD: photo-hero (A) is the default and should win for
-  // almost everything. Text archetypes (C/D/G) only fire on a strong signal in
-  // the CONCEPT itself — never the pillar name. (The pillar "Client Stories &
-  // Community Connection" contains "client"/"story", which previously forced a
-  // text testimonial onto every human-interest post; matching the pillar is the
-  // bug. Match the concept, and only on genuine list/stat/quote intent.)
+function pickArchetype(concept: string | null, postNumber: number | null | undefined): OmegaArchetype {
+  // Match the brand's real design system (the v2 references): the workhorse is
+  // PHOTO + 3-POINT NUMBERED LIST (A). Text formats fire on a strong CONCEPT
+  // signal — never the pillar name. To keep the feed from looking templated, a
+  // share of the default posts rotate to the editorial type-forward format (E),
+  // mirroring how the real feed mixes photo+list with occasional statement posts.
   const c = (concept ?? "").toLowerCase();
 
-  // Numbered list: an explicit count + list noun, or "checklist".
-  if (/\b\d+\s+(ways|tips|steps|reasons|things|mistakes|signs|documents|questions)\b/.test(c) || /\bchecklist\b/.test(c)) {
-    return "C";
-  }
-  // Big-number stat: the concept actually centers a number, %, or $ figure.
-  if (/\d\s?%/.test(c) || /\$\s?\d/.test(c) || /\b\d+\b\s*(days|years|months|points|down)\b/.test(c)) {
+  // Genuine single-number stat → big-number (D).
+  if (/\d\s?%/.test(c) || /\$\s?\d/.test(c) || /\b\d+\b\s*(days|years|months|points)\b/.test(c)) {
     return "D";
   }
-  // Testimonial: explicit review/quote intent in the concept (a quote mark, or
-  // words that name a testimonial) — NOT the bare "client stories" pillar.
+  // Testimonial / review intent → G.
   if (/testimonial|review|["“]|hear from|client said|what .+ (say|said)/.test(c)) {
     return "G";
   }
-  return "A"; // photo-forward default
+  // Referral / community / statement concepts → editorial type-forward (E).
+  if (/refer|who do you know|tag (a|someone|them)|spread the word|share this|congrat|welcome home|thank you|grateful/.test(c)) {
+    return "E";
+  }
+  // Default: photo + numbered list, but every 4th post is a type-forward
+  // statement for visual variety.
+  if (((postNumber ?? 0) % 4) === 0 && (postNumber ?? 0) > 0) {
+    return "E";
+  }
+  return "A";
 }
 
 function dataInstruction(a: OmegaArchetype): string {
   switch (a) {
+    case "A":
     case "C":
-      return `NUMBERED LIST. Fill "list_items" with 3-4 objects { "number":"1", "text":"<short, specific tip>" }. photo.include = false.`;
+      return `PHOTO + 3-POINT LIST (the signature). Fill "list_items" with EXACTLY 3 objects { "number":"1", "lead":"<a short bold takeaway, max 5 words, e.g. 'FHA: 3.5% down'>", "text":"<one supporting sentence>" }. A photo is added automatically — leave photo.description empty.`;
     case "D":
-      return `BIG-NUMBER stat. Fill "big_stat" with a single short number/stat (<=5 chars, e.g. "3", "20%", "15"). photo.include = false.`;
+      return `BIG-NUMBER stat. Fill "big_stat" with a single short number/stat (<=4 chars, e.g. "3%", "20%", "15"). Write a one-sentence body explaining why it matters. No list, no photo.`;
+    case "E":
+      return `STATEMENT post — no photo, no list, no stat. Just the script+serif headline and a warm 2-3 sentence body paragraph (personal, partnering, like talking to a friend). Leave list_items, big_stat, photo.description empty.`;
     case "G":
-      return `TESTIMONIAL. Fill "quote" (a warm 1-2 sentence client quote, homebuyer voice) and "attribution" (e.g. "The Reyes Family"). photo.include = false.`;
+      return `TESTIMONIAL. Fill "quote" (a warm 1-2 sentence client quote, homebuyer voice) and "attribution" (e.g. "The Reyes Family"). No photo.`;
     default:
-      return `PHOTO HERO (the default). photo.include = true; "photo.description" = a warm, aspirational, photorealistic scene of REAL, diverse families/couples in or around a home (e.g. a couple holding new keys, a family in a sunlit living room, an elderly couple on their porch). Golden-hour / window light, magazine quality. No text in the photo.`;
+      return ``;
   }
 }
 
@@ -68,7 +79,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.concept);
+  const archetype = pickArchetype(post.concept, post.post_number);
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
     `Editorial/premium feel. The headline is an elegant SERIF display with ONE flowing SCRIPT accent line (a short connecting phrase) — e.g. serif "Your Dream Home" + script "is closer than you think".`,
@@ -78,12 +89,12 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
     ``,
     `RULES:`,
     `- headline_lines: 2-3 lines, each { "text", "style": "serif" | "script" }. Exactly ONE short "script" accent line; the rest "serif". Mixed-case (NOT all caps). No markdown/asterisks.`,
-    `- body: ONE short reassuring sentence in the brand voice.`,
+    `- body: a short reassuring line — or a warm 2-3 sentence paragraph for a statement (E) post — in the brand voice.`,
     `- cta: a soft 2-3 word CTA — e.g. "Let's talk", "See if you qualify", "Ask us how". NEVER "Apply now" / "Limited time".`,
     `- eyebrow: a short ALL-CAPS category label (e.g. "FIRST-TIME BUYERS", "WAYS TO SAVE", "WHY REFINANCE?").`,
     `- NEVER include the logo, the words OMEGA/MORTGAGE/GROUP, NMLS, license numbers, or any compliance text — those are added separately.`,
     ``,
-    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"serif"}], "body":"", "cta":"", "list_items":[{"number":"1","text":""}], "big_stat":"", "quote":"", "attribution":"", "photo":{"include":true,"description":""} }`,
+    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"serif"}], "body":"", "cta":"", "list_items":[{"number":"1","lead":"","text":""}], "big_stat":"", "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
   ].join("\n");
 
   let res: Response;
@@ -123,10 +134,14 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
 
   const photoObj = (parsed.photo ?? {}) as { include?: unknown; description?: unknown };
   const listItems = Array.isArray(parsed.list_items)
-    ? (parsed.list_items as { number?: unknown; text?: unknown }[])
+    ? (parsed.list_items as { number?: unknown; lead?: unknown; text?: unknown }[])
         .filter((it) => it && typeof it.text === "string")
-        .slice(0, 4)
-        .map((it, i) => ({ number: typeof it.number === "string" && it.number.trim() ? it.number.trim() : String(i + 1), text: clean(it.text) }))
+        .slice(0, 3)
+        .map((it, i) => ({
+          number: typeof it.number === "string" && it.number.trim() ? it.number.trim() : String(i + 1),
+          lead: typeof it.lead === "string" && it.lead.trim() ? clean(it.lead) : null,
+          text: clean(it.text),
+        }))
     : null;
 
   const spec: OmegaSpec = {
@@ -135,11 +150,11 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
     headlineLines: lines,
     body: clean(parsed.body),
     cta: clean(parsed.cta) || "Let's talk",
-    listItems: archetype === "C" ? listItems : null,
+    listItems: archetype === "A" || archetype === "C" ? listItems : null,
     bigStat: archetype === "D" ? clean(parsed.big_stat) || null : null,
     quote: archetype === "G" ? clean(parsed.quote) || null : null,
     attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
-    photo: { include: archetype === "A" && photoObj.include !== false, description: clean(photoObj.description) },
+    photo: { include: archetype === "A", description: clean(photoObj.description) },
   };
   return { ok: true, spec };
 }

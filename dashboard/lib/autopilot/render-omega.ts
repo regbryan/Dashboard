@@ -33,7 +33,7 @@ const GOLD = "#FDD314";
 const NEARBLACK = "#231F20";
 const WHITE = "#FFFFFF";
 
-export type OmegaArchetype = "A" | "C" | "D" | "G";
+export type OmegaArchetype = "A" | "C" | "D" | "E" | "G";
 export type OmegaHeadlineLine = { text: string; style: "serif" | "script" };
 export type OmegaRenderInput = {
   archetype: OmegaArchetype;
@@ -43,7 +43,7 @@ export type OmegaRenderInput = {
   headlineLines: OmegaHeadlineLine[];
   body?: string | null;
   cta?: string | null;
-  listItems?: { number?: string | null; text: string }[] | null;
+  listItems?: { number?: string | null; lead?: string | null; text: string }[] | null;
   bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
@@ -73,24 +73,73 @@ function headline(lines: OmegaHeadlineLine[], color: string, serifSize: number, 
       ? h("div", { display: "flex", width: "100%", justifyContent: "center", fontFamily: "Allura", fontWeight: 400, fontSize: `${scriptSize}px`, lineHeight: 1.0, color }, l.text)
       : h("div", { display: "flex", width: "100%", justifyContent: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: `${serifSize}px`, lineHeight: 1.06, color }, l.text)));
 }
-function bodyEl(text: string | null | undefined, color: string): El[] {
-  if (!text?.trim()) return [];
-  return [h("div", { display: "flex", width: "88%", alignSelf: "center", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 700, fontSize: "28px", lineHeight: 1.4, color }, text.trim())];
-}
 function softCta(text: string | null | undefined, onNavy: boolean): El[] {
   if (!text?.trim()) return [];
   return [h("div", { display: "flex", alignSelf: "center", background: onNavy ? NEARWHITE : NAVY, color: onNavy ? NAVY : WHITE, fontFamily: "Montserrat", fontWeight: 700, fontSize: "26px", letterSpacing: "2px", padding: "16px 34px", borderRadius: "999px" }, text.trim().toUpperCase())];
 }
 
-function photoHeroTree(input: OmegaRenderInput, dataUri: string): El {
-  const photo = h("div", { display: "flex", width: "100%", height: "58%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]);
-  const panel = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "22px", flexGrow: 1, width: "100%", background: CREAM, padding: "52px 80px 104px" }, [
-    ...eyebrow(input.eyebrow, false),
-    headline(input.headlineLines, NAVY, 60, 88),
-    ...bodyEl(input.body, NEARBLACK),
-    ...softCta(input.cta, false),
+// EDITORIAL TYPE-FORWARD (post13) — no photo: a big script+serif headline near
+// the top, generous whitespace, a centered body line lower down. Calm, premium,
+// the brand's referral/statement format.
+function typeForwardTree(input: OmegaRenderInput): El {
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
+    zone("128px"), // logo overlay
+    h("div", { display: "flex", flexDirection: "column", width: "100%", padding: "0 84px" }, [
+      headlineLeft(input.headlineLines, NAVY, 78, 100),
+    ]),
+    h("div", { display: "flex", alignItems: "center", justifyContent: "center", flexGrow: 1, width: "100%", padding: "40px 120px" }, [
+      ...(input.body?.trim()
+        ? [h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 400, fontSize: "31px", lineHeight: 1.5, color: NEARBLACK }, input.body.trim())]
+        : []),
+    ]),
+    zone("96px"), // OMGLENDING.COM overlay
   ]);
-  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [photo, panel]);
+}
+
+// Left-aligned script+serif headline (the reference editorial style).
+function headlineLeft(lines: OmegaHeadlineLine[], color: string, serifSize: number, scriptSize: number): El {
+  return h("div", { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0px", width: "100%" },
+    lines.map((l) => l.style === "script"
+      ? h("div", { display: "flex", fontFamily: "Allura", fontWeight: 400, fontSize: `${scriptSize}px`, lineHeight: 1.0, color }, l.text)
+      : h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: `${serifSize}px`, lineHeight: 1.06, color }, l.text)));
+}
+
+// A reserved clean band (no drawn content) for the logo (top) / compliance
+// (bottom) that the dashboard overlay adds later — per the no-baked-logo rule.
+function zone(height: string): El {
+  return h("div", { display: "flex", width: "100%", height }, []);
+}
+
+// Numbered list rows in the reference style: hollow navy ring, bold navy lead,
+// muted detail line beneath.
+function numberedRows(items: { number?: string | null; lead?: string | null; text: string }[]): El[] {
+  return items.slice(0, 3).map((it, i) =>
+    h("div", { display: "flex", alignItems: "flex-start", gap: "26px", width: "100%" }, [
+      h("div", { display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: "58px", height: "58px", borderRadius: "999px", border: `3px solid ${NAVY}`, fontFamily: "Playfair", fontWeight: 700, fontSize: "30px", color: NAVY }, it.number ?? String(i + 1)),
+      h("div", { display: "flex", flexDirection: "column", gap: "4px", width: "84%" }, [
+        h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "29px", lineHeight: 1.2, color: NAVY }, it.lead?.trim() || it.text),
+        ...(it.lead?.trim() && it.text?.trim()
+          ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "24px", lineHeight: 1.32, color: NEARBLACK }, it.text)]
+          : []),
+      ]),
+    ])
+  );
+}
+
+// SIGNATURE LAYOUT — photo + 3-point numbered list (the brand's workhorse:
+// post01/04/08). Logo zone reserved top, contained photo band, left-aligned
+// script+serif headline, numbered list with bold lead + detail, footer zone.
+function photoListTree(input: OmegaRenderInput, dataUri: string): El {
+  const items = input.listItems ?? [];
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
+    zone("104px"), // logo overlay lands here
+    h("div", { display: "flex", width: "100%", height: "40%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "30px", flexGrow: 1, width: "100%", padding: "44px 84px 0" }, [
+      headlineLeft(input.headlineLines, NAVY, 54, 76),
+      h("div", { display: "flex", flexDirection: "column", gap: "24px", width: "100%", marginTop: "4px" }, numberedRows(items)),
+    ]),
+    zone("96px"), // OMGLENDING.COM / compliance overlay lands here
+  ]);
 }
 
 function listicleTree(input: OmegaRenderInput): El {
@@ -109,12 +158,16 @@ function listicleTree(input: OmegaRenderInput): El {
 }
 
 function bigNumberTree(input: OmegaRenderInput): El {
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "20px", width: "100%", height: "100%", background: CREAM, padding: "92px 84px 104px" }, [
-    ...eyebrow(input.eyebrow, false),
-    h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "330px", lineHeight: 0.95, color: NAVY }, input.bigStat ?? ""),
-    headline(input.headlineLines, NAVY, 56, 84),
-    ...bodyEl(input.body, NEARBLACK),
-    ...softCta(input.cta, false),
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
+    zone("128px"), // logo overlay
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: "28px", flexGrow: 1, width: "100%", padding: "0 84px" }, [
+      h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "240px", lineHeight: 1.0, color: NAVY }, input.bigStat ?? ""),
+      headlineLeft(input.headlineLines, NAVY, 56, 80),
+      ...(input.body?.trim()
+        ? [h("div", { display: "flex", width: "90%", fontFamily: "Montserrat", fontWeight: 400, fontSize: "29px", lineHeight: 1.4, color: NEARBLACK, marginTop: "14px" }, input.body.trim())]
+        : []),
+    ]),
+    zone("96px"), // OMGLENDING.COM overlay
   ]);
 }
 
@@ -140,11 +193,13 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
     const jpeg = await sharp(input.photo as Buffer)
       .jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true })
       .toBuffer();
-    root = photoHeroTree(input, `data:image/jpeg;base64,${jpeg.toString("base64")}`);
+    root = photoListTree(input, `data:image/jpeg;base64,${jpeg.toString("base64")}`);
   } else if (input.archetype === "C") {
     root = listicleTree(input);
   } else if (input.archetype === "D") {
     root = bigNumberTree(input);
+  } else if (input.archetype === "E") {
+    root = typeForwardTree(input);
   } else {
     root = await reviewTree(input);
   }

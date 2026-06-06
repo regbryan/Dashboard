@@ -271,6 +271,7 @@ export async function generateBrandPost(
         concept: post.concept,
         content_pillar: post.content_pillar,
         post_type: post.post_type,
+        post_number: post.post_number,
       });
       if (!s.ok) {
         await revert();
