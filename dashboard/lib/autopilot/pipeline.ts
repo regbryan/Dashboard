@@ -253,11 +253,18 @@ export async function generateBrandPost(
   let model: string;
 
   // Generate an image with the pro model, falling back to flash on failure.
-  const genImage = async (imgPrompt: string) => {
-    let g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: ARCHETYPE_IMAGE_MODEL });
+  // aspectOverride lets a brand request a different photo aspect than the design
+  // canvas (e.g. Omega's photo-hero composites a LANDSCAPE photo into a wide
+  // band on a portrait card).
+  const genImage = async (
+    imgPrompt: string,
+    aspectOverride?: "1:1" | "4:5" | "9:16" | "16:9"
+  ) => {
+    const a = aspectOverride ?? aspect;
+    let g = await generateImage({ prompt: imgPrompt, aspectRatio: a, model: ARCHETYPE_IMAGE_MODEL });
     if (!g.ok) {
       console.error(`[archetype] pro model ${ARCHETYPE_IMAGE_MODEL} failed (${g.error}); falling back to gemini-2.5-flash-image`);
-      g = await generateImage({ prompt: imgPrompt, aspectRatio: aspect, model: "gemini-2.5-flash-image" });
+      g = await generateImage({ prompt: imgPrompt, aspectRatio: a, model: "gemini-2.5-flash-image" });
     }
     return g;
   };
@@ -282,7 +289,8 @@ export async function generateBrandPost(
       let tag = "omega";
       if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
         const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered.`
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered. Compose as a WIDE landscape shot: the people prominent and large in the lower-center of the frame, faces clearly visible and unobstructed, with a simple, uncluttered band of background across the TOP (sky, wall, greenery) that can be cropped away.`,
+          "16:9"
         );
         if (!gen.ok) {
           await revert();

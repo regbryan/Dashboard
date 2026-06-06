@@ -133,7 +133,7 @@ function photoListTree(input: OmegaRenderInput, dataUri: string): El {
   const items = input.listItems ?? [];
   return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
     zone("104px"), // logo overlay lands here
-    h("div", { display: "flex", width: "100%", height: "40%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", width: "100%", height: "40%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover", objectPosition: "center bottom" })]),
     h("div", { display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "30px", flexGrow: 1, width: "100%", padding: "44px 84px 0" }, [
       headlineLeft(input.headlineLines, NAVY, 54, 76),
       h("div", { display: "flex", flexDirection: "column", gap: "24px", width: "100%", marginTop: "4px" }, numberedRows(items)),
