@@ -224,7 +224,7 @@ export async function generateBrandPost(
       let tag = "omega";
       if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
         const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${ospec.photo.description}. Warm golden-hour / window light; real, diverse families or couples in or around a home; magazine quality. Never stock-cheesy or fintech illustration. No stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, subtle film grain. Photojournalistic, not AI-rendered.`
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${ospec.photo.description}. Warm golden-hour / window light; real, diverse families or couples in or around a home; magazine quality. Never stock-cheesy or fintech illustration. No stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered.`
         );
         if (!gen.ok) {
           await revert();
