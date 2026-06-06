@@ -103,22 +103,9 @@ export async function generateImage(
     return { ok: false, error: "No inlineData image in Gemini response" };
   }
 
-  const outBytes = Buffer.from(data, "base64");
-  // TEMP DIAGNOSTIC (remove after): log the real source resolution so we can
-  // see whether imageSize is honored vs. the model capping at ~1K.
-  try {
-    const sharp = (await import("sharp")).default;
-    const meta = await sharp(outBytes).metadata();
-    console.log(
-      `[genImage:diag] model=${model} reqImageSize=${imageSize ?? "none"} aspect=${input.aspectRatio ?? "none"} -> source ${meta.width}x${meta.height} (${Math.round(outBytes.length / 1024)}KB ${mimeType})`
-    );
-  } catch (e) {
-    console.log(`[genImage:diag] meta failed: ${e instanceof Error ? e.message : String(e)}`);
-  }
-
   return {
     ok: true,
-    bytes: outBytes,
+    bytes: Buffer.from(data, "base64"),
     mimeType,
     model,
   };
