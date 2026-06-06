@@ -8,6 +8,18 @@ import { requireUser } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
+// Reliable "most recent" value for the Designs sort. updated_at is a TEXT
+// column: autopilot rows hold real ISO timestamps, but legacy seed rows hold
+// the literal string "now()" (never set), which would lexically sort above any
+// real date. Prefer the generation ms embedded in the autopilot filename
+// (.../post-N-v<ms>.png), then a valid parsed updated_at; bogus values → 0.
+function recencyOf(p: { file_path: string | null; updated_at: string | null }): number {
+  const m = p.file_path?.match(/-v(\d{10,})\./);
+  if (m) return Number(m[1]);
+  const t = Date.parse(p.updated_at ?? "");
+  return Number.isNaN(t) ? 0 : t;
+}
+
 export default async function BrandDetailPage({
   params,
   searchParams,
@@ -77,16 +89,17 @@ export default async function BrandDetailPage({
 
   // Designs tab leads with the most recently generated DESIGNS at the top — no
   // scrolling to find what you just made. Posts that actually have a generated
-  // image (file_path) sort first, ordered by most-recent updated_at; posts not
-  // yet generated (e.g. freshly authored calendar drafts) sink to the bottom so
-  // newly-created empty calendar slots never bury real designs.
-  // (ISO timestamps sort lexically; missing timestamps sink within their group.)
-  // The calendar tab keeps its own chronological order — this sort is local.
+  // image (file_path) sort first; posts not yet generated (freshly authored
+  // calendar drafts) sink to the bottom so empty calendar slots never bury real
+  // designs. Within the designs, sort by a RELIABLE recency value (see
+  // recencyOf): the generation ms embedded in the autopilot filename, else a
+  // valid parsed updated_at. The legacy seed rows store the literal text
+  // "now()", which is NOT a date and must not sort above real timestamps.
   const recentFirst = [...filteredPosts].sort((a, b) => {
     const aHasDesign = a.file_path ? 1 : 0;
     const bHasDesign = b.file_path ? 1 : 0;
     if (aHasDesign !== bHasDesign) return bHasDesign - aHasDesign;
-    return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+    return recencyOf(b) - recencyOf(a);
   });
 
   const gridPosts = recentFirst.map((post) => ({
