@@ -1,18 +1,22 @@
 import Link from "next/link";
 import { getImageUrl } from "@/lib/image-url";
 import EmptyState from "@/components/EmptyState";
-import { getBrand, getBrandPosts } from "@/lib/brand-data";
+import { getBrandPosts } from "@/lib/brand-data";
 import StatusBadge from "@/components/StatusBadge";
 
 /**
- * Weekly calendar view of every post for a brand. Posts are placed on
- * their scheduled `date` and laid out in 7-day rows (Mon–Sun). Clicking
- * any pill jumps into the existing post detail page.
+ * Monthly calendar view of a brand's posts. Opens on the CURRENT month so
+ * the operator never has to scroll past old months to reach today. Past /
+ * future months are one click away via the prev/next nav (the Designs tab
+ * is the full archive). Posts are placed on their scheduled `date` in a
+ * standard Mon–Sun month grid; clicking a pill opens the post detail page.
  *
- * Read-only for now — drag-to-reschedule lands in a follow-up once we
- * confirm `posts.date` is safe to mutate from the UI.
+ * Server component — the visible month is a `?month=YYYY-MM` URL param so
+ * navigation needs no client JS and stays shareable.
  */
 export const dynamic = "force-dynamic";
+
+const ACCENT = "#8b5cff"; // app violet identity (not per-brand)
 
 type Post = {
   id: number;
@@ -31,55 +35,228 @@ type Post = {
 
 export default async function BrandCalendarPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
 
-  const [brand, postRows] = await Promise.all([
-    getBrand(slug),
-    getBrandPosts(slug),
-  ]);
-
+  const postRows = await getBrandPosts(slug);
   const posts = (postRows as Post[]).filter((p) => p.date);
-  const accent = brand?.color_primary || "#8b5cff";
 
-  const weeks = groupByWeek(posts);
   const today = todayUTC();
+  const currentMonth = today.slice(0, 7);
+  const selectedMonth = /^\d{4}-\d{2}$/.test(sp?.month ?? "")
+    ? (sp.month as string)
+    : currentMonth;
+
+  const weeks = monthWeeks(selectedMonth, posts);
+  const monthCount = posts.filter((p) => p.date?.slice(0, 7) === selectedMonth).length;
+  const hasAnyPosts = posts.length > 0;
 
   return (
-    <div style={{ padding: "28px 0 48px" }}>
-      <div>
-        {weeks.length === 0 ? (
-          <EmptyState>
-            Nothing on the calendar yet. Posts with a scheduled date will land
-            here automatically. Start by uploading or generating content from
-            the Designs tab.
-          </EmptyState>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={{ padding: "20px 0 48px" }}>
+      <MonthNav
+        slug={slug}
+        selectedMonth={selectedMonth}
+        currentMonth={currentMonth}
+        monthCount={monthCount}
+      />
+
+      {!hasAnyPosts ? (
+        <EmptyState>
+          Nothing on the calendar yet. Posts with a scheduled date will land
+          here automatically. Start by uploading or generating content from the
+          Designs tab.
+        </EmptyState>
+      ) : (
+        <>
+          <WeekdayHeader />
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {weeks.map((week) => (
-              <WeekRow
+              <div
                 key={week.start}
-                week={week}
-                brandId={slug}
-                today={today}
-                accent={accent}
-              />
+                style={{
+                  margin: "0 -20px",
+                  padding: "0 20px",
+                  overflowX: "auto",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, minmax(140px, 1fr))",
+                    gap: "8px",
+                  }}
+                >
+                  {week.days.map((day) => (
+                    <DayCell key={day.date} day={day} brandId={slug} today={today} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        )}
+
+          {monthCount === 0 && (
+            <p
+              style={{
+                marginTop: "20px",
+                textAlign: "center",
+                fontSize: "13px",
+                color: "#7a7a88",
+              }}
+            >
+              No posts scheduled in {monthLabel(selectedMonth)}.{" "}
+              <Link href={`?month=${currentMonth}`} style={{ color: ACCENT }}>
+                Jump to {monthLabel(currentMonth)}
+              </Link>
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MonthNav({
+  slug,
+  selectedMonth,
+  currentMonth,
+  monthCount,
+}: {
+  slug: string;
+  selectedMonth: string;
+  currentMonth: string;
+  monthCount: number;
+}) {
+  const prev = addMonths(selectedMonth, -1);
+  const next = addMonths(selectedMonth, 1);
+  const isCurrent = selectedMonth === currentMonth;
+  const base = `/dashboard/brand/${slug}/calendar`;
+
+  return (
+    <div
+      className="flex flex-wrap items-center"
+      style={{ gap: "12px", marginBottom: "18px", padding: "0 2px" }}
+    >
+      <div className="flex items-center" style={{ gap: "6px" }}>
+        <NavArrow href={`${base}?month=${prev}`} label="Previous month" dir="prev" />
+        <h2
+          style={{
+            fontSize: "18px",
+            fontWeight: 700,
+            color: "white",
+            letterSpacing: "-0.01em",
+            minWidth: "168px",
+            textAlign: "center",
+          }}
+        >
+          {monthLabel(selectedMonth)}
+        </h2>
+        <NavArrow href={`${base}?month=${next}`} label="Next month" dir="next" />
+      </div>
+
+      <span style={{ fontSize: "12px", color: "#7a7a88" }}>
+        {monthCount} post{monthCount === 1 ? "" : "s"} this month
+      </span>
+
+      {!isCurrent && (
+        <Link
+          href={`${base}?month=${currentMonth}`}
+          style={{
+            marginLeft: "auto",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "#d9b4ff",
+            textDecoration: "none",
+            padding: "6px 12px",
+            borderRadius: "999px",
+            border: `1px solid ${ACCENT}66`,
+            background: `${ACCENT}1a`,
+          }}
+        >
+          Today
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function NavArrow({
+  href,
+  label,
+  dir,
+}: {
+  href: string;
+  label: string;
+  dir: "prev" | "next";
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "32px",
+        height: "32px",
+        borderRadius: "8px",
+        border: "1px solid #1a1a2e",
+        background: "#0f0f1a",
+        color: "#bfbfcc",
+        fontSize: "15px",
+        textDecoration: "none",
+      }}
+    >
+      {dir === "prev" ? "‹" : "›"}
+    </Link>
+  );
+}
+
+function WeekdayHeader() {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return (
+    <div
+      style={{
+        margin: "0 -20px 8px",
+        padding: "0 20px",
+        overflowX: "auto",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, minmax(140px, 1fr))",
+          gap: "8px",
+        }}
+      >
+        {days.map((d) => (
+          <div
+            key={d}
+            style={{
+              fontSize: "10px",
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "#7a7a88",
+              padding: "0 4px",
+            }}
+          >
+            {d}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 type Week = { start: string; days: Day[] };
-type Day = { date: string; posts: Post[] };
+type Day = { date: string; posts: Post[]; inMonth: boolean };
 
-function groupByWeek(posts: Post[]): Week[] {
-  if (posts.length === 0) return [];
-
+function monthWeeks(ym: string, posts: Post[]): Week[] {
   const byDate: Record<string, Post[]> = {};
   for (const p of posts) {
     if (!p.date) continue;
@@ -87,17 +264,15 @@ function groupByWeek(posts: Post[]): Week[] {
     byDate[p.date].push(p);
   }
 
-  const allDates = Object.keys(byDate).sort();
-  const first = parseDateUTC(allDates[0]);
-  const last = parseDateUTC(allDates[allDates.length - 1]);
+  const [y, m] = ym.split("-").map(Number);
+  const firstOfMonth = new Date(Date.UTC(y, m - 1, 1));
+  const lastOfMonth = new Date(Date.UTC(y, m, 0)); // day 0 of next month
 
-  const start = new Date(first);
-  const dow = (first.getUTCDay() + 6) % 7; // Mon=0..Sun=6
-  start.setUTCDate(start.getUTCDate() - dow);
+  const start = new Date(firstOfMonth);
+  start.setUTCDate(start.getUTCDate() - ((firstOfMonth.getUTCDay() + 6) % 7)); // Mon on/before 1st
 
-  const end = new Date(last);
-  const endDow = (last.getUTCDay() + 6) % 7;
-  end.setUTCDate(end.getUTCDate() + (6 - endDow));
+  const end = new Date(lastOfMonth);
+  end.setUTCDate(end.getUTCDate() + (6 - ((lastOfMonth.getUTCDay() + 6) % 7))); // Sun on/after last
 
   const weeks: Week[] = [];
   const cursor = new Date(start);
@@ -106,7 +281,7 @@ function groupByWeek(posts: Post[]): Week[] {
     const days: Day[] = [];
     for (let i = 0; i < 7; i++) {
       const date = formatDateUTC(cursor);
-      days.push({ date, posts: byDate[date] ?? [] });
+      days.push({ date, posts: byDate[date] ?? [], inMonth: date.slice(0, 7) === ym });
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     weeks.push({ start: weekStart, days });
@@ -114,108 +289,43 @@ function groupByWeek(posts: Post[]): Week[] {
   return weeks;
 }
 
-function WeekRow({
-  week,
-  brandId,
-  today,
-  accent,
-}: {
-  week: Week;
-  brandId: string;
-  today: string;
-  accent: string;
-}) {
-  const startDate = parseDateUTC(week.start);
-  const endDate = parseDateUTC(week.days[6].date);
-  const label = `${formatHuman(startDate)} – ${formatHuman(endDate, true)}`;
-  const weekCount = week.days.reduce((acc, d) => acc + d.posts.length, 0);
-
-  return (
-    <div>
-      <div
-        className="flex items-baseline"
-        style={{ justifyContent: "space-between", marginBottom: "8px" }}
-      >
-        <h2 style={{ fontSize: "13px", fontWeight: 600, color: "white" }}>
-          {label}
-        </h2>
-        <span style={{ fontSize: "12px", color: "#7a7a88" }}>
-          {weekCount} post{weekCount === 1 ? "" : "s"}
-        </span>
-      </div>
-      <div
-        style={{
-          margin: "0 -20px",
-          padding: "0 20px",
-          overflowX: "auto",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, minmax(140px, 1fr))",
-            gap: "8px",
-          }}
-        >
-          {week.days.map((day) => (
-            <DayCell
-              key={day.date}
-              day={day}
-              brandId={brandId}
-              today={today}
-              accent={accent}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function DayCell({
   day,
   brandId,
   today,
-  accent,
 }: {
   day: Day;
   brandId: string;
   today: string;
-  accent: string;
 }) {
   const date = parseDateUTC(day.date);
   const isToday = day.date === today;
   const isPast = day.date < today;
   const dayNum = date.getUTCDate();
-  const dayName = date.toLocaleDateString("en-US", {
-    weekday: "short",
-    timeZone: "UTC",
-  });
 
   return (
     <div
       style={{
-        background: isToday ? `${accent}0F` : "#0f0f1a",
-        border: `1px solid ${isToday ? accent : "#1a1a2e"}`,
+        background: isToday ? `${ACCENT}1a` : "#0f0f1a",
+        border: `1px solid ${isToday ? ACCENT : "#1a1a2e"}`,
         borderRadius: "10px",
         padding: "8px",
         minHeight: "140px",
-        opacity: isPast && day.posts.length === 0 ? 0.4 : 1,
+        // Out-of-month days are de-emphasized; empty past days fade too.
+        opacity: !day.inMonth ? 0.32 : isPast && day.posts.length === 0 ? 0.45 : 1,
       }}
     >
       <div
         className="flex items-baseline"
         style={{
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           marginBottom: "6px",
-          fontSize: "10px",
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "#7a7a88",
+          fontSize: "11px",
+          fontWeight: 600,
+          color: isToday ? ACCENT : "#7a7a88",
         }}
       >
-        <span>{dayName}</span>
-        <span style={{ color: isToday ? accent : undefined }}>{dayNum}</span>
+        <span>{dayNum}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         {day.posts.map((p) => (
@@ -317,12 +427,6 @@ function PostPill({ post, brandId }: { post: Post; brandId: string }) {
           </div>
         </div>
       ) : (
-        // Pre-generation state: show the prompt of what's going to be
-        // designed. Concept is the primary line, visual_direction the
-        // fallback, caption a last resort. Content pillar shows as the
-        // eyebrow above so the operator can tell at a glance what
-        // bucket this post is from. Pill flips to <img> once file_path
-        // is set (generation complete).
         <div
           style={{
             position: "relative",
@@ -355,9 +459,6 @@ function PostPill({ post, brandId }: { post: Post; brandId: string }) {
               fontSize: "10px",
               lineHeight: 1.4,
               color: "#bfbfcc",
-              // Clamp the preview to fit the square cell — long
-              // concepts truncate with an ellipsis rather than push
-              // the cell taller.
               display: "-webkit-box",
               WebkitLineClamp: 6,
               WebkitBoxOrient: "vertical",
@@ -402,11 +503,17 @@ function formatDateUTC(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function formatHuman(d: Date, withYear?: boolean): string {
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: withYear ? "numeric" : undefined,
+function addMonths(ym: string, delta: number): string {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
     timeZone: "UTC",
   });
 }
