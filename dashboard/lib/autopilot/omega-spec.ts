@@ -24,11 +24,28 @@ export type OmegaSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
-function pickArchetype(pillar: string | null, concept: string | null): OmegaArchetype {
-  const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
-  if (/review|testimon|client|5-star|five star|happy|story/.test(t)) return "G";
-  if (/\b\d+\s+(ways|tips|steps|reasons|things|mistakes|signs)\b|checklist|how to|requirements|documents/.test(t)) return "C";
-  if (/rate|apr|percent|%|\bnumber\b|stat|how much|score|years|days/.test(t)) return "D";
+function pickArchetype(concept: string | null): OmegaArchetype {
+  // Omega is PHOTO-FORWARD: photo-hero (A) is the default and should win for
+  // almost everything. Text archetypes (C/D/G) only fire on a strong signal in
+  // the CONCEPT itself — never the pillar name. (The pillar "Client Stories &
+  // Community Connection" contains "client"/"story", which previously forced a
+  // text testimonial onto every human-interest post; matching the pillar is the
+  // bug. Match the concept, and only on genuine list/stat/quote intent.)
+  const c = (concept ?? "").toLowerCase();
+
+  // Numbered list: an explicit count + list noun, or "checklist".
+  if (/\b\d+\s+(ways|tips|steps|reasons|things|mistakes|signs|documents|questions)\b/.test(c) || /\bchecklist\b/.test(c)) {
+    return "C";
+  }
+  // Big-number stat: the concept actually centers a number, %, or $ figure.
+  if (/\d\s?%/.test(c) || /\$\s?\d/.test(c) || /\b\d+\b\s*(days|years|months|points|down)\b/.test(c)) {
+    return "D";
+  }
+  // Testimonial: explicit review/quote intent in the concept (a quote mark, or
+  // words that name a testimonial) — NOT the bare "client stories" pillar.
+  if (/testimonial|review|["“]|hear from|client said|what .+ (say|said)/.test(c)) {
+    return "G";
+  }
   return "A"; // photo-forward default
 }
 
@@ -51,7 +68,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.concept);
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
     `Editorial/premium feel. The headline is an elegant SERIF display with ONE flowing SCRIPT accent line (a short connecting phrase) — e.g. serif "Your Dream Home" + script "is closer than you think".`,
