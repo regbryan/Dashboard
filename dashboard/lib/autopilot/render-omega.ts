@@ -33,7 +33,7 @@ const GOLD = "#FDD314";
 const NEARBLACK = "#231F20";
 const WHITE = "#FFFFFF";
 
-export type OmegaArchetype = "A" | "C" | "D" | "E" | "G";
+export type OmegaArchetype = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 export type OmegaHeadlineLine = { text: string; style: "serif" | "script" };
 export type OmegaRenderInput = {
   archetype: OmegaArchetype;
@@ -142,6 +142,69 @@ function photoListTree(input: OmegaRenderInput, dataUri: string): El {
   ]);
 }
 
+// FULL-BLEED EDITORIAL (B) — photo fills the whole frame; headline + body over a
+// navy gradient scrim at the bottom. Magazine-cover silhouette.
+function fullBleedTree(input: OmegaRenderInput, dataUri: string): El {
+  const overlay = h(
+    "div",
+    {
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end",
+      gap: "22px",
+      position: "absolute",
+      left: "0px",
+      bottom: "0px",
+      width: "100%",
+      height: "74%",
+      padding: "0 84px 132px",
+      backgroundImage: "linear-gradient(to top, rgba(0,38,61,0.96) 0%, rgba(0,38,61,0.82) 26%, rgba(0,38,61,0.0) 72%)",
+    },
+    [
+      headlineLeft(input.headlineLines, WHITE, 62, 92),
+      ...(input.body?.trim()
+        ? [h("div", { display: "flex", width: "86%", fontFamily: "Montserrat", fontWeight: 400, fontSize: "26px", lineHeight: 1.5, color: NEARWHITE }, input.body.trim())]
+        : []),
+    ]
+  );
+  return h("div", { display: "flex", position: "relative", width: "100%", height: "100%", background: NAVY }, [
+    img(dataUri, { position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }),
+    overlay,
+  ]);
+}
+
+// SPLIT (F) — photo on the right, a solid navy panel on the left holding the
+// headline (white) and the list or statement. Editorial, totally different
+// silhouette from the photo-top layouts.
+function splitTree(input: OmegaRenderInput, dataUri: string): El {
+  const items = (input.listItems ?? []).slice(0, 3);
+  const lines = input.headlineLines.map((l) =>
+    l.style === "script"
+      ? h("div", { display: "flex", fontFamily: "Allura", fontWeight: 400, fontSize: "62px", lineHeight: 1.0, color: WHITE }, l.text)
+      : h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "44px", lineHeight: 1.08, color: WHITE }, l.text)
+  );
+  const panelKids: El[] = [h("div", { display: "flex", flexDirection: "column" }, lines)];
+  if (items.length) {
+    panelKids.push(
+      h("div", { display: "flex", flexDirection: "column", gap: "18px", marginTop: "20px" },
+        items.map((it, i) =>
+          h("div", { display: "flex", flexDirection: "column", gap: "3px" }, [
+            h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "23px", color: WHITE }, `${it.number ?? i + 1}.  ${it.lead?.trim() || it.text}`),
+            ...(it.lead?.trim() && it.text?.trim()
+              ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "19px", lineHeight: 1.32, color: NEARWHITE }, it.text)]
+              : []),
+          ])
+        )
+      )
+    );
+  } else if (input.body?.trim()) {
+    panelKids.push(h("div", { display: "flex", marginTop: "20px", fontFamily: "Montserrat", fontWeight: 400, fontSize: "24px", lineHeight: 1.45, color: NEARWHITE }, input.body.trim()));
+  }
+  const panel = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", width: "44%", height: "100%", background: NAVY, padding: "72px 50px" }, panelKids);
+  const photo = h("div", { display: "flex", width: "56%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]);
+  return h("div", { display: "flex", flexDirection: "row", width: "100%", height: "100%", background: NAVY }, [panel, photo]);
+}
+
 function listicleTree(input: OmegaRenderInput): El {
   const items = (input.listItems ?? []).slice(0, 4);
   const ring = (n: string) => h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "72px", height: "72px", borderRadius: "999px", border: `3px solid ${NAVY}`, fontFamily: "Playfair", fontWeight: 700, fontSize: "38px", color: NAVY }, n);
@@ -186,7 +249,7 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
   let root: El;
-  if (input.archetype === "A" || input.archetype === "E") {
+  if (input.archetype === "A" || input.archetype === "B" || input.archetype === "E" || input.archetype === "F") {
     // Near-lossless: q95 + full 4:4:4 chroma (no color/edge subsampling) +
     // mozjpeg. Avoids the q90/4:2:0 softening that was visible on skin and
     // smooth walls in the composited photo.
@@ -194,7 +257,11 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
       .jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true })
       .toBuffer();
     const uri = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
-    root = input.archetype === "E" ? photoStatementTree(input, uri) : photoListTree(input, uri);
+    root =
+      input.archetype === "B" ? fullBleedTree(input, uri)
+      : input.archetype === "F" ? splitTree(input, uri)
+      : input.archetype === "E" ? photoStatementTree(input, uri)
+      : photoListTree(input, uri);
   } else if (input.archetype === "C") {
     root = listicleTree(input);
   } else if (input.archetype === "D") {
@@ -207,5 +274,5 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
 }
 
 export function omegaArchetypeNeedsPhoto(a: OmegaArchetype): boolean {
-  return a === "A" || a === "E";
+  return a === "A" || a === "B" || a === "E" || a === "F";
 }

@@ -29,13 +29,22 @@ type SpecPost = {
 };
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
-function pickArchetype(concept: string | null, pillar: string | null): OmegaArchetype {
-  // Omega is PHOTO-DRIVEN — every post has a photo. The two formats are both
-  // photo-forward: photo + 3-point list (A, educational/practical) and photo +
-  // statement (E, emotional/story/celebration/testimonial). The calendar's
-  // content mix yields the feed variety.
+function pickArchetype(
+  concept: string | null,
+  pillar: string | null,
+  postNumber: number | null | undefined
+): OmegaArchetype {
+  // Omega is PHOTO-DRIVEN — every post has a photo. To keep the feed from
+  // looking templated (all photo-top), the SILHOUETTE rotates: even-numbered
+  // posts are FULL-BLEED (B, photo fills the frame, headline on a navy scrim);
+  // the rest use the content-appropriate photo-top layout — photo + statement
+  // (E) for emotional/story/community concepts, photo + 3-point list (A) for
+  // educational/practical.
   const c = (concept ?? "").toLowerCase();
   const p = (pillar ?? "").toLowerCase();
+
+  const n = postNumber ?? 0;
+  if (n > 0 && n % 2 === 0) return "B"; // full-bleed
 
   const emotional =
     p.includes("community") || p.includes("client stories") ||
@@ -49,6 +58,8 @@ function dataInstruction(a: OmegaArchetype): string {
     case "A":
     case "C":
       return `PHOTO + 3-POINT LIST (the signature). Fill "list_items" with EXACTLY 3 objects { "number":"1", "lead":"<a short bold takeaway, max 5 words, e.g. 'FHA: 3.5% down'>", "text":"<one supporting sentence>" }. A photo is added automatically — leave photo.description empty.`;
+    case "B":
+      return `FULL-BLEED PHOTO + HEADLINE. The photo fills the entire frame; the headline and a short body sit over a navy scrim at the bottom. No list, no stat. Write a punchy script+serif headline and ONE warm 1-2 sentence body line that lands the message. Keep it tight — this is a magazine cover, not a paragraph. A photo is added automatically — leave photo.description empty.`;
     case "E":
       return `PHOTO + STATEMENT. No list. Write the script+serif headline and a warm 2-3 sentence body paragraph (personal, heartfelt, like talking to a friend; for a testimonial, the body IS the client's warm quote). A photo is added automatically — leave photo.description empty.`;
     case "D":
@@ -66,7 +77,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.concept, post.content_pillar);
+  const archetype = pickArchetype(post.concept, post.content_pillar, post.post_number);
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
     `Editorial/premium feel. The headline is an elegant SERIF display with ONE flowing SCRIPT accent line (a short connecting phrase) — e.g. serif "Your Dream Home" + script "is closer than you think".`,
@@ -141,7 +152,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
     bigStat: archetype === "D" ? clean(parsed.big_stat) || null : null,
     quote: archetype === "G" ? clean(parsed.quote) || null : null,
     attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
-    photo: { include: archetype === "A" || archetype === "E", description: clean(photoObj.description) },
+    photo: { include: archetype === "A" || archetype === "B" || archetype === "E", description: clean(photoObj.description) },
   };
   return { ok: true, spec };
 }
