@@ -56,6 +56,13 @@ export default async function BrandCalendarPage({
   const monthCount = posts.filter((p) => p.date?.slice(0, 7) === selectedMonth).length;
   const hasAnyPosts = posts.length > 0;
 
+  // Months that actually have posts — used to point the operator at content
+  // when the current month is empty (e.g. a brand scheduled in other months).
+  const monthsWithPosts = Array.from(
+    new Set(posts.map((p) => p.date?.slice(0, 7)).filter(Boolean) as string[])
+  );
+  const nearest = nearestMonth(selectedMonth, monthsWithPosts);
+
   return (
     <div style={{ padding: "20px 0 48px" }}>
       <MonthNav
@@ -108,10 +115,15 @@ export default async function BrandCalendarPage({
                 color: "#7a7a88",
               }}
             >
-              No posts scheduled in {monthLabel(selectedMonth)}.{" "}
-              <Link href={`?month=${currentMonth}`} style={{ color: ACCENT }}>
-                Jump to {monthLabel(currentMonth)}
-              </Link>
+              No posts scheduled in {monthLabel(selectedMonth)}.
+              {nearest && nearest !== selectedMonth && (
+                <>
+                  {" "}
+                  <Link href={`?month=${nearest}`} style={{ color: "#d9b4ff" }}>
+                    View {monthLabel(nearest)} →
+                  </Link>
+                </>
+              )}
             </p>
           )}
         </>
@@ -516,4 +528,26 @@ function monthLabel(ym: string): string {
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+function ymIndex(ym: string): number {
+  const [y, m] = ym.split("-").map(Number);
+  return y * 12 + (m - 1);
+}
+
+// The month with posts closest to the target; ties prefer the later (upcoming)
+// month so an empty current month points forward when possible.
+function nearestMonth(target: string, months: string[]): string | null {
+  if (months.length === 0) return null;
+  const ti = ymIndex(target);
+  let best = months[0];
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const m of months) {
+    const dist = Math.abs(ymIndex(m) - ti);
+    if (dist < bestDist || (dist === bestDist && ymIndex(m) > ymIndex(best))) {
+      bestDist = dist;
+      best = m;
+    }
+  }
+  return best;
 }
