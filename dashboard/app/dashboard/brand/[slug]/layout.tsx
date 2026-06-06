@@ -31,15 +31,6 @@ export default async function BrandLayout({
     getBrandLogoCount(slug),
   ]);
 
-  // Distinct Monday-aligned week count for the calendar subtitle.
-  const weekStarts = new Set<string>();
-  for (const p of posts) {
-    if (!p.date) continue;
-    const d = new Date(p.date + "T00:00:00Z");
-    const dow = (d.getUTCDay() + 6) % 7;
-    d.setUTCDate(d.getUTCDate() - dow);
-    weekStarts.add(d.toISOString().slice(0, 10));
-  }
   const postsWithDate = posts.filter((p) => p.date).length;
 
   const subtitles = {
@@ -47,7 +38,7 @@ export default async function BrandLayout({
     calendar:
       postsWithDate === 0
         ? "No scheduled posts yet."
-        : `${postsWithDate} post${postsWithDate === 1 ? "" : "s"} across ${weekStarts.size} week${weekStarts.size === 1 ? "" : "s"}`,
+        : `${postsWithDate} scheduled post${postsWithDate === 1 ? "" : "s"} · by month`,
     kit: "Voice, colors, archetype, hashtags, and visual rules.",
     assets:
       logosCount === 0
