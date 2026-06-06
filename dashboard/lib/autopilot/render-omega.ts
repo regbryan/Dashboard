@@ -134,7 +134,12 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
   const height = input.height ?? 1350;
   let root: El;
   if (input.archetype === "A") {
-    const jpeg = await sharp(input.photo as Buffer).jpeg({ quality: 90 }).toBuffer();
+    // Near-lossless: q95 + full 4:4:4 chroma (no color/edge subsampling) +
+    // mozjpeg. Avoids the q90/4:2:0 softening that was visible on skin and
+    // smooth walls in the composited photo.
+    const jpeg = await sharp(input.photo as Buffer)
+      .jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true })
+      .toBuffer();
     root = photoHeroTree(input, `data:image/jpeg;base64,${jpeg.toString("base64")}`);
   } else if (input.archetype === "C") {
     root = listicleTree(input);
