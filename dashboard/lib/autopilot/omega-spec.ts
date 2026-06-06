@@ -29,29 +29,38 @@ type SpecPost = {
 };
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
-function pickArchetype(concept: string | null, postNumber: number | null | undefined): OmegaArchetype {
-  // Match the brand's real design system (the v2 references): the workhorse is
-  // PHOTO + 3-POINT NUMBERED LIST (A). Text formats fire on a strong CONCEPT
-  // signal — never the pillar name. To keep the feed from looking templated, a
-  // share of the default posts rotate to the editorial type-forward format (E),
-  // mirroring how the real feed mixes photo+list with occasional statement posts.
+function pickArchetype(
+  concept: string | null,
+  pillar: string | null,
+  postNumber: number | null | undefined
+): OmegaArchetype {
+  // Match content to format the way the brand's real feed does, so a mixed
+  // calendar yields a mixed feed (educational -> photo+list, emotional ->
+  // statement, stat -> big number, review -> testimonial) instead of one
+  // template repeating.
   const c = (concept ?? "").toLowerCase();
+  const p = (pillar ?? "").toLowerCase();
 
   // Genuine single-number stat → big-number (D).
   if (/\d\s?%/.test(c) || /\$\s?\d/.test(c) || /\b\d+\b\s*(days|years|months|points)\b/.test(c)) {
     return "D";
   }
-  // Testimonial / review intent → G.
+  // Explicit testimonial / quote → G.
   if (/testimonial|review|["“]|hear from|client said|what .+ (say|said)/.test(c)) {
     return "G";
   }
-  // Referral / community / statement concepts → editorial type-forward (E).
-  if (/refer|who do you know|tag (a|someone|them)|spread the word|share this|congrat|welcome home|thank you|grateful/.test(c)) {
+  // Emotional / celebration / community content → editorial STATEMENT (E). These
+  // are not tactical lists. Driven by the "Client Stories & Community" pillar and
+  // clear concept cues (NOT incidental words — the cues below are intentional).
+  const emotional =
+    p.includes("community") || p.includes("client stories") ||
+    /celebrat|milestone|congrat|welcome home|thank you|grateful|refer|who do you know|tag (a|someone|them)|journey|memories|proud|love story|dream come true|for dad|for mom|father'?s day|mother'?s day|juneteenth|\bpride\b|home for/.test(c);
+  if (emotional) {
     return "E";
   }
-  // Default: photo + numbered list, but every 4th post is a type-forward
-  // statement for visual variety.
-  if (((postNumber ?? 0) % 4) === 0 && (postNumber ?? 0) > 0) {
+  // Educational / practical content → photo + numbered list (A, the signature),
+  // with a light rotation to E so long runs of how-to posts still break up.
+  if (((postNumber ?? 0) % 5) === 0 && (postNumber ?? 0) > 0) {
     return "E";
   }
   return "A";
@@ -79,7 +88,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.concept, post.post_number);
+  const archetype = pickArchetype(post.concept, post.content_pillar, post.post_number);
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
     `Editorial/premium feel. The headline is an elegant SERIF display with ONE flowing SCRIPT accent line (a short connecting phrase) — e.g. serif "Your Dream Home" + script "is closer than you think".`,
