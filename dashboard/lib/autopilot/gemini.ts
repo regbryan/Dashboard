@@ -37,9 +37,13 @@ export async function generateImage(
   const url = `${ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
   // imageConfig carries the aspect ratio and, where the model supports it, an
-  // image size (e.g. "2K" on the pro image model). imageSize is opt-in via env
-  // so we don't send an unknown field to models that reject it.
-  const imageSize = process.env.GEMINI_IMAGE_SIZE; // e.g. "1K" | "2K" | "4K"
+  // image size. Left at its ~1K default, the pro image model renders soft once
+  // composited into the 1080px canvas (no detail headroom). Default the PRO
+  // model to 2K so it supersamples down to 1080 crisply. GEMINI_IMAGE_SIZE env
+  // still overrides; the flash fallback model gets no imageSize (it rejects the
+  // field).
+  const imageSize =
+    process.env.GEMINI_IMAGE_SIZE || (/pro/i.test(model) ? "2K" : undefined); // "1K" | "2K" | "4K"
   const imageConfig: Record<string, string> = {};
   if (input.aspectRatio) imageConfig.aspectRatio = input.aspectRatio;
   if (imageSize) imageConfig.imageSize = imageSize;
