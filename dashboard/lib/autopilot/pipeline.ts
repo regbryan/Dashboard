@@ -84,7 +84,7 @@ function omegaPhotoScene(post: { post_number: number | null; concept: string | n
   if (/\bfather|\bdad\b/.test(c)) return "a father with his kids on the porch of their family home, a proud tender moment, soft natural light, a natural medium candid";
   if (/\bmother|\bmom\b/.test(c)) return "a mother with her children in the sunlit living room of their home, warm and joyful, soft morning light, a natural medium candid";
   if (/juneteenth/.test(c)) return "a joyful Black family gathered on the porch of their new home, celebrating together, warm golden-hour light, a wide environmental shot";
-  if (/\bpride\b/.test(c)) return "a happy LGBTQ+ couple holding new house keys in the doorway of their first home, warm and genuine, soft daylight, an intimate medium candid";
+  if (/\bpride\b/.test(c)) return "a joyful same-sex couple — clearly two women together OR two men together — holding new house keys at the doorway of their first home, warm and genuine, soft daylight, an intimate medium candid";
   if (/veteran|military/.test(c)) return "a veteran and their family in front of their new home, proud and grateful, warm daylight, a wide environmental shot";
 
   const n = Math.max(0, post.post_number ?? 0);
@@ -289,7 +289,7 @@ export async function generateBrandPost(
       let tag = "omega";
       if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
         const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered. Compose as a WIDE landscape shot: the people prominent and large in the lower-center of the frame, faces clearly visible and unobstructed, with a simple, uncluttered band of background across the TOP (sky, wall, greenery) that can be cropped away.`,
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered. Compose as a WIDE landscape shot: the people prominent and large in the lower-center of the frame, faces clearly visible and unobstructed, with a simple, uncluttered band of background across the TOP (sky, wall, greenery) that can be cropped away.`,
           "16:9"
         );
         if (!gen.ok) {
