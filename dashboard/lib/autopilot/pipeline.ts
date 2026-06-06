@@ -38,6 +38,63 @@ const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
 const ARCHETYPE_IMAGE_MODEL =
   process.env.GEMINI_IMAGE_MODEL_PRO || "gemini-3-pro-image-preview";
 
+// ── Omega photo-scene variety ────────────────────────────────────────────
+// The old prompt hardcoded "golden-hour / family-or-couple / in a home" on
+// EVERY photo, so every photo-hero looked identical. This rotates subjects,
+// moments, light, and framing deterministically by post number (reproducible,
+// neighbours never alike) and biases toward the concept for seasonal/community
+// posts so they stay relevant. The brand voice (warm, real, diverse, navy/cream
+// overlay added later) is unchanged — only the photo stops repeating.
+const OMEGA_SUBJECTS = [
+  "a young first-time-buyer couple",
+  "a family with two young children",
+  "a single first-time buyer in their thirties",
+  "a multigenerational family — grandparents, parents and kids",
+  "an older couple downsizing to a smaller home",
+  "a parent and their grown child",
+  "a pair of close friends buying their first place together",
+];
+const OMEGA_MOMENTS = [
+  "holding a set of new house keys on the front porch",
+  "carrying moving boxes into a bright, nearly-empty living room",
+  "sharing coffee and easy conversation at a sunlit kitchen table",
+  "going over paperwork together at a dining table, relaxed and reassured",
+  "hanging a framed picture on the wall of their new home",
+  "planting flowers together in the front garden",
+  "sitting close on the front steps of their home, talking",
+  "unpacking a kitchen box and laughing in a new home",
+  "looking out a big window at their new neighbourhood street",
+  "raising mugs in a small celebratory toast in a new living room",
+];
+const OMEGA_LIGHT = [
+  "warm golden-hour light",
+  "bright, airy midday daylight",
+  "soft diffused morning light",
+  "cosy evening lamplight",
+];
+const OMEGA_FRAMING = [
+  "a wide environmental shot that shows the room",
+  "a natural medium candid",
+  "an intimate close-up on hands and faces",
+];
+
+function omegaPhotoScene(post: { post_number: number | null; concept: string | null }): string {
+  const c = (post.concept ?? "").toLowerCase();
+  // Concept-specific scenes keep seasonal / community posts relevant.
+  if (/\bfather|\bdad\b/.test(c)) return "a father with his kids on the porch of their family home, a proud tender moment, soft natural light, a natural medium candid";
+  if (/\bmother|\bmom\b/.test(c)) return "a mother with her children in the sunlit living room of their home, warm and joyful, soft morning light, a natural medium candid";
+  if (/juneteenth/.test(c)) return "a joyful Black family gathered on the porch of their new home, celebrating together, warm golden-hour light, a wide environmental shot";
+  if (/\bpride\b/.test(c)) return "a happy LGBTQ+ couple holding new house keys in the doorway of their first home, warm and genuine, soft daylight, an intimate medium candid";
+  if (/veteran|military/.test(c)) return "a veteran and their family in front of their new home, proud and grateful, warm daylight, a wide environmental shot";
+
+  const n = Math.max(0, post.post_number ?? 0);
+  const subject = OMEGA_SUBJECTS[(n * 3) % OMEGA_SUBJECTS.length];
+  const moment = OMEGA_MOMENTS[(n * 7 + 2) % OMEGA_MOMENTS.length];
+  const light = OMEGA_LIGHT[(n * 5 + 1) % OMEGA_LIGHT.length];
+  const framing = OMEGA_FRAMING[n % OMEGA_FRAMING.length];
+  return `${subject} ${moment}, ${light}, ${framing}`;
+}
+
 const BUCKET = "post-images";
 
 type PostRow = {
@@ -224,7 +281,7 @@ export async function generateBrandPost(
       let tag = "omega";
       if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
         const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${ospec.photo.description}. Warm golden-hour / window light; real, diverse families or couples in or around a home; magazine quality. Never stock-cheesy or fintech illustration. No stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered.`
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered.`
         );
         if (!gen.ok) {
           await revert();
