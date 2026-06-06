@@ -78,18 +78,18 @@ function softCta(text: string | null | undefined, onNavy: boolean): El[] {
   return [h("div", { display: "flex", alignSelf: "center", background: onNavy ? NEARWHITE : NAVY, color: onNavy ? NAVY : WHITE, fontFamily: "Montserrat", fontWeight: 700, fontSize: "26px", letterSpacing: "2px", padding: "16px 34px", borderRadius: "999px" }, text.trim().toUpperCase())];
 }
 
-// EDITORIAL TYPE-FORWARD (post13) — no photo: a big script+serif headline near
-// the top, generous whitespace, a centered body line lower down. Calm, premium,
-// the brand's referral/statement format.
-function typeForwardTree(input: OmegaRenderInput): El {
+// PHOTO + STATEMENT — the emotional / story / celebration format. A LARGE photo
+// (the brand is photo-driven) with a left-aligned script+serif headline and a
+// warm paragraph below. Different content shape from the photo+list, still
+// photo-forward.
+function photoStatementTree(input: OmegaRenderInput, dataUri: string): El {
   return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
-    zone("128px"), // logo overlay
-    h("div", { display: "flex", flexDirection: "column", width: "100%", padding: "0 84px" }, [
-      headlineLeft(input.headlineLines, NAVY, 78, 100),
-    ]),
-    h("div", { display: "flex", alignItems: "center", justifyContent: "center", flexGrow: 1, width: "100%", padding: "40px 120px" }, [
+    zone("104px"), // logo overlay
+    h("div", { display: "flex", width: "100%", height: "46%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover", objectPosition: "center bottom" })]),
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "26px", flexGrow: 1, width: "100%", padding: "44px 84px 0" }, [
+      headlineLeft(input.headlineLines, NAVY, 50, 72),
       ...(input.body?.trim()
-        ? [h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 400, fontSize: "31px", lineHeight: 1.5, color: NEARBLACK }, input.body.trim())]
+        ? [h("div", { display: "flex", width: "100%", fontFamily: "Montserrat", fontWeight: 400, fontSize: "27px", lineHeight: 1.5, color: NEARBLACK }, input.body.trim())]
         : []),
     ]),
     zone("96px"), // OMGLENDING.COM overlay
@@ -186,20 +186,19 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
   let root: El;
-  if (input.archetype === "A") {
+  if (input.archetype === "A" || input.archetype === "E") {
     // Near-lossless: q95 + full 4:4:4 chroma (no color/edge subsampling) +
     // mozjpeg. Avoids the q90/4:2:0 softening that was visible on skin and
     // smooth walls in the composited photo.
     const jpeg = await sharp(input.photo as Buffer)
       .jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true })
       .toBuffer();
-    root = photoListTree(input, `data:image/jpeg;base64,${jpeg.toString("base64")}`);
+    const uri = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+    root = input.archetype === "E" ? photoStatementTree(input, uri) : photoListTree(input, uri);
   } else if (input.archetype === "C") {
     root = listicleTree(input);
   } else if (input.archetype === "D") {
     root = bigNumberTree(input);
-  } else if (input.archetype === "E") {
-    root = typeForwardTree(input);
   } else {
     root = await reviewTree(input);
   }
@@ -208,5 +207,5 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
 }
 
 export function omegaArchetypeNeedsPhoto(a: OmegaArchetype): boolean {
-  return a === "A";
+  return a === "A" || a === "E";
 }

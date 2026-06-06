@@ -29,41 +29,19 @@ type SpecPost = {
 };
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
-function pickArchetype(
-  concept: string | null,
-  pillar: string | null,
-  postNumber: number | null | undefined
-): OmegaArchetype {
-  // Match content to format the way the brand's real feed does, so a mixed
-  // calendar yields a mixed feed (educational -> photo+list, emotional ->
-  // statement, stat -> big number, review -> testimonial) instead of one
-  // template repeating.
+function pickArchetype(concept: string | null, pillar: string | null): OmegaArchetype {
+  // Omega is PHOTO-DRIVEN — every post has a photo. The two formats are both
+  // photo-forward: photo + 3-point list (A, educational/practical) and photo +
+  // statement (E, emotional/story/celebration/testimonial). The calendar's
+  // content mix yields the feed variety.
   const c = (concept ?? "").toLowerCase();
   const p = (pillar ?? "").toLowerCase();
 
-  // Genuine single-number stat → big-number (D).
-  if (/\d\s?%/.test(c) || /\$\s?\d/.test(c) || /\b\d+\b\s*(days|years|months|points)\b/.test(c)) {
-    return "D";
-  }
-  // Explicit testimonial / quote → G.
-  if (/testimonial|review|["“]|hear from|client said|what .+ (say|said)/.test(c)) {
-    return "G";
-  }
-  // Emotional / celebration / community content → editorial STATEMENT (E). These
-  // are not tactical lists. Driven by the "Client Stories & Community" pillar and
-  // clear concept cues (NOT incidental words — the cues below are intentional).
   const emotional =
     p.includes("community") || p.includes("client stories") ||
-    /celebrat|milestone|congrat|welcome home|thank you|grateful|refer|who do you know|tag (a|someone|them)|journey|memories|proud|love story|dream come true|for dad|for mom|father'?s day|mother'?s day|juneteenth|\bpride\b|home for/.test(c);
-  if (emotional) {
-    return "E";
-  }
-  // Educational / practical content → photo + numbered list (A, the signature),
-  // with a light rotation to E so long runs of how-to posts still break up.
-  if (((postNumber ?? 0) % 5) === 0 && (postNumber ?? 0) > 0) {
-    return "E";
-  }
-  return "A";
+    /testimonial|review|hear from|client said|celebrat|milestone|congrat|welcome home|thank you|grateful|refer|who do you know|tag (a|someone|them)|journey|memories|proud|love story|dream come true|for dad|for mom|father'?s day|mother'?s day|juneteenth|\bpride\b|home for/.test(c);
+
+  return emotional ? "E" : "A";
 }
 
 function dataInstruction(a: OmegaArchetype): string {
@@ -71,12 +49,12 @@ function dataInstruction(a: OmegaArchetype): string {
     case "A":
     case "C":
       return `PHOTO + 3-POINT LIST (the signature). Fill "list_items" with EXACTLY 3 objects { "number":"1", "lead":"<a short bold takeaway, max 5 words, e.g. 'FHA: 3.5% down'>", "text":"<one supporting sentence>" }. A photo is added automatically — leave photo.description empty.`;
-    case "D":
-      return `BIG-NUMBER stat. Fill "big_stat" with a single short number/stat (<=4 chars, e.g. "3%", "20%", "15"). Write a one-sentence body explaining why it matters. No list, no photo.`;
     case "E":
-      return `STATEMENT post — no photo, no list, no stat. Just the script+serif headline and a warm 2-3 sentence body paragraph (personal, partnering, like talking to a friend). Leave list_items, big_stat, photo.description empty.`;
+      return `PHOTO + STATEMENT. No list. Write the script+serif headline and a warm 2-3 sentence body paragraph (personal, heartfelt, like talking to a friend; for a testimonial, the body IS the client's warm quote). A photo is added automatically — leave photo.description empty.`;
+    case "D":
+      return `BIG-NUMBER stat. Fill "big_stat" with a single short number/stat. Write a one-sentence body. No list, no photo.`;
     case "G":
-      return `TESTIMONIAL. Fill "quote" (a warm 1-2 sentence client quote, homebuyer voice) and "attribution" (e.g. "The Reyes Family"). No photo.`;
+      return `TESTIMONIAL. Fill "quote" and "attribution". No photo.`;
     default:
       return ``;
   }
@@ -88,7 +66,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.concept, post.content_pillar, post.post_number);
+  const archetype = pickArchetype(post.concept, post.content_pillar);
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
     `Editorial/premium feel. The headline is an elegant SERIF display with ONE flowing SCRIPT accent line (a short connecting phrase) — e.g. serif "Your Dream Home" + script "is closer than you think".`,
@@ -163,7 +141,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
     bigStat: archetype === "D" ? clean(parsed.big_stat) || null : null,
     quote: archetype === "G" ? clean(parsed.quote) || null : null,
     attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
-    photo: { include: archetype === "A", description: clean(photoObj.description) },
+    photo: { include: archetype === "A" || archetype === "E", description: clean(photoObj.description) },
   };
   return { ok: true, spec };
 }
