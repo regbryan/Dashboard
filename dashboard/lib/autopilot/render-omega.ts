@@ -33,7 +33,9 @@ const GOLD = "#FDD314";
 const NEARBLACK = "#231F20";
 const WHITE = "#FFFFFF";
 
-export type OmegaArchetype = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "COLLAGE";
+export type OmegaArchetype =
+  | "A" | "B" | "C" | "D" | "E" | "F" | "G"
+  | "COLLAGE" | "COLLAGE6" | "QUAD" | "BHEADER";
 export type OmegaHeadlineLine = { text: string; style: "serif" | "script" };
 export type OmegaRenderInput = {
   archetype: OmegaArchetype;
@@ -44,11 +46,12 @@ export type OmegaRenderInput = {
   body?: string | null;
   cta?: string | null;
   listItems?: { number?: string | null; lead?: string | null; text: string }[] | null;
+  quadItems?: { heading: string; text: string }[] | null; // QUAD: 4 info-cards
   bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
   photo?: Buffer | null;
-  photos?: Buffer[] | null; // COLLAGE: up to 4 photos arranged in a 2x2 grid
+  photos?: Buffer[] | null; // COLLAGE: 4 photos (2x2); COLLAGE6: 6 photos (3+3)
 };
 
 type El = { type: string; props: Record<string, unknown> };
@@ -174,36 +177,27 @@ function fullBleedTree(input: OmegaRenderInput, dataUri: string): El {
   ]);
 }
 
-// SPLIT (F) — photo on the right, a solid navy panel on the left holding the
-// headline (white) and the list or statement. Editorial, totally different
-// silhouette from the photo-top layouts.
+// SPLIT (F) — photo on the LEFT, a CREAM text panel on the right with an eyebrow
+// pill, navy serif+script headline, a warm statement, and a soft CTA. Thin navy
+// bands top/bottom reserve the logo + footer overlay. (The "For the Moms" look.)
 function splitTree(input: OmegaRenderInput, dataUri: string): El {
-  const items = (input.listItems ?? []).slice(0, 3);
-  const lines = input.headlineLines.map((l) =>
-    l.style === "script"
-      ? h("div", { display: "flex", fontFamily: "Allura", fontWeight: 400, fontSize: "62px", lineHeight: 1.0, color: WHITE }, l.text)
-      : h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "44px", lineHeight: 1.08, color: WHITE }, l.text)
-  );
-  const panelKids: El[] = [h("div", { display: "flex", flexDirection: "column" }, lines)];
-  if (items.length) {
+  const panelKids: El[] = [
+    ...eyebrow(input.eyebrow, false),
+    headline(input.headlineLines, NAVY, 50, 66),
+  ];
+  if (input.body?.trim()) {
     panelKids.push(
-      h("div", { display: "flex", flexDirection: "column", gap: "18px", marginTop: "20px" },
-        items.map((it, i) =>
-          h("div", { display: "flex", flexDirection: "column", gap: "3px" }, [
-            h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "23px", color: WHITE }, `${it.number ?? i + 1}.  ${it.lead?.trim() || it.text}`),
-            ...(it.lead?.trim() && it.text?.trim()
-              ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "19px", lineHeight: 1.32, color: NEARWHITE }, it.text)]
-              : []),
-          ])
-        )
-      )
+      h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 400, fontSize: "25px", lineHeight: 1.5, color: NEARBLACK }, input.body.trim())
     );
-  } else if (input.body?.trim()) {
-    panelKids.push(h("div", { display: "flex", marginTop: "20px", fontFamily: "Montserrat", fontWeight: 400, fontSize: "24px", lineHeight: 1.45, color: NEARWHITE }, input.body.trim()));
   }
-  const panel = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", width: "44%", height: "100%", background: NAVY, padding: "72px 50px" }, panelKids);
-  const photo = h("div", { display: "flex", width: "56%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]);
-  return h("div", { display: "flex", flexDirection: "row", width: "100%", height: "100%", background: NAVY }, [panel, photo]);
+  panelKids.push(...softCta(input.cta, false));
+  const photo = h("div", { display: "flex", width: "48%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" })]);
+  const panel = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "22px", width: "52%", height: "100%", background: CREAM, padding: "60px 56px" }, panelKids);
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: NAVY }, [
+    zone("40px"), // logo band
+    h("div", { display: "flex", flexDirection: "row", flexGrow: 1, width: "100%" }, [photo, panel]),
+    zone("40px"), // footer band
+  ]);
 }
 
 // PHOTO-COLLAGE HERO (the v8_08 "Market Update" silhouette) — a 2x2 grid of warm
@@ -255,6 +249,59 @@ function collageTree(input: OmegaRenderInput, uris: string[]): El {
 // then 2–5 hollow-navy rings each with a BOLD navy lead + a muted detail line,
 // soft CTA. Handles both long lists and 2-item comparisons (item count changes
 // the silhouette). No photo.
+// QUADRANT CARD-GRID (QUAD) — a navy header band (eyebrow + serif/script
+// headline) over a 2x2 grid of cream info-cards (bold navy heading + muted
+// detail), with a soft CTA at the bottom. No photo. (The "What Closing Costs
+// Cover" look.) Logo overlays the navy header; footer overlay lands bottom.
+function quadTree(input: OmegaRenderInput): El {
+  const items = (input.quadItems ?? []).slice(0, 4);
+  const card = (it: { heading: string; text: string }) =>
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: "12px", width: "47%", flexGrow: 1, background: WHITE, border: "1px solid #E7E3DA", borderRadius: "14px", padding: "38px 34px", boxShadow: "0 8px 26px rgba(0,0,0,0.05)" }, [
+      h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "33px", lineHeight: 1.12, color: NAVY }, it.heading),
+      h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "23px", lineHeight: 1.34, color: NEARBLACK }, it.text),
+    ]);
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "14px", width: "100%", height: "27%", background: NAVY, padding: "40px 70px 26px" }, [
+      ...(input.eyebrow?.trim() ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "22px", letterSpacing: "5px", color: NEARWHITE }, input.eyebrow.toUpperCase())] : []),
+      headline(input.headlineLines, WHITE, 58, 82),
+    ]),
+    h("div", { display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignContent: "stretch", gap: "26px", flexGrow: 1, width: "100%", padding: "44px 70px 36px" }, items.map(card)),
+    h("div", { display: "flex", justifyContent: "center", width: "100%", padding: "0 0 52px" }, input.cta?.trim() ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "22px", letterSpacing: "1px", color: NAVY }, input.cta.trim())] : []),
+  ]);
+}
+
+// SIX-PHOTO MAGAZINE COLLAGE (COLLAGE6) — 3 photos top, a full-width navy band
+// across the middle (serif+script headline + body), 3 photos bottom. The richest
+// imagery layout. (The "What Closing Costs Actually Cover" look.)
+function collage6Tree(input: OmegaRenderInput, uris: string[]): El {
+  const cells = uris.slice(0, 6);
+  const row = (slice: string[]) =>
+    h("div", { display: "flex", flexGrow: 1, width: "100%", gap: "12px" }, slice.map((u) => h("div", { display: "flex", width: "33.333%", height: "100%" }, [img(u, { width: "100%", height: "100%", objectFit: "cover" })])));
+  return h("div", { display: "flex", flexDirection: "column", gap: "12px", width: "100%", height: "100%", background: CREAM, padding: "12px" }, [
+    row(cells.slice(0, 3)),
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "16px", width: "100%", background: NAVY, padding: "46px 80px" }, [
+      headline(input.headlineLines, WHITE, 64, 90),
+      ...(input.body?.trim() ? [h("div", { display: "flex", width: "92%", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 400, fontSize: "26px", lineHeight: 1.42, color: NEARWHITE }, input.body.trim())] : []),
+    ]),
+    row(cells.slice(3, 6)),
+  ]);
+}
+
+// FULL-BLEED + TOP HEADER (BHEADER) — photo fills the frame; a navy header band
+// at the top holds the serif+script headline, with a short body over a soft scrim
+// just beneath it. (The "You Don't Need 20% Down" look.) Footer overlay bottom.
+function bheaderTree(input: OmegaRenderInput, dataUri: string): El {
+  return h("div", { display: "flex", position: "relative", width: "100%", height: "100%", background: NAVY }, [
+    img(dataUri, { position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }),
+    h("div", { display: "flex", flexDirection: "column", position: "absolute", top: "0px", left: "0px", width: "100%" }, [
+      h("div", { display: "flex", justifyContent: "center", alignItems: "center", width: "100%", padding: "116px 70px 36px", background: NAVY }, [headline(input.headlineLines, WHITE, 62, 86)]),
+      ...(input.body?.trim()
+        ? [h("div", { display: "flex", justifyContent: "center", width: "100%", padding: "34px 80px 60px", backgroundImage: "linear-gradient(to bottom, rgba(0,38,61,0.62) 0%, rgba(0,38,61,0.0) 100%)" }, [h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 600, fontSize: "33px", lineHeight: 1.4, color: WHITE }, input.body.trim())])]
+        : []),
+    ]),
+  ]);
+}
+
 function listicleTree(input: OmegaRenderInput): El {
   const items = (input.listItems ?? []).slice(0, 5);
   const many = items.length >= 4;
@@ -311,16 +358,19 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
   let root: El;
-  if (input.archetype === "COLLAGE") {
-    const photos = (input.photos ?? []).slice(0, 4);
+  if (input.archetype === "COLLAGE" || input.archetype === "COLLAGE6") {
+    const n = input.archetype === "COLLAGE6" ? 6 : 4;
+    const photos = (input.photos ?? []).slice(0, n);
     const uris = await Promise.all(
       photos.map(async (p) => {
         const jpeg = await sharp(p).jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true }).toBuffer();
         return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
       })
     );
-    root = collageTree(input, uris);
-  } else if (input.archetype === "A" || input.archetype === "B" || input.archetype === "E" || input.archetype === "F") {
+    root = input.archetype === "COLLAGE6" ? collage6Tree(input, uris) : collageTree(input, uris);
+  } else if (input.archetype === "QUAD") {
+    root = quadTree(input);
+  } else if (input.archetype === "A" || input.archetype === "B" || input.archetype === "E" || input.archetype === "F" || input.archetype === "BHEADER") {
     // Near-lossless: q95 + full 4:4:4 chroma (no color/edge subsampling) +
     // mozjpeg. Avoids the q90/4:2:0 softening that was visible on skin and
     // smooth walls in the composited photo.
@@ -330,6 +380,7 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
     const uri = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
     root =
       input.archetype === "B" ? fullBleedTree(input, uri)
+      : input.archetype === "BHEADER" ? bheaderTree(input, uri)
       : input.archetype === "F" ? splitTree(input, uri)
       : input.archetype === "E" ? photoStatementTree(input, uri)
       : photoListTree(input, uri);
@@ -345,11 +396,16 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
 }
 
 export function omegaArchetypeNeedsPhoto(a: OmegaArchetype): boolean {
-  return a === "A" || a === "B" || a === "E" || a === "F";
+  return a === "A" || a === "B" || a === "E" || a === "F" || a === "BHEADER";
 }
 
-// COLLAGE needs 4 photos rather than 1; kept separate so the single-photo
-// pipeline path isn't confused by it.
+// COLLAGE/COLLAGE6 need a photo GRID (4 or 6) rather than 1; kept separate so the
+// single-photo pipeline path isn't confused by them.
 export function omegaArchetypeNeedsPhotoGrid(a: OmegaArchetype): boolean {
-  return a === "COLLAGE";
+  return a === "COLLAGE" || a === "COLLAGE6";
+}
+
+// How many photos a grid layout needs.
+export function omegaPhotoGridCount(a: OmegaArchetype): number {
+  return a === "COLLAGE6" ? 6 : a === "COLLAGE" ? 4 : 0;
 }

@@ -15,6 +15,7 @@ export type OmegaSpec = {
   body: string;
   cta: string;
   listItems?: { number?: string | null; lead?: string | null; text: string }[] | null;
+  quadItems?: { heading: string; text: string }[] | null;
   bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
@@ -48,9 +49,18 @@ export function pickArchetype(concept: string | null, pillar: string | null): Om
   //    Dream of Homeownership", Client Stories) is NOT a closure and should get a
   //    warm photo instead.
   if (has(/closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/)) return "D";
-  // 2. Father's Day / dad → full-bleed warm photo (magazine cover).
+  // 2. "What X covers / includes" multi-part explainer → quadrant card-grid.
+  if (has(/what .{0,30}\b(cover|covers|include|includes)\b|what'?s included|\bbreakdown\b|four (things|parts|components)|components of/)) return "QUAD";
+  // 3. Myth-bust / punchy single claim that benefits from a home photo → full-bleed
+  //    with a top header bar ("You Don't Need 20% Down").
+  if (has(/you don'?t need|don'?t need \d+%|\d+% (rule|myth)|is a myth|debunk/)) return "BHEADER";
+  // 4. Father's Day / dad → full-bleed warm photo (magazine cover).
   if (has(/father|\bdad\b|\bdads\b/) || p.includes("father")) return "B";
-  // 3. Market update → photo-collage hero (the v8_08 silhouette).
+  // 5. Mother's Day / mom → photo-left + cream panel split (the "For the Moms" look).
+  if (has(/mother'?s day|\bmoms?\b|mothers/) || p.includes("mother")) return "F";
+  // 6. Market recap / mid-year / round-up → 6-photo magazine collage.
+  if (has(/recap|mid-?year|year in review|round-?up|by the numbers|highlights|state of the market/)) return "COLLAGE6";
+  // 7. Market update → photo-collage hero (the v8_08 silhouette).
   if (p.includes("market") || has(/market update/)) return "COLLAGE";
   // 4. Testimonial / client story / referral / gratitude → photo + statement.
   if (p.includes("testimonial") || p.includes("client") || p.includes("refer") ||
@@ -71,6 +81,14 @@ function dataInstruction(a: OmegaArchetype, isClosure: boolean): string {
   switch (a) {
     case "COLLAGE":
       return `PHOTO-COLLAGE market update (4 photos behind a centered card). Fill headline_lines (serif + one short script accent, e.g. "Market Update" / "where rates stand") and write "body" as 2-3 SHORT standalone lines SEPARATED BY NEWLINES — each a punchy sentence about where rates / inventory / sellers stand. Soft CTA. No list. Four photos are added automatically — leave photo.description empty.`;
+    case "COLLAGE6":
+      return `SIX-PHOTO MAGAZINE COLLAGE with a center band. Fill headline_lines (serif + one short script accent) naming the topic, and write "body" as ONE warm 1-2 sentence summary. No list. Six photos are added automatically — leave photo.description empty.`;
+    case "QUAD":
+      return `QUADRANT CARD-GRID. Fill "quad_items" with EXACTLY 4 objects { "heading":"<a 2-4 word category>", "text":"<one short supporting phrase>" }. headline_lines name the topic (e.g. serif "What Closing Costs Cover"). eyebrow short. Soft CTA. No photo, no list, no big_stat.`;
+    case "BHEADER":
+      return `FULL-BLEED PHOTO + TOP HEADER. The photo fills the frame; a navy header bar at the top holds the headline, with a short body just beneath. Write a punchy script+serif headline (e.g. serif "You Don't Need" + script "20% Down") and ONE 1-2 sentence body that busts the myth or lands the claim. No list, no stat. A photo is added automatically — leave photo.description empty.`;
+    case "F":
+      return `PHOTO + PANEL STATEMENT (photo left, text panel right). Write an eyebrow, a warm script+serif headline, a heartfelt 1-2 sentence body, and a soft CTA. No list. A photo is added automatically — leave photo.description empty.`;
     case "A":
       return `PHOTO + NUMBERED LIST. Fill "list_items" with 3-4 objects { "number":"1", "lead":"<a short bold takeaway, max 5 words>", "text":"<one supporting sentence>" }. A photo is added automatically — leave photo.description empty.`;
     case "C":
@@ -112,7 +130,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
     `- eyebrow: a short ALL-CAPS category label (e.g. "FIRST-TIME BUYERS", "WAYS TO SAVE", "WHY REFINANCE?").`,
     `- NEVER include the logo, the words OMEGA/MORTGAGE/GROUP, NMLS, license numbers, or any compliance text — those are added separately.`,
     ``,
-    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"serif"}], "body":"", "cta":"", "list_items":[{"number":"1","lead":"","text":""}], "big_stat":"", "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
+    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"serif"}], "body":"", "cta":"", "list_items":[{"number":"1","lead":"","text":""}], "quad_items":[{"heading":"","text":""}], "big_stat":"", "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
   ].join("\n");
 
   let res: Response;
@@ -169,6 +187,15 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
       ? v.replace(/[*_`]+/g, "").split(/\n+/).map((s) => s.replace(/\s{2,}/g, " ").trim()).filter(Boolean).slice(0, 3).join("\n")
       : "";
 
+  const quadItems = Array.isArray(parsed.quad_items)
+    ? (parsed.quad_items as { heading?: unknown; text?: unknown }[])
+        .filter((it) => it && typeof it.heading === "string" && typeof it.text === "string")
+        .slice(0, 4)
+        .map((it) => ({ heading: clean(it.heading), text: clean(it.text) }))
+    : null;
+
+  const needsSinglePhoto = archetype === "A" || archetype === "B" || archetype === "E" || archetype === "F" || archetype === "BHEADER";
+
   const spec: OmegaSpec = {
     archetype,
     eyebrow: clean(parsed.eyebrow).toUpperCase().slice(0, 32) || "OMEGA",
@@ -176,10 +203,11 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
     body: archetype === "COLLAGE" ? cleanMultiline(parsed.body) : clean(parsed.body),
     cta: isClosure ? "" : clean(parsed.cta) || "Let's talk",
     listItems: archetype === "A" || archetype === "C" ? listItems : null,
+    quadItems: archetype === "QUAD" ? quadItems : null,
     bigStat: archetype === "D" && !isClosure ? clean(parsed.big_stat) || null : null,
     quote: archetype === "G" ? clean(parsed.quote) || null : null,
     attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
-    photo: { include: archetype === "A" || archetype === "B" || archetype === "E" || archetype === "COLLAGE", description: clean(photoObj.description) },
+    photo: { include: needsSinglePhoto || archetype === "COLLAGE" || archetype === "COLLAGE6", description: clean(photoObj.description) },
   };
   return { ok: true, spec };
 }

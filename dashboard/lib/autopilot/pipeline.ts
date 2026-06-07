@@ -19,7 +19,7 @@ import {
 import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
 import { synthesizeOmegaSpec } from "./omega-spec";
-import { renderOmegaDesign, omegaArchetypeNeedsPhoto } from "./render-omega";
+import { renderOmegaDesign, omegaArchetypeNeedsPhoto, omegaArchetypeNeedsPhotoGrid, omegaPhotoGridCount } from "./render-omega";
 import { synthesizeCscSpec } from "./csc-spec";
 import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
 import { synthesizeBlitzSpec } from "./blitz-spec";
@@ -109,7 +109,15 @@ function omegaCollageScenes(post: { post_number: number | null }): string[] {
   ];
   const n = Math.max(0, post.post_number ?? 0);
   // Always lead with a family + a home exterior; fill the rest from the pool.
-  return [pool[0], pool[1], pool[(n + 2) % pool.length], pool[(n + 3) % pool.length]];
+  // Returns up to 6 distinct scenes (callers slice to 4 or 6).
+  return [
+    pool[0],
+    pool[1],
+    pool[(n + 2) % pool.length],
+    pool[(n + 3) % pool.length],
+    pool[(n + 4) % pool.length],
+    pool[(n + 5) % pool.length],
+  ];
 }
 
 const BUCKET = "post-images";
@@ -305,10 +313,11 @@ export async function generateBrandPost(
       let omegaPhoto: Buffer | null = null;
       let omegaPhotos: Buffer[] | null = null;
       let tag = "omega";
-      if (ospec.archetype === "COLLAGE") {
-        // The collage hero is 4 warm summer-home photographs in a 2x2 grid.
+      if (omegaArchetypeNeedsPhotoGrid(ospec.archetype)) {
+        // Collage heroes use a grid of warm summer-home photographs (4 or 6).
+        const want = omegaPhotoGridCount(ospec.archetype);
         const photos: Buffer[] = [];
-        for (const scene of omegaCollageScenes(post)) {
+        for (const scene of omegaCollageScenes(post).slice(0, want)) {
           const gen = await genImage(
             `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole SQUARE frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${scene}. Real, diverse people where present; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR at 35-50mm in warm natural light, sharp focus, realistic skin texture and fine detail, crisp high-resolution editorial photography, very fine barely-there film grain. Warm, optimistic summer real-estate mood.`,
             "1:1"
@@ -342,6 +351,7 @@ export async function generateBrandPost(
         body: ospec.body,
         cta: ospec.cta,
         listItems: ospec.listItems,
+        quadItems: ospec.quadItems,
         bigStat: ospec.bigStat,
         quote: ospec.quote,
         attribution: ospec.attribution,
