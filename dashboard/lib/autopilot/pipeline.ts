@@ -95,6 +95,23 @@ function omegaPhotoScene(post: { post_number: number | null; concept: string | n
   return `${subject} ${moment}, ${light}, ${framing}`;
 }
 
+// The 4 cells of the photo-collage hero (v8_08 "Market Update" silhouette): a
+// family moment, a home exterior, a warm detail, and an arrival — diverse, warm,
+// summer real-estate. Slightly rotated by post_number so repeat collages vary.
+function omegaCollageScenes(post: { post_number: number | null }): string[] {
+  const pool = [
+    "a joyful, diverse family laughing together on a sunny suburban front porch in summer",
+    "a beautiful craftsman-style suburban home exterior with a bright green lawn, blue sky and warm golden-hour light",
+    "a welcoming front porch with blooming summer flowers in pots beside the front door",
+    "a happy couple stepping through the open front door of their new home holding keys, warm natural light",
+    "a young family playing with their kids in the green backyard of their new home",
+    "a charming two-story home with a 'SOLD' -free clean front yard and a flowering tree, late afternoon sun",
+  ];
+  const n = Math.max(0, post.post_number ?? 0);
+  // Always lead with a family + a home exterior; fill the rest from the pool.
+  return [pool[0], pool[1], pool[(n + 2) % pool.length], pool[(n + 3) % pool.length]];
+}
+
 const BUCKET = "post-images";
 
 type PostRow = {
@@ -286,8 +303,25 @@ export async function generateBrandPost(
       }
       const ospec = s.spec;
       let omegaPhoto: Buffer | null = null;
+      let omegaPhotos: Buffer[] | null = null;
       let tag = "omega";
-      if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
+      if (ospec.archetype === "COLLAGE") {
+        // The collage hero is 4 warm summer-home photographs in a 2x2 grid.
+        const photos: Buffer[] = [];
+        for (const scene of omegaCollageScenes(post)) {
+          const gen = await genImage(
+            `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole SQUARE frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${scene}. Real, diverse people where present; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR at 35-50mm in warm natural light, sharp focus, realistic skin texture and fine detail, crisp high-resolution editorial photography, very fine barely-there film grain. Warm, optimistic summer real-estate mood.`,
+            "1:1"
+          );
+          if (!gen.ok) {
+            await revert();
+            return { ok: false, postId: post.id, error: gen.error };
+          }
+          photos.push(gen.bytes);
+          tag = `${gen.model}+omega`;
+        }
+        omegaPhotos = photos;
+      } else if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
         const gen = await genImage(
           `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered. Compose as a WIDE landscape shot: the people prominent and large in the lower-center of the frame, faces clearly visible and unobstructed, with a simple, uncluttered band of background across the TOP (sky, wall, greenery) that can be cropped away.`,
           "16:9"
@@ -312,6 +346,7 @@ export async function generateBrandPost(
         quote: ospec.quote,
         attribution: ospec.attribution,
         photo: omegaPhoto,
+        photos: omegaPhotos,
       });
       mimeType = "image/png";
       model = `${tag}-${ospec.archetype}`;

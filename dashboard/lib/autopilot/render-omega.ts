@@ -33,7 +33,7 @@ const GOLD = "#FDD314";
 const NEARBLACK = "#231F20";
 const WHITE = "#FFFFFF";
 
-export type OmegaArchetype = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+export type OmegaArchetype = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "COLLAGE";
 export type OmegaHeadlineLine = { text: string; style: "serif" | "script" };
 export type OmegaRenderInput = {
   archetype: OmegaArchetype;
@@ -48,6 +48,7 @@ export type OmegaRenderInput = {
   quote?: string | null;
   attribution?: string | null;
   photo?: Buffer | null;
+  photos?: Buffer[] | null; // COLLAGE: up to 4 photos arranged in a 2x2 grid
 };
 
 type El = { type: string; props: Record<string, unknown> };
@@ -205,17 +206,74 @@ function splitTree(input: OmegaRenderInput, dataUri: string): El {
   return h("div", { display: "flex", flexDirection: "row", width: "100%", height: "100%", background: NAVY }, [panel, photo]);
 }
 
+// PHOTO-COLLAGE HERO (the v8_08 "Market Update" silhouette) — a 2x2 grid of warm
+// photos behind a CENTERED navy card holding eyebrow + serif headline + a few
+// tight body lines + soft CTA. Navy bands top/bottom reserved for logo + footer
+// overlay. The most photo-rich, magazine-spread layout in the set.
+function collageTree(input: OmegaRenderInput, uris: string[]): El {
+  const cells = uris.slice(0, 4);
+  const grid = h(
+    "div",
+    { display: "flex", flexWrap: "wrap", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" },
+    cells.map((u) => h("div", { display: "flex", width: "50%", height: "50%" }, [img(u, { width: "100%", height: "100%", objectFit: "cover" })]))
+  );
+  const bodyLines = input.body?.trim() ? input.body.trim().split("\n").map((s) => s.trim()).filter(Boolean) : [];
+  const card = h(
+    "div",
+    {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "14px",
+      width: "70%",
+      background: NAVY,
+      padding: "56px 56px 50px",
+      boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
+    },
+    [
+      ...(input.eyebrow?.trim()
+        ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "22px", letterSpacing: "5px", color: NEARWHITE, marginBottom: "4px" }, input.eyebrow.toUpperCase())]
+        : []),
+      headline(input.headlineLines, WHITE, 58, 84),
+      ...bodyLines.map((ln) =>
+        h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Montserrat", fontWeight: 400, fontSize: "26px", lineHeight: 1.42, color: NEARWHITE }, ln)
+      ),
+      ...(input.cta?.trim()
+        ? [h("div", { display: "flex", marginTop: "10px", fontFamily: "Montserrat", fontWeight: 700, fontSize: "20px", letterSpacing: "1px", color: NEARWHITE }, input.cta.trim())]
+        : []),
+    ]
+  );
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: NAVY }, [
+    zone("104px"), // logo overlay
+    h("div", { display: "flex", position: "relative", flexGrow: 1, width: "100%", alignItems: "center", justifyContent: "center" }, [grid, card]),
+    zone("96px"), // OMGLENDING.COM / footer overlay
+  ]);
+}
+
+// NUMBERED LISTICLE / COMPARISON (the v8_02 "5 Mistakes" + v8_06 "Pre-Qual ≠
+// Pre-Approval" silhouette). Cream card, eyebrow pill, centered serif headline,
+// then 2–5 hollow-navy rings each with a BOLD navy lead + a muted detail line,
+// soft CTA. Handles both long lists and 2-item comparisons (item count changes
+// the silhouette). No photo.
 function listicleTree(input: OmegaRenderInput): El {
-  const items = (input.listItems ?? []).slice(0, 4);
-  const ring = (n: string) => h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "72px", height: "72px", borderRadius: "999px", border: `3px solid ${NAVY}`, fontFamily: "Playfair", fontWeight: 700, fontSize: "38px", color: NAVY }, n);
-  const rows = items.map((it, i) => h("div", { display: "flex", alignItems: "center", gap: "26px" }, [
-    ring(it.number ?? String(i + 1)),
-    h("div", { display: "flex", width: "80%", fontFamily: "Montserrat", fontWeight: 700, fontSize: "30px", lineHeight: 1.25, color: NEARBLACK }, it.text),
-  ]));
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "30px", width: "100%", height: "100%", background: CREAM, padding: "92px 84px 104px" }, [
+  const items = (input.listItems ?? []).slice(0, 5);
+  const many = items.length >= 4;
+  const ring = (n: string) => h("div", { display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: many ? "64px" : "72px", height: many ? "64px" : "72px", borderRadius: "999px", border: `3px solid ${NAVY}`, fontFamily: "Playfair", fontWeight: 700, fontSize: many ? "32px" : "38px", color: NAVY }, n);
+  const rows = items.map((it, i) =>
+    h("div", { display: "flex", alignItems: "flex-start", gap: "24px", width: "100%" }, [
+      ring(it.number ?? String(i + 1)),
+      h("div", { display: "flex", flexDirection: "column", gap: "4px", width: "82%" }, [
+        h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: many ? "28px" : "31px", lineHeight: 1.2, color: NAVY }, it.lead?.trim() || it.text),
+        ...(it.lead?.trim() && it.text?.trim()
+          ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: many ? "23px" : "25px", lineHeight: 1.32, color: NEARBLACK }, it.text)]
+          : []),
+      ]),
+    ])
+  );
+  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: many ? "24px" : "30px", width: "100%", height: "100%", background: CREAM, padding: "84px 80px 96px" }, [
     ...eyebrow(input.eyebrow, false),
-    headline(input.headlineLines, NAVY, 62, 90),
-    h("div", { display: "flex", flexDirection: "column", gap: "24px", width: "100%", marginTop: "6px" }, rows),
+    headline(input.headlineLines, NAVY, many ? 56 : 62, many ? 80 : 90),
+    h("div", { display: "flex", flexDirection: "column", gap: many ? "20px" : "26px", width: "100%", marginTop: "6px" }, rows),
     ...softCta(input.cta, false),
   ]);
 }
@@ -224,7 +282,11 @@ function bigNumberTree(input: OmegaRenderInput): El {
   return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
     zone("128px"), // logo overlay
     h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: "28px", flexGrow: 1, width: "100%", padding: "0 84px" }, [
-      h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "240px", lineHeight: 1.0, color: NAVY }, input.bigStat ?? ""),
+      // A dignified statement card (e.g. the Juneteenth closure) sets no bigStat —
+      // skip the oversize numeral entirely so it doesn't leave a huge gap.
+      ...(input.bigStat?.trim()
+        ? [h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "240px", lineHeight: 1.0, color: NAVY }, input.bigStat.trim())]
+        : []),
       headlineLeft(input.headlineLines, NAVY, 56, 80),
       ...(input.body?.trim()
         ? [h("div", { display: "flex", width: "90%", fontFamily: "Montserrat", fontWeight: 400, fontSize: "29px", lineHeight: 1.4, color: NEARBLACK, marginTop: "14px" }, input.body.trim())]
@@ -249,7 +311,16 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
   let root: El;
-  if (input.archetype === "A" || input.archetype === "B" || input.archetype === "E" || input.archetype === "F") {
+  if (input.archetype === "COLLAGE") {
+    const photos = (input.photos ?? []).slice(0, 4);
+    const uris = await Promise.all(
+      photos.map(async (p) => {
+        const jpeg = await sharp(p).jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true }).toBuffer();
+        return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+      })
+    );
+    root = collageTree(input, uris);
+  } else if (input.archetype === "A" || input.archetype === "B" || input.archetype === "E" || input.archetype === "F") {
     // Near-lossless: q95 + full 4:4:4 chroma (no color/edge subsampling) +
     // mozjpeg. Avoids the q90/4:2:0 softening that was visible on skin and
     // smooth walls in the composited photo.
@@ -275,4 +346,10 @@ export async function renderOmegaDesign(input: OmegaRenderInput): Promise<Buffer
 
 export function omegaArchetypeNeedsPhoto(a: OmegaArchetype): boolean {
   return a === "A" || a === "B" || a === "E" || a === "F";
+}
+
+// COLLAGE needs 4 photos rather than 1; kept separate so the single-photo
+// pipeline path isn't confused by it.
+export function omegaArchetypeNeedsPhotoGrid(a: OmegaArchetype): boolean {
+  return a === "COLLAGE";
 }
