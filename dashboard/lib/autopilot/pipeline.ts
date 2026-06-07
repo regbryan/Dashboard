@@ -315,21 +315,23 @@ export async function generateBrandPost(
       let tag = "omega";
       if (omegaArchetypeNeedsPhotoGrid(ospec.archetype)) {
         // Collage heroes use a grid of warm summer-home photographs (4 or 6).
+        // Generate them IN PARALLEL — sequential generation of 6 photos blew past
+        // the serverless function timeout (~240s). Parallel keeps wall-clock to
+        // roughly one photo's time.
         const want = omegaPhotoGridCount(ospec.archetype);
-        const photos: Buffer[] = [];
-        for (const scene of omegaCollageScenes(post).slice(0, want)) {
-          const gen = await genImage(
-            `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole SQUARE frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${scene}. Real, diverse people where present; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR at 35-50mm in warm natural light, sharp focus, realistic skin texture and fine detail, crisp high-resolution editorial photography, very fine barely-there film grain. Warm, optimistic summer real-estate mood.`,
-            "1:1"
-          );
-          if (!gen.ok) {
-            await revert();
-            return { ok: false, postId: post.id, error: gen.error };
-          }
-          photos.push(gen.bytes);
-          tag = `${gen.model}+omega`;
+        const cellPrompt = (scene: string) =>
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole SQUARE frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${scene}. Real, diverse people where present; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR at 35-50mm in warm natural light, sharp focus, realistic skin texture and fine detail, crisp high-resolution editorial photography, very fine barely-there film grain. Warm, optimistic summer real-estate mood.`;
+        const gens = await Promise.all(
+          omegaCollageScenes(post).slice(0, want).map((scene) => genImage(cellPrompt(scene), "1:1"))
+        );
+        const failed = gens.find((g) => !g.ok);
+        if (failed && !failed.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: failed.error };
         }
-        omegaPhotos = photos;
+        omegaPhotos = gens.map((g) => (g.ok ? g.bytes : Buffer.alloc(0)));
+        const okGen = gens.find((g) => g.ok);
+        if (okGen && okGen.ok) tag = `${okGen.model}+omega`;
       } else if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
         const gen = await genImage(
           `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered. Compose as a WIDE landscape shot: the people prominent and large in the lower-center of the frame, faces clearly visible and unobstructed, with a simple, uncluttered band of background across the TOP (sky, wall, greenery) that can be cropped away.`,
