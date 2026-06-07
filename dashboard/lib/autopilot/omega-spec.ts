@@ -43,8 +43,11 @@ export function pickArchetype(concept: string | null, pillar: string | null): Om
   const p = (pillar ?? "").toLowerCase();
   const has = (re: RegExp) => re.test(c);
 
-  // 1. Holiday closure / observance → dignified statement card (no numeral).
-  if (has(/juneteenth|closed today|in observance|observance|memorial day|holiday/) || p.includes("juneteenth")) return "D";
+  // 1. Holiday CLOSURE → dignified statement card (no numeral). Must be an actual
+  //    office-closed notice — a celebratory holiday post (e.g. "Juneteenth & the
+  //    Dream of Homeownership", Client Stories) is NOT a closure and should get a
+  //    warm photo instead.
+  if (has(/closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/)) return "D";
   // 2. Father's Day / dad → full-bleed warm photo (magazine cover).
   if (has(/father|\bdad\b|\bdads\b/) || p.includes("father")) return "B";
   // 3. Market update → photo-collage hero (the v8_08 silhouette).
@@ -94,9 +97,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
   const archetype = pickArchetype(post.concept, post.content_pillar);
-  const isClosure =
-    /juneteenth|closed today|in observance|observance|memorial day|holiday/i.test(post.concept ?? "") ||
-    (post.content_pillar ?? "").toLowerCase().includes("juneteenth");
+  const isClosure = /closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/i.test(post.concept ?? "");
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
     `Editorial/premium feel. The headline is an elegant SERIF display with ONE flowing SCRIPT accent line (a short connecting phrase) — e.g. serif "Your Dream Home" + script "is closer than you think".`,
