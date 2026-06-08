@@ -37,7 +37,9 @@ const NEARBLACK = "#1A1A1A";
 
 export type StephanieArchetype =
   | "A" | "C" | "D" | "G"
-  | "PHOTOBAND" | "TOPBAND" | "SPLIT" | "POLAROID" | "CHECK" | "NUMBER";
+  | "PHOTOBAND" | "TOPBAND" | "SPLIT" | "POLAROID" | "CHECK" | "NUMBER"
+  // Photo-free but STRUCTURALLY distinct (not the centered-on-solid-card silhouette):
+  | "EDITORIAL" | "SPLITBLOCK" | "PULLQUOTE";
 export type StephanieHeadlineLine = { text: string; style: "serif" | "script" };
 export type StephanieRenderInput = {
   archetype: StephanieArchetype;
@@ -234,6 +236,75 @@ function numberCardTree(input: StephanieRenderInput): El {
   ]);
 }
 
+// ── Photo-free but STRUCTURALLY distinct layouts ──────────────────────────────
+// These break the shared "centered text on a solid card" silhouette of C/CHECK/
+// D/NUMBER/G so the all-text feed actually varies in SHAPE, not just wording.
+
+const eyebrowLeft = (text: string | null | undefined, color: string): El[] =>
+  text?.trim()
+    ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "22px", letterSpacing: "6px", color }, text.toUpperCase())]
+    : [];
+const ctaLeft = (text: string | null | undefined, color: string): El[] =>
+  text?.trim()
+    ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "23px", letterSpacing: "3px", padding: "10px 4px", borderBottom: `2px solid ${color}`, color, marginTop: "8px" }, text.trim().toUpperCase())]
+    : [];
+const dashRows = (items: { text: string }[], dashColor: string, textColor: string): El =>
+  h("div", { display: "flex", flexDirection: "column", gap: "16px", width: "100%" },
+    items.map((it) => h("div", { display: "flex", alignItems: "flex-start", gap: "16px", width: "100%" }, [
+      h("div", { display: "flex", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "30px", color: dashColor, marginTop: "2px" }, "—"),
+      h("div", { display: "flex", flexGrow: 1, fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "29px", lineHeight: 1.32, color: textColor }, it.text),
+    ])));
+
+// EDITORIAL — a sky-blue rail down the left edge, everything LEFT-ALIGNED and
+// anchored, magazine-column feel. The opposite of the centered cards.
+function editorialTree(input: StephanieRenderInput): El {
+  const items = (input.listItems ?? []).slice(0, 4);
+  const content = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: "26px", flexGrow: 1, height: "100%", padding: "112px 92px 112px 78px" }, [
+    ...eyebrowLeft(input.eyebrow, SKY_BLUE),
+    headlineLeft(input.headlineLines, WHITE, SKY_BLUE, 66, 100),
+    ...(input.body?.trim() ? [h("div", { display: "flex", width: "100%", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "31px", lineHeight: 1.46, color: ICE_BLUE }, input.body.trim())] : []),
+    ...(items.length ? [dashRows(items, SKY_BLUE, WHITE)] : []),
+    ...ctaLeft(input.cta, ICE_BLUE),
+  ]);
+  return h("div", { display: "flex", flexDirection: "row", width: "100%", height: "100%", background: DEEP_BLUE }, [
+    h("div", { display: "flex", width: "18px", height: "100%", background: SKY_BLUE }),
+    content,
+  ]);
+}
+
+// SPLITBLOCK — a hard two-tone horizontal division: a deep-blue headline block on
+// top, a warm cream content block below. Color-blocked, not a solid field.
+function splitBlockTree(input: StephanieRenderInput): El {
+  const items = (input.listItems ?? []).slice(0, 4);
+  const top = h("div", { display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start", gap: "16px", width: "100%", height: "47%", background: DEEP_BLUE, padding: "0px 84px 50px" }, [
+    ...eyebrowLeft(input.eyebrow, ICE_BLUE),
+    headlineLeft(input.headlineLines, WHITE, ICE_BLUE, 60, 90),
+  ]);
+  const bottomBody = items.length
+    ? [dashRows(items, DEEP_BLUE, NEARBLACK)]
+    : (input.body?.trim() ? [h("div", { display: "flex", width: "100%", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "34px", lineHeight: 1.46, color: NEARBLACK }, input.body.trim())] : []);
+  const bottom = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: "26px", width: "100%", flexGrow: 1, background: CREAM, padding: "54px 84px 64px" }, [
+    ...bottomBody,
+    ...ctaLeft(input.cta, DEEP_BLUE),
+  ]);
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [top, bottom]);
+}
+
+// PULLQUOTE — an oversized editorial pull-quote: a giant serif quotation mark, a
+// large left-aligned statement, attribution kicked to the lower right.
+function pullQuoteTree(input: StephanieRenderInput): El {
+  const quote = input.quote?.trim() || input.headlineLines.map((l) => l.text).join(" ");
+  const tag = input.attribution?.trim() || input.eyebrow?.trim() || "";
+  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: "4px", width: "100%", height: "100%", background: ICE_BLUE, padding: "96px 90px 104px" }, [
+    h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "170px", lineHeight: 1.0, height: "120px", color: SKY_BLUE }, "“"),
+    h("div", { display: "flex", width: "96%", fontFamily: "Playfair", fontWeight: 700, fontSize: "60px", lineHeight: 1.22, color: DEEP_BLUE }, quote),
+    ...(tag ? [h("div", { display: "flex", alignItems: "center", gap: "16px", alignSelf: "flex-end", marginTop: "26px" }, [
+      h("div", { display: "flex", width: "54px", height: "2px", background: DEEP_BLUE }),
+      h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "24px", letterSpacing: "2px", color: DEEP_BLUE }, tag.toUpperCase()),
+    ])] : []),
+  ]);
+}
+
 export async function renderStephanieDesign(input: StephanieRenderInput): Promise<Buffer> {
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
@@ -256,6 +327,12 @@ export async function renderStephanieDesign(input: StephanieRenderInput): Promis
     root = checkCardTree(input, await checkUri(ICE_BLUE));
   } else if (a === "NUMBER") {
     root = numberCardTree(input);
+  } else if (a === "EDITORIAL") {
+    root = editorialTree(input);
+  } else if (a === "SPLITBLOCK") {
+    root = splitBlockTree(input);
+  } else if (a === "PULLQUOTE") {
+    root = pullQuoteTree(input);
   } else {
     root = valuesCardTree(input);
   }

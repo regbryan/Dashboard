@@ -43,16 +43,15 @@ function hashStr(s: string): number {
   return n;
 }
 
-// When no keyword rule fires, spread across these text layouts by (feed position
-// + concept hash) — combining the two decorrelates the choice so neither a raw
-// post_number (which clusters on parity) nor a raw hash (which clustered 7-of-24
-// on one slot) dominates. D — the only NON-list text card (a centered insight) —
-// is weighted twice so the heaviest layout is the calm insight, never a list, and
-// list cards (CHECK with checkmarks, C with dashes) stay the minority. NUMBER is
-// deliberately omitted: it's only chosen when a post actually has a number (the
-// %/rate rule), so we never force a fake stat onto e.g. "Treat Every Client Like
-// Family". Photo layouts stay rule-gated; this pass keeps fallbacks text-only.
-const STEPHANIE_TEXT_ROTATION: StephanieArchetype[] = ["D", "C", "CHECK", "D"];
+// When no keyword rule fires, spread across the three STRUCTURALLY DISTINCT
+// text layouts — EDITORIAL (left-rail, left-aligned column), SPLITBLOCK (two-tone
+// horizontal color block), PULLQUOTE (oversized editorial quote). These don't
+// share the centered-on-a-solid-card silhouette of C/CHECK/D/NUMBER, so the
+// all-text feed varies in SHAPE, not just wording. Index by (feed position +
+// concept hash) so neither parity nor a raw hash clusters. The old centered cards
+// stay reachable only via explicit rules (checklist→CHECK, %/rate→NUMBER,
+// testimonial→G); photo layouts stay rule-gated too.
+const STEPHANIE_TEXT_ROTATION: StephanieArchetype[] = ["EDITORIAL", "SPLITBLOCK", "PULLQUOTE"];
 
 export function pickArchetype(
   pillar: string | null,
@@ -97,6 +96,12 @@ function dataInstruction(a: StephanieArchetype): string {
       return `INSIGHT / REFRAME CARD (no list, no generic platitude). headline_lines = ONE calm serif line that reframes THIS topic in a fresh, specific way (e.g. for Rent vs Buy: "Renting isn't wasted money — but it isn't building yours, either."), optionally one short script accent. body = ONE supporting first-person sentence. photo.include = false.`;
     case "G":
       return `TESTIMONIAL / CELEBRATION (text only, NO fabricated headshot). Fill "quote" (a warm 1-2 sentence client celebration in Stephanie's first-person voice) and "attribution" (e.g. "The Reyes Family"). photo.include = false.`;
+    case "EDITORIAL":
+      return `LEFT-ALIGNED EDITORIAL COLUMN (no photo). headline_lines = a serif title + AT MOST ONE short script accent. body = ONE plain-English first-person sentence. Fill "list_items" with 3-4 short, CONCRETE points ABOUT THE TOPIC (real takeaways or tips, NOT "I'll..." promises). photo.include = false.`;
+    case "SPLITBLOCK":
+      return `TWO-TONE SPLIT (deep-blue headline block over a cream content block, no photo). headline_lines = ONE serif title (no script needed). Then EITHER a "body" of ONE-TWO calm sentences that explain the topic, OR "list_items" of 3-4 short concrete points about the topic — pick whichever fits, not both. photo.include = false.`;
+    case "PULLQUOTE":
+      return `OVERSIZED PULL-QUOTE (no photo, no list). Fill "quote" with ONE short, quotable INSIGHT or reframe about this topic (<=16 words, e.g. "Your credit score isn't a verdict — it's a habit."). "attribution" = a short context tag (e.g. "On Credit", "On Rent vs. Buy"). photo.include = false.`;
     default:
       return `VALUES / TAKEAWAYS CARD. Fill "list_items" with 3-5 short points. Choose by concept: for a "what I do for you / why work with me" post, use first-person promises ("I'll tell you what you need to know — honestly"); for an EDUCATIONAL or topic post, use the KEY TAKEAWAYS about the topic instead (NOT "I'll..." promises). headline = a title that fits the concept. photo.include = false.`;
   }
