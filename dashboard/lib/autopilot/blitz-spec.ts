@@ -15,7 +15,10 @@ export type BlitzSpec = {
   headlineLines: BlitzHeadlineLine[];
   body: string;
   cta: string;
-  listItems?: { text: string }[] | null;
+  listItems?: { number?: string | null; lead?: string | null; text: string }[] | null;
+  quadItems?: { heading: string; text: string }[] | null;
+  compare?: { keepLabel?: string; keep: string[]; tossLabel?: string; toss: string[] } | null;
+  bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
   photo: { include: boolean; description: string };
@@ -24,24 +27,52 @@ export type BlitzSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type BlitzSynthResult = { ok: true; spec: BlitzSpec } | { ok: false; error: string };
 
-function pickArchetype(pillar: string | null, concept: string | null): BlitzArchetype {
+// Content router across Blitz's 10 layouts.
+//   C         the signature numbered BARS (5 things / steps)
+//   QUAD      a 2x2 grid (zones / areas)        CHECK  a reset checklist
+//   COMPARE   keep / toss                        STAT   a big-number trick (3-bin rule)
+//   PHOTOPANEL organized photo + question panel   STATEMENT soft encouragement
+//   D         empathetic question card           G  testimonial    A  photo-hero
+export function pickArchetype(pillar: string | null, concept: string | null): BlitzArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
-  if (/review|testimon|client|loved|social proof|transformation reveal/.test(t)) return "G";
-  if (/\b\d+\s+(ways|tips|steps|reasons|things|rules|habits|ideas)\b|checklist|how to|maintain|tips/.test(t)) return "C";
-  if (/\?|question|how does|how can|what is|why |dear busy mom|empath|mental health|fun fact|did you know/.test(t)) return "D";
+  const has = (re: RegExp) => re.test(t);
+
+  if (has(/review|testimon|client love|loved|social proof/)) return "G";
+  if (has(/keep or toss|keep vs|what to keep|what to toss|toss or keep|this or that/)) return "COMPARE";
+  if (has(/\b\d+[- ]?bin\b|\d+-?bin rule|the \d+ rule|our favorite trick|golden rule/)) return "STAT";
+  if (has(/check ?list|sunday reset|weekly reset|reset routine|\b\d+[- ]?minute/)) return "CHECK";
+  if (has(/\b\d+\s+(zones|areas|rooms|spaces|drawers|categories)\b/)) return "QUAD";
+  if (has(/\b\d+\s+(ways|tips|steps|reasons|things|rules|habits|ideas|items|mistakes)\b/)) return "C";
+  if (has(/maintain|best way to|how to keep|keep it (this way|organized)|stay organized|long.?term/)) return "PHOTOPANEL";
+  if (has(/clutter isn'?t|you'?re not|gentle reminder|no judgment|grace|permission to|not about being/)) return "STATEMENT";
+  if (has(/\?|question|how does|how can|what is|why |dear busy mom|empath|mental health|overwhelm|did you know/)) return "D";
   return "A"; // photo-hero (organized space) default
 }
+
+const ORGANIZED_SPACE = "a bright, airy, photorealistic ORGANIZED SPACE — a pantry, closet, drawer, or shelves with clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, breathing room. ABSOLUTELY NO people, hands, or faces. No text in the photo.";
 
 function dataInstruction(a: BlitzArchetype): string {
   switch (a) {
     case "C":
-      return `SOFT LISTICLE. Fill "list_items" with 3-4 objects { "text":"<short, specific, doable organizing tip>" }. photo.include = false.`;
+      return `SIGNATURE NUMBERED LIST. Fill "list_items" with 3-5 objects { "number":"01", "lead":"<a short bold item, max 4 words>", "text":"<one short, doable line>" }. headline_lines = a casual script hook + a short sans line. photo.include = false.`;
+    case "QUAD":
+      return `2x2 GRID. Fill "quad_items" with EXACTLY 4 objects { "heading":"<a 2-3 word zone/area>", "text":"<one short doable phrase>" }. headline_lines = a script hook + short sans line. photo.include = false.`;
+    case "CHECK":
+      return `RESET CHECKLIST. Fill "list_items" with 4-5 objects { "text":"<one short doable reset step>" }. headline_lines = a script hook + short sans line. photo.include = false.`;
+    case "COMPARE":
+      return `KEEP / TOSS. Fill "compare" = { "keep_label":"Keep", "keep":[3 short phrases], "toss_label":"Toss", "toss":[3 short phrases] }. headline_lines = a short script hook (e.g. "Keep or Toss?"). photo.include = false.`;
+    case "STAT":
+      return `BIG-NUMBER TRICK. Fill "big_stat" with a single short number (e.g. "3", "15", "80%"). headline_lines = a script line naming the trick (e.g. "The 3-Bin Rule"). body = one short explanation. photo.include = false.`;
+    case "PHOTOPANEL":
+      return `ORGANIZED PHOTO + QUESTION PANEL. photo.include = true; "photo.description" = ${ORGANIZED_SPACE} headline_lines = ONE short sans question (e.g. "What's the best way to maintain an organized space?"). body = a warm 1-2 sentence practical answer.`;
+    case "STATEMENT":
+      return `SOFT ENCOURAGEMENT. headline_lines = a warm script line + a short sans line (e.g. script "Clutter isn't a" + sans "character flaw"). body = one reassuring sentence (no shame). photo.include = false.`;
     case "D":
       return `QUESTION / EMPATHETIC CARD. The headline is a CASUAL SCRIPT question or warm hook (e.g. "How does clutter affect your mental health?", "Dear busy mom…"). Add a short reassuring "body". photo.include = false.`;
     case "G":
       return `TESTIMONIAL. Fill "quote" (a warm 1-2 sentence client quote — relief and calm, "I actually want to keep it this way") and "attribution" (e.g. "Jamie, El Dorado Hills"). photo.include = false.`;
     default:
-      return `PHOTO HERO (the default). photo.include = true; "photo.description" = a bright, airy, photorealistic ORGANIZED SPACE — a pantry, closet, drawer, or shelves with clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, breathing room. ABSOLUTELY NO people, hands, or faces. No text in the photo.`;
+      return `PHOTO HERO (the default). photo.include = true; "photo.description" = ${ORGANIZED_SPACE}`;
   }
 }
 
@@ -67,7 +98,7 @@ export async function synthesizeBlitzSpec(post: SpecPost): Promise<BlitzSynthRes
     `- NEVER include the logo, the word BLITZ, the wordmark, or any URL — those are added separately.`,
     `- Tone: warm, encouraging, calm. Never shame the reader for clutter.`,
     ``,
-    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"script"}], "body":"", "cta":"", "list_items":[{"text":""}], "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
+    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"script"}], "body":"", "cta":"", "list_items":[{"number":"01","lead":"","text":""}], "quad_items":[{"heading":"","text":""}], "compare":{"keep_label":"","keep":[""],"toss_label":"","toss":[""]}, "big_stat":"", "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
   ].join("\n");
 
   let res: Response;
@@ -106,13 +137,27 @@ export async function synthesizeBlitzSpec(post: SpecPost): Promise<BlitzSynthRes
   if (lines.length > 0 && !lines.some((l) => l.style === "script")) lines[0].style = "script";
 
   const photoObj = (parsed.photo ?? {}) as { include?: unknown; description?: unknown };
+  const cleanArr = (v: unknown, n: number): string[] =>
+    Array.isArray(v) ? (v as unknown[]).map(clean).filter(Boolean).slice(0, n) : [];
   const listItems = Array.isArray(parsed.list_items)
-    ? (parsed.list_items as { text?: unknown }[])
+    ? (parsed.list_items as { number?: unknown; lead?: unknown; text?: unknown }[])
         .filter((it) => it && typeof it.text === "string")
-        .slice(0, 4)
-        .map((it) => ({ text: clean(it.text) }))
+        .slice(0, 5)
+        .map((it, i) => ({
+          number: typeof it.number === "string" && it.number.trim() ? it.number.trim() : String(i + 1).padStart(2, "0"),
+          lead: typeof it.lead === "string" && it.lead.trim() ? clean(it.lead) : null,
+          text: clean(it.text),
+        }))
         .filter((it) => it.text.length > 0)
     : null;
+  const quadItems = Array.isArray(parsed.quad_items)
+    ? (parsed.quad_items as { heading?: unknown; text?: unknown }[])
+        .filter((it) => it && typeof it.heading === "string" && typeof it.text === "string")
+        .slice(0, 4)
+        .map((it) => ({ heading: clean(it.heading), text: clean(it.text) }))
+    : null;
+  const cmpRaw = (parsed.compare ?? {}) as { keep_label?: unknown; keep?: unknown; toss_label?: unknown; toss?: unknown };
+  const compare = { keepLabel: clean(cmpRaw.keep_label) || "Keep", keep: cleanArr(cmpRaw.keep, 5), tossLabel: clean(cmpRaw.toss_label) || "Toss", toss: cleanArr(cmpRaw.toss, 5) };
 
   const spec: BlitzSpec = {
     archetype,
@@ -120,10 +165,13 @@ export async function synthesizeBlitzSpec(post: SpecPost): Promise<BlitzSynthRes
     headlineLines: lines,
     body: clean(parsed.body),
     cta: clean(parsed.cta) || "save this for later",
-    listItems: archetype === "C" ? listItems : null,
+    listItems: archetype === "C" || archetype === "CHECK" ? listItems : null,
+    quadItems: archetype === "QUAD" ? quadItems : null,
+    compare: archetype === "COMPARE" ? compare : null,
+    bigStat: archetype === "STAT" ? clean(parsed.big_stat) || null : null,
     quote: archetype === "G" ? clean(parsed.quote) || null : null,
     attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
-    photo: { include: archetype === "A" && photoObj.include !== false, description: clean(photoObj.description) },
+    photo: { include: (archetype === "A" || archetype === "PHOTOPANEL") && photoObj.include !== false, description: clean(photoObj.description) },
   };
   return { ok: true, spec };
 }
