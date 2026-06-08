@@ -43,8 +43,10 @@ export function pickArchetype(pillar: string | null, concept: string | null): Cs
   const has = (re: RegExp) => re.test(t);
 
   if (has(/review|testimon|parent said|5-star|five star|what parents/)) return "G";
-  if (has(/bright canary|how .{0,24}(protects?|works|keeps)|membership|partner|trusted by|the app that/)) return "PHOTOSPLIT";
+  // "The 1 setting" spotlight wins over the generic Bright Canary explainer — the
+  // YHEADER reference is itself a Bright Canary post.
   if (has(/\bthe (1|one)\b|one setting|single setting|spotlight|inside bright/)) return "YHEADER";
+  if (has(/bright canary|how .{0,24}(protects?|works|keeps)|membership|partner|trusted by|the app that/)) return "PHOTOSPLIT";
   if (has(/ vs\.?\b| versus |public.{0,12}private|private.{0,12}public|safe.{0,8}(vs|or).{0,8}risky|do this|not that|difference between/)) return "COMPARE";
   if (has(/check ?list|things to check|tech check|audit their|back-to-school list/)) return "CHECK";
   if (has(/\bmyth\b|isn'?t (actually|really|truly)|not as private|truth about|reality check|debunk/)) return "STATEMENT";
