@@ -39,6 +39,17 @@ export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; erro
 //   A        photo + numbered list          (step-by-step educational w/ a photo)
 //   C        numbered list / comparison      (lists, "X vs Y", no photo)
 //   D        big-number hero / closure card  (stats; or a dignified holiday card)
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
+}
+
+// Generic educational concepts would all collapse onto the "C" listicle — spread
+// them across a varied mix (listicle, photo+list, photo+statement, grid) so the
+// feed never repeats a layout. Holiday/recap-specific layouts stay rule-gated.
+const OMEGA_DEFAULT_ROTATION: OmegaArchetype[] = ["C", "A", "E", "QUAD"];
+
 export function pickArchetype(concept: string | null, pillar: string | null): OmegaArchetype {
   const c = (concept ?? "").toLowerCase();
   const p = (pillar ?? "").toLowerCase();
@@ -73,8 +84,8 @@ export function pickArchetype(concept: string | null, pillar: string | null): Om
   if (has(/ vs\.?\b| versus |≠|pre-?qual|qualification|lock.*float|float.*lock|\bfha\b|conventional|is it still/)) return "C";
   // 8. Step-by-step / checklist (often with a photo) → photo + numbered list.
   if (has(/before you tour|things to do|\bsteps\b|checklist|before you/)) return "A";
-  // 9. Default educational → numbered listicle.
-  return "C";
+  // 9. Default educational → spread across a varied mix (was always "C").
+  return OMEGA_DEFAULT_ROTATION[hashStr(`${c}|${p}`) % OMEGA_DEFAULT_ROTATION.length];
 }
 
 function dataInstruction(a: OmegaArchetype, isClosure: boolean): string {

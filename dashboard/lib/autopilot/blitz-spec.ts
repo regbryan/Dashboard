@@ -33,11 +33,23 @@ export type BlitzSynthResult = { ok: true; spec: BlitzSpec } | { ok: false; erro
 //   COMPARE   keep / toss                        STAT   a big-number trick (3-bin rule)
 //   PHOTOPANEL organized photo + question panel   STATEMENT soft encouragement
 //   D         empathetic question card           G  testimonial    A  photo-hero
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
+}
+
+// When no keyword rule fires, rotate generic concepts ("Garage Glow-Up",
+// "Pantry Chaos to Calm") across a varied mix instead of collapsing onto one
+// default — otherwise the feed shows the same layout over and over. Two photo
+// layouts keep it rich without forcing a Gemini photo on every fallback.
+const BLITZ_DEFAULT_ROTATION: BlitzArchetype[] = ["A", "C", "STATEMENT", "QUAD", "PHOTOPANEL", "D", "CHECK"];
+
 export function pickArchetype(pillar: string | null, concept: string | null): BlitzArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
-  if (has(/review|testimon|client love|loved|social proof/)) return "G";
+  if (has(/review|testimon|client (love|story|joy|win)|loved|social proof|spotlight/)) return "G";
   if (has(/keep or toss|keep vs|what to keep|what to toss|toss or keep|this or that/)) return "COMPARE";
   if (has(/\b\d+[- ]?bin\b|\d+-?bin rule|the \d+ rule|our favorite trick|golden rule/)) return "STAT";
   if (has(/check ?list|sunday reset|weekly reset|reset routine|\b\d+[- ]?minute/)) return "CHECK";
@@ -46,7 +58,9 @@ export function pickArchetype(pillar: string | null, concept: string | null): Bl
   if (has(/maintain|best way to|how to keep|keep it (this way|organized)|stay organized|long.?term/)) return "PHOTOPANEL";
   if (has(/clutter isn'?t|you'?re not|gentle reminder|no judgment|grace|permission to|not about being/)) return "STATEMENT";
   if (has(/\?|question|how does|how can|what is|why |dear busy mom|empath|mental health|overwhelm|did you know/)) return "D";
-  return "A"; // photo-hero (organized space) default
+  if (has(/mindset|sanctuary|peace of mind|\bcalm\b|mental load|grace/)) return "STATEMENT";
+  if (has(/process|method|system|our approach|how we work|step ?\d/)) return "C";
+  return BLITZ_DEFAULT_ROTATION[hashStr(`${pillar ?? ""}|${concept ?? ""}`) % BLITZ_DEFAULT_ROTATION.length];
 }
 
 const ORGANIZED_SPACE = "a bright, airy, photorealistic ORGANIZED SPACE — a pantry, closet, drawer, or shelves with clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, breathing room. ABSOLUTELY NO people, hands, or faces. No text in the photo.";

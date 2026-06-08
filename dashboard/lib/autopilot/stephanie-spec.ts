@@ -37,6 +37,17 @@ export type StephanieSynthResult = { ok: true; spec: StephanieSpec } | { ok: fal
 //   PHOTOBAND personal statement over a lifestyle photo
 //   D         inspirational / quote      A  lifestyle photo-overlay
 //   C         values / services workhorse
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
+}
+
+// Generic education/values concepts would all collapse onto the "C" workhorse
+// and make the feed repetitive — spread them deterministically across a varied
+// mix of text + lifestyle-photo layouts instead.
+const STEPHANIE_DEFAULT_ROTATION: StephanieArchetype[] = ["C", "TOPBAND", "PHOTOBAND", "CHECK", "D", "A"];
+
 export function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
@@ -50,7 +61,7 @@ export function pickArchetype(pillar: string | null, concept: string | null): St
   if (has(/why i do|closer than you think|i hear it all the time|here'?s the thing|you can trust|high-stakes/)) return "PHOTOBAND";
   if (has(/inspir|motivat|quote|dream|equity|fun fact|calm power|you deserve/)) return "D";
   if (has(/lifestyle|seasonal|holiday|st\.?\s*patrick|christmas|spring|summer|fall|winter/)) return "A";
-  return "C"; // values / services / education — the personal-brand workhorse
+  return STEPHANIE_DEFAULT_ROTATION[hashStr(`${pillar ?? ""}|${concept ?? ""}`) % STEPHANIE_DEFAULT_ROTATION.length];
 }
 
 const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
