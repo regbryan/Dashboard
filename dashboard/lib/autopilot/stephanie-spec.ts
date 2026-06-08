@@ -97,9 +97,9 @@ function dataInstruction(a: StephanieArchetype): string {
     case "G":
       return `TESTIMONIAL / CELEBRATION (text only, NO fabricated headshot). Fill "quote" (a warm 1-2 sentence client celebration in Stephanie's first-person voice) and "attribution" (e.g. "The Reyes Family"). photo.include = false.`;
     case "EDITORIAL":
-      return `LEFT-ALIGNED EDITORIAL COLUMN (no photo). headline_lines = a serif title + AT MOST ONE short script accent. body = ONE plain-English first-person sentence. Fill "list_items" with 3-4 short, CONCRETE points ABOUT THE TOPIC (real takeaways or tips, NOT "I'll..." promises). photo.include = false.`;
+      return `LEFT-ALIGNED EDITORIAL COLUMN (no photo). headline_lines = a serif title + AT MOST ONE short script accent. body = REQUIRED — ONE plain-English first-person sentence (never leave it empty). Fill "list_items" with 3-4 short, CONCRETE points ABOUT THE TOPIC (real takeaways or tips, NOT "I'll..." promises). photo.include = false.`;
     case "SPLITBLOCK":
-      return `TWO-TONE SPLIT (deep-blue headline block over a cream content block, no photo). headline_lines = ONE serif title (no script needed). Then EITHER a "body" of ONE-TWO calm sentences that explain the topic, OR "list_items" of 3-4 short concrete points about the topic — pick whichever fits, not both. photo.include = false.`;
+      return `TWO-TONE SPLIT (deep-blue headline block over a cream content block, no photo). headline_lines = ONE serif title (no script needed). body = REQUIRED — ONE-TWO calm sentences that explain the topic; this fills the lower block, so it must NOT be empty. You MAY also add "list_items" of 3-4 short concrete points about the topic. photo.include = false.`;
     case "PULLQUOTE":
       return `OVERSIZED PULL-QUOTE (no photo, no list). Fill "quote" with ONE short, quotable INSIGHT or reframe about this topic (<=16 words, e.g. "Your credit score isn't a verdict — it's a habit."). "attribution" = a short context tag (e.g. "On Credit", "On Rent vs. Buy"). photo.include = false.`;
     default:
@@ -182,18 +182,34 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
         .filter((it) => it.text.length > 0)
     : null;
 
+  const bodyText = clean(parsed.body);
+  const usesList = (a: StephanieArchetype) => a === "C" || a === "SPLIT" || a === "CHECK" || a === "EDITORIAL" || a === "SPLITBLOCK";
+  const keptList = usesList(archetype) ? listItems : null;
+
+  // Guard: EDITORIAL/SPLITBLOCK have a dedicated content area that looks broken
+  // when empty. If the model returned neither body nor list, fall back to the
+  // headline-only PULLQUOTE (which needs only the headline) so we never ship a
+  // half-empty card.
+  let finalArch = archetype;
+  let quoteText = archetype === "G" || archetype === "PULLQUOTE" ? clean(parsed.quote) : "";
+  if ((finalArch === "SPLITBLOCK" || finalArch === "EDITORIAL") && !bodyText && !(keptList && keptList.length)) {
+    finalArch = "PULLQUOTE";
+    quoteText = lines.map((l) => l.text).join(" ");
+  }
+  const isQuote = finalArch === "G" || finalArch === "PULLQUOTE";
+
   const spec: StephanieSpec = {
-    archetype,
+    archetype: finalArch,
     eyebrow: clean(parsed.eyebrow).toUpperCase().slice(0, 36) || "WITH STEPHANIE",
     headlineLines: lines,
-    body: clean(parsed.body),
+    body: bodyText,
     cta: clean(parsed.cta) || "I'd love to help",
-    listItems: archetype === "C" || archetype === "SPLIT" || archetype === "CHECK" ? listItems : null,
-    bigStat: archetype === "NUMBER" ? clean(parsed.big_stat) || null : null,
-    quote: archetype === "G" ? clean(parsed.quote) || null : null,
-    attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
+    listItems: usesList(finalArch) ? keptList : null,
+    bigStat: finalArch === "NUMBER" ? clean(parsed.big_stat) || null : null,
+    quote: isQuote ? quoteText || null : null,
+    attribution: isQuote ? clean(parsed.attribution) || null : null,
     photo: {
-      include: (archetype === "A" || archetype === "PHOTOBAND" || archetype === "TOPBAND" || archetype === "SPLIT" || archetype === "POLAROID") && photoObj.include !== false,
+      include: (finalArch === "A" || finalArch === "PHOTOBAND" || finalArch === "TOPBAND" || finalArch === "SPLIT" || finalArch === "POLAROID") && photoObj.include !== false,
       description: clean(photoObj.description),
     },
   };
