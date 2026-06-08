@@ -14,7 +14,8 @@ export type DougSpec = {
   eyebrow: string;
   headline: string;
   subtitle: string;
-  listItems?: { text: string }[] | null;
+  listItems?: { lead?: string | null; text: string }[] | null;
+  bigStat?: string | null;
   quote?: string | null;
   photo: { include: boolean; description: string };
 };
@@ -22,24 +23,56 @@ export type DougSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type DougSynthResult = { ok: true; spec: DougSpec } | { ok: false; error: string };
 
-function pickArchetype(pillar: string | null, concept: string | null): DougArchetype {
-  const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
-  if (/war story|i advised|anonymi|a founder|client i|story|mistake i see/.test(t)) return "G";
-  if (/\b\d+\s+(things|reasons|mistakes|steps|questions|ways|moves)\b|every founder|every buyer|every seller|checklist|before you sign/.test(t)) return "D";
-  if (/flagship|cover|visual|cityscape|skyline|feature graphic/.test(t)) return "C";
-  return "A"; // title card default
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
 }
+
+// Content router across Doug's 10 landscape LinkedIn layouts.
+//   WARSTORY  dark photo + hook       CONTRAST  belief vs reality
+//   FRAMEWORK numbered frame          STAT      big number
+//   LIST      advisory list           SPLIT     photo + teal panel
+//   MINT      light insight card      PANEL     photo + teal headline panel
+//   PHOTO     photo cover (default)    TITLE     text-only teal title
+export function pickArchetype(pillar: string | null, concept: string | null): DougArchetype {
+  const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
+  const has = (re: RegExp) => re.test(t);
+  if (has(/war story|i advised|anonymi|the deal that|almost died|client i|mistake i see|11 ?pm|night before close/)) return "WARSTORY";
+  if (has(/ vs\.?\b| versus |most (people|founders|owners) (think|believe)|why .* (is wrong|gets it wrong)|the myth|contrarian|everyone says/)) return "CONTRAST";
+  if (has(/framework|the \d+-part|\d+ pillars|how to think about|a frame not|mental model/)) return "FRAMEWORK";
+  if (has(/\$\s?\d|\b\d+\s+deals|\b\d+\+? years|\b\d+%|by the numbers|in \d+ deals/)) return "STAT";
+  if (has(/hidden cost|the cheapest|what (most )?founders miss|before you sign/)) return "SPLIT";
+  if (has(/\b\d+\s+(things|reasons|mistakes|steps|questions|ways|moves|clauses)\b|every (founder|buyer|seller)|checklist/)) return "LIST";
+  if (has(/practical advice|the one thing|a reminder|principle|rule of thumb|note to founders/)) return "MINT";
+  if (has(/flagship|cover|cityscape|skyline|feature graphic|milestone/)) return "PANEL";
+  return hashStr(concept ?? t) % 2 === 0 ? "PHOTO" : "TITLE";
+}
+
+const CORP_PHOTO = "a quiet corporate/architectural scene — glass towers, a city skyline at dusk, an empty boardroom table, modern office architecture. ABSOLUTELY NO people, faces, or hands. It sits under a teal scrim. No text in the photo.";
 
 function dataInstruction(a: DougArchetype): string {
   switch (a) {
-    case "C":
-      return `PHOTO TITLE CARD. photo.include = true; "photo.description" = a quiet corporate/architectural scene — glass towers, a city skyline at dusk, an empty boardroom table, modern office architecture. ABSOLUTELY NO people, faces, or hands. It will sit under a heavy teal overlay. No text in the photo.`;
-    case "D":
-      return `LIST CARD. Fill "list_items" with 3-4 advisory points { "text":"<specific, operator-language point>" }. headline = the list promise ('The 3 things every founder should settle before an LOI'). photo.include = false.`;
-    case "G":
-      return `WAR-STORY CARD. Fill "quote" with a short, anonymized, SPECIFIC war story in Doug's first-person advisory voice (a real consequence with a number, e.g. escrow lost, deal delayed). photo.include = false.`;
+    case "PHOTO":
+    case "PANEL":
+    case "SPLIT":
+      return `PHOTO COVER. photo.include = true; "photo.description" = ${CORP_PHOTO} headline = an advisory thought-leadership headline; subtitle = one sharp supporting line.`;
+    case "WARSTORY":
+      return `WAR-STORY (dark photo + hook). photo.include = true; "photo.description" = ${CORP_PHOTO} Fill "quote" with the SHORT hook line (an anonymized, specific moment — e.g. "The deal that almost died at 11pm the night before close"). Keep it punchy; the body of the story goes in the LinkedIn caption, not the image.`;
+    case "TITLE":
+      return `TITLE CARD (text only). headline = an advisory thought-leadership headline; subtitle = one sharp supporting line. photo.include = false.`;
+    case "LIST":
+      return `LIST CARD. Fill "list_items" with 3-4 advisory points { "text":"<specific, operator-language point>" }. headline = the list promise. photo.include = false.`;
+    case "FRAMEWORK":
+      return `FRAMEWORK (3 parts). Fill "list_items" with EXACTLY 3 objects { "lead":"<a one-word part name>", "text":"<one short sentence>" }. headline = the framework's name (e.g. "The 3-Part Diligence Framework"). photo.include = false.`;
+    case "STAT":
+      return `BIG NUMBER. Fill "big_stat" with one short figure (<=6 chars, e.g. "$2.3M", "100", "20+"). headline = a short supporting line; subtitle = one sentence of context. photo.include = false.`;
+    case "CONTRAST":
+      return `BELIEF vs REALITY. subtitle = the common BELIEF (the thing people assume). headline = the REALITY (the sharper truth). Keep both to one short line. photo.include = false.`;
+    case "MINT":
+      return `LIGHT INSIGHT CARD. headline = one quiet, quotable advisory principle; subtitle = one supporting line. photo.include = false.`;
     default:
-      return `TITLE CARD (the default). headline = an advisory thought-leadership headline; subtitle = one sharp supporting line. photo.include = false.`;
+      return `TITLE CARD. headline = an advisory headline; subtitle = one sharp line. photo.include = false.`;
   }
 }
 
@@ -66,7 +99,7 @@ export async function synthesizeDougSpec(post: SpecPost): Promise<DougSynthResul
     `- NEVER include the SCALE LLP wordmark/logo or any firm mark — added separately. Do NOT write "Doug Mitchell" or "Partner" in the copy (the card adds the attribution).`,
     `- No emoji, no hustle language ("game-changer", "10x", "level up", "disrupt"), nothing political. Avoid casual "litigation" (Doug helps clients avoid it).`,
     ``,
-    `Return ONLY JSON: { "eyebrow":"", "headline":"", "subtitle":"", "list_items":[{"text":""}], "quote":"", "photo":{"include":false,"description":""} }`,
+    `Return ONLY JSON: { "eyebrow":"", "headline":"", "subtitle":"", "list_items":[{"lead":"","text":""}], "big_stat":"", "quote":"", "photo":{"include":false,"description":""} }`,
   ].join("\n");
 
   let res: Response;
@@ -95,25 +128,28 @@ export async function synthesizeDougSpec(post: SpecPost): Promise<DougSynthResul
 
   const clean = (v: unknown): string => (typeof v === "string" ? v.replace(/[*_`]+/g, "").replace(/\s{2,}/g, " ").trim() : "");
   const headline = clean(parsed.headline);
-  if (!headline && archetype !== "G") return { ok: false, error: "doug: no headline" };
+  if (!headline && archetype !== "WARSTORY") return { ok: false, error: "doug: no headline" };
 
   const photoObj = (parsed.photo ?? {}) as { include?: unknown; description?: unknown };
   const listItems = Array.isArray(parsed.list_items)
-    ? (parsed.list_items as { text?: unknown }[])
+    ? (parsed.list_items as { lead?: unknown; text?: unknown }[])
         .filter((it) => it && typeof it.text === "string")
         .slice(0, 4)
-        .map((it) => ({ text: clean(it.text) }))
+        .map((it) => ({ lead: typeof it.lead === "string" && it.lead.trim() ? clean(it.lead) : null, text: clean(it.text) }))
         .filter((it) => it.text.length > 0)
     : null;
+
+  const needsPhoto = archetype === "PHOTO" || archetype === "PANEL" || archetype === "SPLIT" || archetype === "WARSTORY";
 
   const spec: DougSpec = {
     archetype,
     eyebrow: clean(parsed.eyebrow).toUpperCase().slice(0, 28) || "M&A ADVISORY",
     headline,
     subtitle: clean(parsed.subtitle),
-    listItems: archetype === "D" ? listItems : null,
-    quote: archetype === "G" ? clean(parsed.quote) || null : null,
-    photo: { include: archetype === "C" && photoObj.include !== false, description: clean(photoObj.description) },
+    listItems: archetype === "LIST" || archetype === "FRAMEWORK" ? listItems : null,
+    bigStat: archetype === "STAT" ? clean(parsed.big_stat) || null : null,
+    quote: archetype === "WARSTORY" ? clean(parsed.quote) || null : null,
+    photo: { include: needsPhoto && photoObj.include !== false, description: clean(photoObj.description) },
   };
   return { ok: true, spec };
 }

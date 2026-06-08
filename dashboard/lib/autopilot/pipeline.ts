@@ -546,10 +546,10 @@ export async function generateBrandPost(
       mimeType = "image/png";
       model = `${tag}-${rvspec.archetype}`;
     } else if (template?._engine === "doug") {
-      // DOUG PATH: quiet corporate LinkedIn title cards (teal + cream-mint, no
-      // accent). Square 1:1 by brand convention. Only the photo title-card (C)
-      // needs a text-free corporate/architectural photo (no people); title/list/
-      // war-story render fully in code. SCALE LLP wordmark composited later.
+      // DOUG PATH: quiet corporate LinkedIn thought-leadership (teal + cream-mint,
+      // no accent), LANDSCAPE 16:9 to match his reference designs. Photo covers
+      // (PHOTO/PANEL/SPLIT/WARSTORY) need a text-free corporate/architectural photo
+      // (no people); the rest render fully in code. SCALE LLP wordmark overlaid later.
       const s = await synthesizeDougSpec({
         concept: post.concept,
         content_pillar: post.content_pillar,
@@ -573,16 +573,15 @@ export async function generateBrandPost(
         dougPhoto = gen.bytes;
         tag = `${gen.model}+doug`;
       }
-      // LinkedIn title cards are square — native 1200x1200 (NOT the 4:5 used
-      // for the Instagram brands).
+      // LinkedIn landscape — output 1200 wide (the renderer's 16:9 canvas → 1200x675).
       bytes = await renderDougDesign({
         archetype: dgspec.archetype,
         width: 1200,
-        height: 1200,
         eyebrow: dgspec.eyebrow,
         headline: dgspec.headline,
         subtitle: dgspec.subtitle,
         listItems: dgspec.listItems,
+        bigStat: dgspec.bigStat,
         quote: dgspec.quote,
         photo: dougPhoto,
       });
