@@ -23,7 +23,7 @@ export type StephanieSpec = {
   photo: { include: boolean; description: string };
 };
 
-type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
+type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null; post_number?: number | null };
 export type StephanieSynthResult = { ok: true; spec: StephanieSpec } | { ok: false; error: string };
 
 // Content router across Stephanie's 10 layouts — picks the one that fits each
@@ -43,12 +43,22 @@ function hashStr(s: string): number {
   return n;
 }
 
-// Generic education/values concepts would all collapse onto the "C" workhorse
-// and make the feed repetitive — spread them deterministically across a varied
-// mix of text + lifestyle-photo layouts instead.
-const STEPHANIE_DEFAULT_ROTATION: StephanieArchetype[] = ["C", "TOPBAND", "PHOTOBAND", "CHECK", "D", "A"];
+// When no keyword rule fires, spread across these text layouts by (feed position
+// + concept hash) — combining the two decorrelates the choice so neither a raw
+// post_number (which clusters on parity) nor a raw hash (which clustered 7-of-24
+// on one slot) dominates. D — the only NON-list text card (a centered insight) —
+// is weighted twice so the heaviest layout is the calm insight, never a list, and
+// list cards (CHECK with checkmarks, C with dashes) stay the minority. NUMBER is
+// deliberately omitted: it's only chosen when a post actually has a number (the
+// %/rate rule), so we never force a fake stat onto e.g. "Treat Every Client Like
+// Family". Photo layouts stay rule-gated; this pass keeps fallbacks text-only.
+const STEPHANIE_TEXT_ROTATION: StephanieArchetype[] = ["D", "C", "CHECK", "D"];
 
-export function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
+export function pickArchetype(
+  pillar: string | null,
+  concept: string | null,
+  postNumber: number = 0,
+): StephanieArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
@@ -61,7 +71,8 @@ export function pickArchetype(pillar: string | null, concept: string | null): St
   if (has(/why i do|closer than you think|i hear it all the time|here'?s the thing|you can trust|high-stakes/)) return "PHOTOBAND";
   if (has(/inspir|motivat|quote|dream|equity|fun fact|calm power|you deserve/)) return "D";
   if (has(/lifestyle|seasonal|holiday|st\.?\s*patrick|christmas|spring|summer|fall|winter/)) return "A";
-  return STEPHANIE_DEFAULT_ROTATION[hashStr(`${pillar ?? ""}|${concept ?? ""}`) % STEPHANIE_DEFAULT_ROTATION.length];
+  const idx = (Math.abs(postNumber) + hashStr(`${pillar ?? ""}|${concept ?? ""}`)) % STEPHANIE_TEXT_ROTATION.length;
+  return STEPHANIE_TEXT_ROTATION[idx];
 }
 
 const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
@@ -79,15 +90,15 @@ function dataInstruction(a: StephanieArchetype): string {
     case "POLAROID":
       return `CLIENT CELEBRATION. photo.include = true; "photo.description" = a joyful but PEOPLE-FREE celebration scene — house keys on a counter, a "SOLD" sign in a green front yard, a welcome mat at a new front door. No people/faces/hands, no text. headline_lines = ONE short SCRIPT line (e.g. "In Contract" / "Just Closed"). body = a warm 1-2 sentence first-person client celebration.`;
     case "CHECK":
-      return `CHECKLIST CARD (no photo). headline_lines = a serif title + AT MOST ONE short script accent (e.g. serif "Your First Steps" + script "before you shop"). Fill "list_items" with 4-5 short, doable first-person steps/items. photo.include = false.`;
+      return `CHECKLIST CARD (no photo). headline_lines = a serif title + AT MOST ONE short script accent (e.g. serif "Your First Steps" + script "before you shop"). Fill "list_items" with 4-5 short, CONCRETE tips or steps ABOUT THE TOPIC that the READER can act on — imperative or second-person (e.g. "Keep card balances under 30%", "Pay every bill on time"). These are real, topic-specific actions — NOT first-person "I'll..." promises. photo.include = false.`;
     case "NUMBER":
-      return `QUIET BIG STAT (no photo). Fill "big_stat" with a short stat (<=5 chars, e.g. "2–5%", "20%", "3%"). headline_lines = a short serif label for the number (e.g. "of the loan amount"). body = ONE calm first-person sentence. photo.include = false.`;
+      return `QUIET BIG STAT (no photo). Fill "big_stat" with the single most relevant number for THIS topic (<=5 chars — e.g. credit utilization "30%", DTI "43%", disclosure window "3 days", the down-payment myth "20%", a low-down option "3.5%"). headline_lines = a short serif label that frames what the number means. body = ONE calm first-person sentence. photo.include = false.`;
     case "D":
-      return `QUOTE / INSPIRATIONAL CARD. headline = a calm, uplifting serif line (educational hook or inspirational quote). Add a short "body" sentence. photo.include = false.`;
+      return `INSIGHT / REFRAME CARD (no list, no generic platitude). headline_lines = ONE calm serif line that reframes THIS topic in a fresh, specific way (e.g. for Rent vs Buy: "Renting isn't wasted money — but it isn't building yours, either."), optionally one short script accent. body = ONE supporting first-person sentence. photo.include = false.`;
     case "G":
       return `TESTIMONIAL / CELEBRATION (text only, NO fabricated headshot). Fill "quote" (a warm 1-2 sentence client celebration in Stephanie's first-person voice) and "attribution" (e.g. "The Reyes Family"). photo.include = false.`;
     default:
-      return `VALUES / SERVICES CARD (the workhorse). Optionally fill "list_items" with 3-5 short first-person promises { "text":"I ..." } (e.g. "I'll tell you what you need to know — honestly"). headline = the card title (e.g. "What I will do for you"). photo.include = false.`;
+      return `VALUES / TAKEAWAYS CARD. Fill "list_items" with 3-5 short points. Choose by concept: for a "what I do for you / why work with me" post, use first-person promises ("I'll tell you what you need to know — honestly"); for an EDUCATIONAL or topic post, use the KEY TAKEAWAYS about the topic instead (NOT "I'll..." promises). headline = a title that fits the concept. photo.include = false.`;
   }
 }
 
@@ -97,7 +108,7 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number ?? 0);
   const instruction = [
     `You write copy for Stephanie Perez's Instagram (@stephanieperezhomeloans) — a personal-brand mortgage loan consultant in El Dorado Hills / Sacramento Valley. Voice: FIRST-PERSON singular ("I/me/my", NEVER "we/our team"), values-forward (honesty, integrity, calm), unhurried, relational. A trusted friend who happens to be your loan officer; 15 years in law enforcement before mortgage.`,
     `Visual brand: elegant SERIF carries the voice; a flowing SCRIPT is the personal signature accent (one short accent max). Calm and editorial.`,
