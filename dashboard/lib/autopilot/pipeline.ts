@@ -381,7 +381,7 @@ export async function generateBrandPost(
       let tag = "csc";
       if (cscArchetypeNeedsPhoto(cspec.archetype)) {
         const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${cspec.photo.description}. Bright, warm, reassuring; a calm parent and child together — NEVER scared, shocked, panicked, or in danger. Natural light, real diverse families, magazine quality. No stock cheese.`
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${cspec.photo.description}. Bright, warm, reassuring — NEVER scared, shocked, panicked, or in danger. Natural light, real diverse people, magazine quality. No stock cheese.`
         );
         if (!gen.ok) {
           await revert();
@@ -396,9 +396,14 @@ export async function generateBrandPost(
         height,
         eyebrow: cspec.eyebrow,
         headline: cspec.headline,
+        headlineAccent: cspec.headlineAccent,
         body: cspec.body,
         cta: cspec.cta,
         listItems: cspec.listItems,
+        quadItems: cspec.quadItems,
+        bullets: cspec.bullets,
+        coralTag: cspec.coralTag,
+        compare: cspec.compare,
         bigStat: cspec.bigStat,
         quote: cspec.quote,
         attribution: cspec.attribution,
