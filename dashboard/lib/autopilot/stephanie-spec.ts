@@ -89,7 +89,7 @@ function dataInstruction(a: StephanieArchetype): string {
     case "STEPS":
       return `NUMBERED PROCESS / PATH (no photo — clean ice-blue card with a timeline). headline_lines = ONE serif headline (e.g. "Your Path to the Keys"). Fill "list_items" with EXACTLY 4 objects in ORDER { "lead":"<the step, 2-4 words>", "text":"<one short line>" }. photo.include = false.`;
     case "VS":
-      return `TWO-COLUMN COMPARISON (no photo). headline_lines = ONE serif headline naming the two things (e.g. "Pre-Qualification vs. Pre-Approval"). eyebrow = a short label (e.g. "KNOW THE DIFFERENCE"). Fill "list_items" with EXACTLY 2 objects { "lead":"<option name>", "text":"<one short sentence describing it>" } — the left is usually the lesser/first option, the right the stronger one. photo.include = false.`;
+      return `TWO-PHOTO COMPARISON (a lifestyle photo behind each column). headline_lines = ONE serif headline naming the two things (e.g. "Pre-Qualification vs. Pre-Approval"). eyebrow = a short label (e.g. "KNOW THE DIFFERENCE"). Fill "list_items" with EXACTLY 2 objects { "lead":"<option name>", "text":"<one short sentence describing it>" } — left = the lesser/first option, right = the stronger one. photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
     case "BIGSTAT":
       return `BIG STAT (photo on top + a large numeral below). eyebrow = a short label (e.g. "MORTGAGE MYTH BUSTED"). big_stat = the single key figure (<=5 chars, e.g. "3.5%", "3%", "0%"). headline_lines = ONE short serif line framing the number (e.g. "could be your down payment"). body = ONE short clause of context. photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
     case "A":

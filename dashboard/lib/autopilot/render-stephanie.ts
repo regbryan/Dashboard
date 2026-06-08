@@ -57,6 +57,7 @@ export type StephanieRenderInput = {
   quote?: string | null;
   attribution?: string | null;
   photo?: Buffer | null;
+  photo2?: Buffer | null;
 };
 
 type El = { type: string; props: Record<string, unknown> };
@@ -213,15 +214,16 @@ function checklistTree(input: StephanieRenderInput, dataUri: string, heart: stri
   });
   return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", position: "relative", background: ICE_BLUE }, [
     h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
-    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", background: "rgba(255,255,255,0.80)" }),
-    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", flexGrow: 1, width: "100%", padding: "58px 64px 44px" }, [
-      h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "22px", width: "100%" }, [
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", background: "rgba(247,251,252,0.46)" }),
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "280px", backgroundImage: "linear-gradient(180deg, rgba(247,251,252,0.92), rgba(247,251,252,0))" }),
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", flexGrow: 1, width: "100%", padding: "56px 64px 44px" }, [
+      h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", width: "100%", marginBottom: "34px" }, [
         h("div", { display: "flex", justifyContent: "center", alignItems: "center", background: DEEP_BLUE, padding: "10px 28px" }, [
           h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "26px", letterSpacing: "5px", color: WHITE }, eyebrowText),
         ]),
         h("div", { display: "flex", width: "98%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "58px", lineHeight: 1.1, color: NEARBLACK }, headlineText),
       ]),
-      h("div", { display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "20px", width: "100%", flexGrow: 1, padding: "26px 0px" }, rows),
+      h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: "22px", width: "100%", flexGrow: 1 }, rows),
       ...(input.cta?.trim() ? [h("div", { display: "flex", justifyContent: "center", alignItems: "center", background: DEEP_BLUE, padding: "18px 46px" }, [
         h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "28px", letterSpacing: "2px", color: WHITE }, input.cta.trim().toUpperCase()),
       ])] : []),
@@ -457,29 +459,31 @@ function altBarsTree(input: StephanieRenderInput, dataUri: string, heart: string
   ]);
 }
 
-// VS — a two-column comparison (e.g. "Pre-Qualification | Pre-Approval"), a deep-
-// blue column beside a sky column, with the headline above. Uses the first two
-// list items as the two options (lead = the option name, text = the description).
-function vsTree(input: StephanieRenderInput, heart: string): El {
+// VS — a TWO-PHOTO split comparison: a lifestyle photo behind each column with a
+// brand-color tint, a label band, and the description. Fills the frame — no flat
+// empty color. Uses the first two list items as the two options.
+function vsTree(input: StephanieRenderInput, heart: string, uriL: string, uriR: string): El {
   const items = (input.listItems ?? []).slice(0, 2);
   const headlineText = input.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ") || input.headlineLines.map((l) => l.text).join(" ");
-  const col = (it: { lead?: string | null; text: string } | undefined, bg: string, headerBg: string, labelColor: string, txtColor: string) =>
-    h("div", { display: "flex", flexDirection: "column", width: "50%", height: "100%", background: bg }, [
-      h("div", { display: "flex", justifyContent: "center", alignItems: "center", width: "100%", padding: "44px 28px", background: headerBg }, [
-        h("div", { display: "flex", textAlign: "center", justifyContent: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "38px", lineHeight: 1.12, color: labelColor }, it?.lead || ""),
+  const col = (it: { lead?: string | null; text: string } | undefined, uri: string, scrim: string, labelBg: string, labelColor: string) =>
+    h("div", { display: "flex", flexDirection: "column", width: "50%", height: "100%", position: "relative", background: DEEP_BLUE }, [
+      h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(uri, { width: "100%", height: "100%", objectFit: "cover" })]),
+      h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", background: scrim }),
+      h("div", { display: "flex", justifyContent: "center", alignItems: "center", width: "100%", padding: "40px 26px", background: labelBg }, [
+        h("div", { display: "flex", textAlign: "center", justifyContent: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "40px", lineHeight: 1.12, color: labelColor }, it?.lead || ""),
       ]),
-      h("div", { display: "flex", flexDirection: "column", justifyContent: "flex-start", alignItems: "center", flexGrow: 1, padding: "60px 42px" }, [
-        h("div", { display: "flex", textAlign: "center", justifyContent: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "31px", lineHeight: 1.5, color: txtColor }, it?.text || ""),
+      h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", flexGrow: 1, padding: "44px 40px" }, [
+        h("div", { display: "flex", textAlign: "center", justifyContent: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "32px", lineHeight: 1.5, color: WHITE }, it?.text || ""),
       ]),
     ]);
   return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: WHITE }, [
-    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "52px 64px 28px" }, [
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "50px 64px 26px" }, [
       ...eyebrow(input.eyebrow, false),
       h("div", { display: "flex", width: "96%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "50px", lineHeight: 1.12, color: DEEP_BLUE }, headlineText),
     ]),
     h("div", { display: "flex", flexDirection: "row", flexGrow: 1, width: "100%" }, [
-      col(items[0], DEEP_BLUE, "rgba(0,0,0,0.16)", WHITE, ICE_BLUE),
-      col(items[1], ICE_BLUE, SKY_BLUE, DEEP_BLUE, NEARBLACK),
+      col(items[0], uriL, "rgba(28,42,66,0.62)", DEEP_BLUE, WHITE),
+      col(items[1], uriR, "rgba(45,68,100,0.46)", SKY_BLUE, DEEP_BLUE),
     ]),
     footerBar(heart),
   ]);
@@ -548,7 +552,9 @@ export async function renderStephanieDesign(input: StephanieRenderInput): Promis
       : a === "POLAROID" ? polaroidTree(input, uri)
       : photoOverlayCardTree(input, uri);
   } else if (a === "VS") {
-    root = vsTree(input, await heartUri(DEEP_BLUE));
+    const uriL = await toUri(input.photo as Buffer);
+    const uriR = input.photo2 ? await toUri(input.photo2 as Buffer) : uriL;
+    root = vsTree(input, await heartUri(DEEP_BLUE), uriL, uriR);
   } else if (a === "STEPS") {
     root = stepsTree(input, await heartUri(DEEP_BLUE));
   } else if (a === "D") {
@@ -573,5 +579,5 @@ export async function renderStephanieDesign(input: StephanieRenderInput): Promis
 }
 
 export function stephanieArchetypeNeedsPhoto(a: StephanieArchetype): boolean {
-  return a === "SIGNATURE" || a === "SIGBOTTOM" || a === "STATEMENT" || a === "CHECKLIST" || a === "ALTBARS" || a === "BIGSTAT" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID";
+  return a === "SIGNATURE" || a === "SIGBOTTOM" || a === "STATEMENT" || a === "CHECKLIST" || a === "ALTBARS" || a === "BIGSTAT" || a === "VS" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID";
 }

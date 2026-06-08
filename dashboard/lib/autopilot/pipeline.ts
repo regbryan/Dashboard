@@ -475,17 +475,33 @@ export async function generateBrandPost(
       }
       const stspec = s.spec;
       let stephaniePhoto: Buffer | null = null;
+      let stephaniePhoto2: Buffer | null = null;
       let tag = "stephanie";
+      const stPhotoPrompt = (desc: string) =>
+        `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${desc}. Warm, inviting, soft natural light; bright and aspirational, magazine-quality lifestyle stock. Never stiff corporate stock, never dark or moody.`;
       if (stephanieArchetypeNeedsPhoto(stspec.archetype)) {
-        const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${stspec.photo.description}. Warm, inviting, soft natural light; bright and aspirational, magazine-quality lifestyle stock. Never stiff corporate stock, never dark or moody.`
-        );
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
+        if (stspec.archetype === "VS") {
+          // VS needs two photos (one per column) — generate in parallel.
+          const [g1, g2] = await Promise.all([
+            genImage(stPhotoPrompt(stspec.photo.description)),
+            genImage(stPhotoPrompt(stspec.photo.description)),
+          ]);
+          if (!g1.ok) {
+            await revert();
+            return { ok: false, postId: post.id, error: g1.error };
+          }
+          stephaniePhoto = g1.bytes;
+          stephaniePhoto2 = g2.ok ? g2.bytes : g1.bytes;
+          tag = `${g1.model}+stephanie`;
+        } else {
+          const gen = await genImage(stPhotoPrompt(stspec.photo.description));
+          if (!gen.ok) {
+            await revert();
+            return { ok: false, postId: post.id, error: gen.error };
+          }
+          stephaniePhoto = gen.bytes;
+          tag = `${gen.model}+stephanie`;
         }
-        stephaniePhoto = gen.bytes;
-        tag = `${gen.model}+stephanie`;
       }
       bytes = await renderStephanieDesign({
         archetype: stspec.archetype,
@@ -500,6 +516,7 @@ export async function generateBrandPost(
         quote: stspec.quote,
         attribution: stspec.attribution,
         photo: stephaniePhoto,
+        photo2: stephaniePhoto2,
       });
       mimeType = "image/png";
       model = `${tag}-${stspec.archetype}`;
