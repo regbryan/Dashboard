@@ -478,7 +478,7 @@ export async function generateBrandPost(
       let tag = "stephanie";
       if (stephanieArchetypeNeedsPhoto(stspec.archetype)) {
         const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${stspec.photo.description}. A warm, inviting home/lifestyle moment in soft natural light — ABSOLUTELY NO people, faces, or hands. Editorial, magazine quality, calm and feminine. Never corporate stock or dark/moody.`
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${stspec.photo.description}. Warm, inviting, soft natural light; bright and aspirational, magazine-quality lifestyle stock. Never stiff corporate stock, never dark or moody.`
         );
         if (!gen.ok) {
           await revert();

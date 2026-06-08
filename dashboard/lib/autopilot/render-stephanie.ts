@@ -39,7 +39,9 @@ export type StephanieArchetype =
   | "A" | "C" | "D" | "G"
   | "PHOTOBAND" | "TOPBAND" | "SPLIT" | "POLAROID" | "CHECK" | "NUMBER"
   // Photo-free but STRUCTURALLY distinct (not the centered-on-solid-card silhouette):
-  | "EDITORIAL" | "SPLITBLOCK" | "PULLQUOTE";
+  | "EDITORIAL" | "SPLITBLOCK" | "PULLQUOTE"
+  // Reference-matched signature templates (full-bleed photo, dense, footer):
+  | "SIGNATURE" | "CHECKLIST";
 export type StephanieHeadlineLine = { text: string; style: "serif" | "script" };
 export type StephanieRenderInput = {
   archetype: StephanieArchetype;
@@ -49,7 +51,7 @@ export type StephanieRenderInput = {
   headlineLines: StephanieHeadlineLine[];
   body?: string | null;
   cta?: string | null;
-  listItems?: { text: string }[] | null;
+  listItems?: { lead?: string | null; text: string }[] | null;
   bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
@@ -142,6 +144,82 @@ async function checkUri(color: string): Promise<string> {
     iconCache[color] = `data:image/png;base64,${(await sharp(Buffer.from(svg)).png().toBuffer()).toString("base64")}`;
   }
   return iconCache[color];
+}
+
+async function heartUri(color: string): Promise<string> {
+  const key = `heart-${color}`;
+  if (!iconCache[key]) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.55-10-9.28C.55 9 1.3 5.7 4.4 4.85c2.05-.56 3.86.5 4.95 2.02C10.45 5.35 12.25 4.3 14.3 4.85c3.1.85 3.85 4.15 2.4 6.87C19.5 16.45 12 21 12 21z" fill="${color}"/></svg>`;
+    iconCache[key] = `data:image/png;base64,${(await sharp(Buffer.from(svg)).png().toBuffer()).toString("base64")}`;
+  }
+  return iconCache[key];
+}
+
+// White footer bar with the website — present on every reference design.
+function footerBar(heart: string): El {
+  return h("div", { display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", width: "100%", background: WHITE, padding: "24px 0" }, [
+    h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "23px", letterSpacing: "0.5px", color: DEEP_BLUE }, "stephanieperezhomeloans.com"),
+    img(heart, { width: "22px", height: "22px" }),
+  ]);
+}
+
+// SIGNATURE — the brand's hero template (v2 references): a full-bleed lifestyle
+// photo with people, a translucent deep-blue band across the TOP holding a big
+// serif headline + a dense 2-3 line body, and the white website footer. Fills
+// the frame edge to edge — no dead space.
+function signatureTree(input: StephanieRenderInput, dataUri: string, heart: string): El {
+  const body = input.body?.trim();
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", position: "relative", background: DEEP_BLUE }, [
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", width: "100%", background: "rgba(61,90,128,0.90)", padding: "60px 70px 50px" }, [
+      h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", width: "100%" },
+        input.headlineLines.map((l) => l.style === "script"
+          ? h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Allura", fontWeight: 400, fontSize: "74px", lineHeight: 1.0, color: ICE_BLUE }, l.text)
+          : h("div", { display: "flex", width: "96%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "56px", lineHeight: 1.12, color: WHITE }, l.text))),
+      ...(body ? [h("div", { display: "flex", width: "90%", justifyContent: "center", textAlign: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "30px", lineHeight: 1.45, color: ICE_BLUE }, body)] : []),
+    ]),
+    h("div", { display: "flex", flexGrow: 1, width: "100%" }),
+    footerBar(heart),
+  ]);
+}
+
+// CHECKLIST — a photo background under a soft white scrim, an "INSIDER TIP" tab,
+// a big serif headline, then a staggered column of numbered cards (deep-blue
+// number box + ice-blue bar with bold title + light subtitle), a deep-blue CTA
+// button, and the footer. Dense and frame-filling.
+function checklistTree(input: StephanieRenderInput, dataUri: string, heart: string): El {
+  const items = (input.listItems ?? []).slice(0, 4);
+  const headlineText = input.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ") || input.headlineLines.map((l) => l.text).join(" ");
+  const eyebrowText = (input.eyebrow ?? "INSIDER TIP").toUpperCase();
+  const rows = items.map((it, i) => {
+    const numBox = h("div", { display: "flex", justifyContent: "center", alignItems: "center", width: "92px", height: "92px", background: DEEP_BLUE }, [
+      h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "40px", color: WHITE }, String(i + 1).padStart(2, "0")),
+    ]);
+    const bar = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: "2px", background: "rgba(224,251,252,0.94)", padding: "14px 26px", height: "92px" }, [
+      h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "30px", color: DEEP_BLUE }, it.lead || it.text),
+      ...(it.lead && it.text ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "24px", color: NEARBLACK }, it.text)] : []),
+    ]);
+    return h("div", { display: "flex", justifyContent: i % 2 === 0 ? "flex-start" : "flex-end", width: "100%" }, [
+      h("div", { display: "flex", alignItems: "stretch", maxWidth: "78%" }, [numBox, bar]),
+    ]);
+  });
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", position: "relative", background: ICE_BLUE }, [
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", background: "rgba(255,255,255,0.80)" }),
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", flexGrow: 1, width: "100%", padding: "58px 64px 44px" }, [
+      h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "22px", width: "100%" }, [
+        h("div", { display: "flex", justifyContent: "center", alignItems: "center", background: DEEP_BLUE, padding: "10px 28px" }, [
+          h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "26px", letterSpacing: "5px", color: WHITE }, eyebrowText),
+        ]),
+        h("div", { display: "flex", width: "98%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "58px", lineHeight: 1.1, color: NEARBLACK }, headlineText),
+      ]),
+      h("div", { display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "20px", width: "100%", flexGrow: 1, padding: "26px 0px" }, rows),
+      ...(input.cta?.trim() ? [h("div", { display: "flex", justifyContent: "center", alignItems: "center", background: DEEP_BLUE, padding: "18px 46px" }, [
+        h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "28px", letterSpacing: "2px", color: WHITE }, input.cta.trim().toUpperCase()),
+      ])] : []),
+    ]),
+    footerBar(heart),
+  ]);
 }
 
 // Left-aligned serif + script headline (for the split panel).
@@ -311,10 +389,12 @@ export async function renderStephanieDesign(input: StephanieRenderInput): Promis
   const toUri = async (buf: Buffer) => `data:image/jpeg;base64,${(await sharp(buf).jpeg({ quality: 92, chromaSubsampling: "4:4:4", mozjpeg: true }).toBuffer()).toString("base64")}`;
   const a = input.archetype;
   let root: El;
-  if (a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID") {
+  if (a === "SIGNATURE" || a === "CHECKLIST" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID") {
     const uri = await toUri(input.photo as Buffer);
     root =
-      a === "PHOTOBAND" ? photoBandTree(input, uri)
+      a === "SIGNATURE" ? signatureTree(input, uri, await heartUri(DEEP_BLUE))
+      : a === "CHECKLIST" ? checklistTree(input, uri, await heartUri(DEEP_BLUE))
+      : a === "PHOTOBAND" ? photoBandTree(input, uri)
       : a === "TOPBAND" ? topBandTree(input, uri)
       : a === "SPLIT" ? splitTree(input, uri, await checkUri(ICE_BLUE))
       : a === "POLAROID" ? polaroidTree(input, uri)
@@ -341,5 +421,5 @@ export async function renderStephanieDesign(input: StephanieRenderInput): Promis
 }
 
 export function stephanieArchetypeNeedsPhoto(a: StephanieArchetype): boolean {
-  return a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID";
+  return a === "SIGNATURE" || a === "CHECKLIST" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID";
 }

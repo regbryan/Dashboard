@@ -16,7 +16,7 @@ export type StephanieSpec = {
   headlineLines: StephanieHeadlineLine[];
   body: string;
   cta: string;
-  listItems?: { text: string }[] | null;
+  listItems?: { lead?: string | null; text: string }[] | null;
   bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
@@ -37,50 +37,34 @@ export type StephanieSynthResult = { ok: true; spec: StephanieSpec } | { ok: fal
 //   PHOTOBAND personal statement over a lifestyle photo
 //   D         inspirational / quote      A  lifestyle photo-overlay
 //   C         values / services workhorse
-function hashStr(s: string): number {
-  let n = 0;
-  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
-  return n;
-}
-
-// PHOTO-FORWARD, like Omega: when no keyword rule fires, the feed leads with
-// people-free lifestyle-photo layouts and drops in the distinct text layouts as
-// the minority accent. The decision is DECOUPLED — a coarse split fixes the
-// ~70/30 photo:text ratio, then a separately-salted hash picks the layout — so
-// neither the ratio nor any single layout clusters (a single %N kept doing that).
-// Each photo post gets its own lifestyle scene, so they read varied even when the
-// composition repeats (the same way Omega's photo feed does).
-const STEPHANIE_PHOTO_SET: StephanieArchetype[] = ["PHOTOBAND", "TOPBAND", "A"];
-const STEPHANIE_TEXT_SET: StephanieArchetype[] = ["SPLITBLOCK", "PULLQUOTE"];
-
-export function pickArchetype(
-  pillar: string | null,
-  concept: string | null,
-  postNumber: number = 0,
-): StephanieArchetype {
+// Stephanie's REAL design system (from her v2 reference posts) is two strong,
+// frame-filling templates — variety comes from the photo + copy, not from many
+// different silhouettes (the same way Omega works):
+//   SIGNATURE  full-bleed lifestyle photo (with people) + a dense headline band
+//              + the website footer. The workhorse — most posts.
+//   CHECKLIST  a soft photo background + "INSIDER TIP" tab + a staggered numbered
+//              card list + CTA button + footer. For tips / multi-point posts.
+//   G          a text testimonial card (client celebration).
+export function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
-  if (has(/in contract|just closed|she'?s a homeowner|he'?s a homeowner|client win|keys to|welcome home|closing day|congrat/)) return "POLAROID";
-  if (has(/testimonial|review|what (my )?clients say|client said|hear from/)) return "G";
-  if (has(/\b\d+ ?[-–] ?\d+%|\b\d+%|rate update|market update|by the numbers|the number/)) return "NUMBER";
-  if (has(/choosing a|what to look for|how to choose|red flags|questions to ask|signs of a/)) return "SPLIT";
-  if (has(/check ?list|first steps|before you (shop|buy)|to-?do|step-by-step|\b\d+ (steps|things to do|things to gather)/)) return "CHECK";
-  if (has(/let'?s clear this up|the truth about|here'?s what|explained|breaking down|what .* actually/)) return "TOPBAND";
-  if (has(/why i do|closer than you think|i hear it all the time|here'?s the thing|you can trust|high-stakes/)) return "PHOTOBAND";
-  if (has(/inspir|motivat|quote|dream|equity|fun fact|calm power|you deserve/)) return "D";
-  if (has(/lifestyle|seasonal|holiday|st\.?\s*patrick|christmas|spring|summer|fall|winter/)) return "A";
-  const key = `${pillar ?? ""}|${concept ?? ""}`;
-  const photoForward = (Math.abs(postNumber) * 3 + hashStr(key)) % 10 < 7; // ~70% photo
-  return photoForward
-    ? STEPHANIE_PHOTO_SET[hashStr(`${key}#p`) % STEPHANIE_PHOTO_SET.length]
-    : STEPHANIE_TEXT_SET[hashStr(`${key}#t`) % STEPHANIE_TEXT_SET.length];
+  if (has(/testimonial|review|what (my )?clients say|client said|hear from|client (win|story|spotlight)/)) return "G";
+  if (has(/\b\d+\s+(things|steps|tips|ways|reasons|signs|mistakes|questions|items|documents|moves|hacks)\b|check ?list|first steps|before you (shop|buy|sign|tour)|what (lenders|to look for|you need)|how to (choose|prep|get)|things to (do|gather|know)/)) return "CHECKLIST";
+  return "SIGNATURE";
 }
 
 const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
+// Stephanie's photos are warm lifestyle stock WITH people (per her kit), not empty rooms.
+const WITH_PEOPLE = "a warm, bright, photorealistic LIFESTYLE photo with REAL PEOPLE relevant to the topic — e.g. a happy couple or a young family at home (a sunny front porch, a kitchen, a living room, unpacking moving boxes, reviewing papers at a table). Natural light, aspirational but candid lifestyle stock — NEVER stiff corporate stock, never dark or moody. No text, logos, or watermarks.";
+const SOFT_BG = "a soft, lightly-lit, uncluttered home/desk BACKGROUND — house keys on a clean counter, mortgage papers and a pen, a bright airy kitchen or entryway. It sits under a white scrim so keep it simple and low-contrast. Natural light. No people needed. No text, logos, or watermarks.";
 
 function dataInstruction(a: StephanieArchetype): string {
   switch (a) {
+    case "SIGNATURE":
+      return `SIGNATURE HERO (full-bleed photo + headline band + footer). headline_lines = ONE warm serif headline that states the idea plainly (a hook or promise, e.g. "You don't need 20% down."). body = REQUIRED — 2-3 dense first-person sentences that deliver the actual value/explanation (this fills the band, so never leave it short). photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
+    case "CHECKLIST":
+      return `NUMBERED CHECKLIST over a soft photo. eyebrow = a SHORT all-caps tab label (e.g. "INSIDER TIP", "BUYER CHECKLIST", "BEFORE YOU BUY"). headline_lines = ONE serif headline naming the list. Fill "list_items" with EXACTLY 4 objects { "lead":"<a 2-4 word bold title>", "text":"<one short subtitle line>" }. cta = a short imperative (e.g. "DM CHECK to start", "Save this list"). photo.include = true; "photo.description" = ${SOFT_BG}`;
     case "A":
       return `PHOTO OVERLAY CARD. photo.include = true; "photo.description" = ${PEOPLE_FREE}`;
     case "PHOTOBAND":
@@ -116,7 +100,7 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number ?? 0);
+  const archetype = pickArchetype(post.content_pillar, post.concept);
   const instruction = [
     `You write copy for Stephanie Perez's Instagram (@stephanieperezhomeloans) — a personal-brand mortgage loan consultant in El Dorado Hills / Sacramento Valley. Voice: FIRST-PERSON singular ("I/me/my", NEVER "we/our team"), values-forward (honesty, integrity, calm), unhurried, relational. A trusted friend who happens to be your loan officer; 15 years in law enforcement before mortgage.`,
     `Visual brand: elegant SERIF carries the voice; a flowing SCRIPT is the personal signature accent (one short accent max). Calm and editorial.`,
@@ -178,15 +162,15 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
 
   const photoObj = (parsed.photo ?? {}) as { include?: unknown; description?: unknown };
   const listItems = Array.isArray(parsed.list_items)
-    ? (parsed.list_items as { text?: unknown }[])
+    ? (parsed.list_items as { lead?: unknown; text?: unknown }[])
         .filter((it) => it && typeof it.text === "string")
         .slice(0, 5)
-        .map((it) => ({ text: clean(it.text) }))
+        .map((it) => ({ lead: typeof it.lead === "string" && it.lead.trim() ? clean(it.lead) : null, text: clean(it.text) }))
         .filter((it) => it.text.length > 0)
     : null;
 
   const bodyText = clean(parsed.body);
-  const usesList = (a: StephanieArchetype) => a === "C" || a === "SPLIT" || a === "CHECK" || a === "EDITORIAL" || a === "SPLITBLOCK";
+  const usesList = (a: StephanieArchetype) => a === "C" || a === "SPLIT" || a === "CHECK" || a === "EDITORIAL" || a === "SPLITBLOCK" || a === "CHECKLIST";
   const keptList = usesList(archetype) ? listItems : null;
 
   // Guard: EDITORIAL/SPLITBLOCK have a dedicated content area that looks broken
