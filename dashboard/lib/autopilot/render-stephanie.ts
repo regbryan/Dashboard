@@ -40,8 +40,9 @@ export type StephanieArchetype =
   | "PHOTOBAND" | "TOPBAND" | "SPLIT" | "POLAROID" | "CHECK" | "NUMBER"
   // Photo-free but STRUCTURALLY distinct (not the centered-on-solid-card silhouette):
   | "EDITORIAL" | "SPLITBLOCK" | "PULLQUOTE"
-  // Reference-matched signature templates (full-bleed photo, dense, footer):
-  | "SIGNATURE" | "CHECKLIST";
+  // Reference-matched templates (full-bleed photo, dense, footer):
+  | "SIGNATURE" | "SIGBOTTOM" | "STATEMENT" | "CHECKLIST" | "ALTBARS"
+  | "STEPS" | "VS" | "BIGSTAT";
 export type StephanieHeadlineLine = { text: string; style: "serif" | "script" };
 export type StephanieRenderInput = {
   archetype: StephanieArchetype;
@@ -127,12 +128,19 @@ function quoteCardTree(input: StephanieRenderInput): El {
   ]);
 }
 
-function testimonialCardTree(input: StephanieRenderInput): El {
+function testimonialCardTree(input: StephanieRenderInput, heart: string): El {
   const quote = input.quote ?? input.headlineLines.map((l) => l.text).join(" ");
-  return h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "30px", width: "100%", height: "100%", background: DEEP_BLUE, padding: "104px 88px 116px" }, [
-    h("div", { display: "flex", fontFamily: "Allura", fontWeight: 400, fontSize: "92px", lineHeight: 0.9, color: SKY_BLUE }, "In Contract"),
-    h("div", { display: "flex", width: "86%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "44px", lineHeight: 1.3, color: WHITE }, quote),
-    ...(input.attribution ? [h("div", { display: "flex", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "30px", letterSpacing: "1px", color: ICE_BLUE }, input.attribution)] : []),
+  const header = input.eyebrow?.trim() || "In Contract";
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: DEEP_BLUE }, [
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "30px", flexGrow: 1, width: "100%", padding: "70px 86px" }, [
+      h("div", { display: "flex", fontFamily: "Allura", fontWeight: 400, fontSize: "104px", lineHeight: 0.9, color: SKY_BLUE }, header),
+      h("div", { display: "flex", width: "88%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "48px", lineHeight: 1.32, color: WHITE }, quote),
+      ...(input.attribution ? [h("div", { display: "flex", alignItems: "center", gap: "14px" }, [
+        h("div", { display: "flex", width: "40px", height: "2px", background: SKY_BLUE }),
+        h("div", { display: "flex", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "30px", letterSpacing: "1px", color: ICE_BLUE }, input.attribution),
+      ])] : []),
+    ]),
+    footerBar(heart),
   ]);
 }
 
@@ -383,26 +391,170 @@ function pullQuoteTree(input: StephanieRenderInput): El {
   ]);
 }
 
+// SIGBOTTOM — the photo+band signature with the band anchored at the BOTTOM
+// (her "Rates have shifted." / "why I do what I do" personal posts).
+function sigBottomTree(input: StephanieRenderInput, dataUri: string, heart: string): El {
+  const body = input.body?.trim();
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", position: "relative", background: DEEP_BLUE }, [
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", flexGrow: 1, width: "100%" }),
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", width: "100%", background: "rgba(61,90,128,0.90)", padding: "52px 70px 44px" }, [
+      h("div", { display: "flex", width: "96%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "56px", lineHeight: 1.12, color: WHITE }, input.headlineLines.map((l) => l.text).join(" ")),
+      ...(body ? [h("div", { display: "flex", width: "90%", justifyContent: "center", textAlign: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "30px", lineHeight: 1.45, color: ICE_BLUE }, body)] : []),
+    ]),
+    footerBar(heart),
+  ]);
+}
+
+// STATEMENT — a bold serif statement directly over a darkened full-bleed photo
+// (no band). Big, editorial, cinematic.
+function statementTree(input: StephanieRenderInput, dataUri: string, heart: string): El {
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", position: "relative", background: DEEP_BLUE }, [
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", background: "rgba(20,32,54,0.58)" }),
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "20px", flexGrow: 1, width: "100%", padding: "80px 80px" }, [
+      ...eyebrow(input.eyebrow, true),
+      h("div", { display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", width: "100%" },
+        input.headlineLines.map((l) => l.style === "script"
+          ? h("div", { display: "flex", width: "100%", justifyContent: "center", textAlign: "center", fontFamily: "Allura", fontWeight: 400, fontSize: "92px", lineHeight: 1.0, color: ICE_BLUE }, l.text)
+          : h("div", { display: "flex", width: "92%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "72px", lineHeight: 1.14, color: WHITE }, l.text))),
+      ...(input.body?.trim() ? [h("div", { display: "flex", width: "80%", justifyContent: "center", textAlign: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "30px", lineHeight: 1.45, color: ICE_BLUE }, input.body.trim())] : []),
+      ...softCta(input.cta, true),
+    ]),
+    footerBar(heart),
+  ]);
+}
+
+// ALTBARS — a photo background, a headline on a dark top scrim, then FULL-WIDTH
+// numbered bars that alternate color (sky / white / navy) and number side
+// (her "4 Credit Score Myths Exposed" look). Bolder than the staggered checklist.
+function altBarsTree(input: StephanieRenderInput, dataUri: string, heart: string): El {
+  const items = (input.listItems ?? []).slice(0, 4);
+  const headlineText = input.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ") || input.headlineLines.map((l) => l.text).join(" ");
+  const palette = [
+    { bg: SKY_BLUE, num: WHITE, title: WHITE, sub: "#EAF4FA" },
+    { bg: "rgba(255,255,255,0.94)", num: DEEP_BLUE, title: DEEP_BLUE, sub: NEARBLACK },
+    { bg: DEEP_BLUE, num: WHITE, title: WHITE, sub: ICE_BLUE },
+    { bg: "rgba(255,255,255,0.94)", num: DEEP_BLUE, title: DEEP_BLUE, sub: NEARBLACK },
+  ];
+  const bars = items.map((it, i) => {
+    const c = palette[i % 4];
+    const numEl = h("div", { display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "46px", color: c.num, width: "96px" }, String(i + 1).padStart(2, "0"));
+    const txt = h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: "2px", flexGrow: 1, alignItems: i % 2 === 0 ? "flex-start" : "flex-end" }, [
+      h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "30px", color: c.title, textAlign: i % 2 === 0 ? "left" : "right" }, it.lead || it.text),
+      ...(it.lead && it.text ? [h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 400, fontSize: "23px", color: c.sub, textAlign: i % 2 === 0 ? "left" : "right" }, it.text)] : []),
+    ]);
+    return h("div", { display: "flex", alignItems: "center", gap: "20px", width: "92%", height: "104px", background: c.bg, padding: "0 24px", alignSelf: i % 2 === 0 ? "flex-start" : "flex-end" }, i % 2 === 0 ? [numEl, txt] : [txt, numEl]);
+  });
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", position: "relative", background: DEEP_BLUE }, [
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", background: "rgba(34,46,68,0.46)" }),
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: "12px", width: "100%", padding: "58px 50px 26px" }, [
+      h("div", { display: "flex", width: "96%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "56px", lineHeight: 1.1, color: WHITE }, headlineText),
+    ]),
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "16px", flexGrow: 1, width: "100%", padding: "12px 40px 30px" }, bars),
+    footerBar(heart),
+  ]);
+}
+
+// VS — a two-column comparison (e.g. "Pre-Qualification | Pre-Approval"), a deep-
+// blue column beside a sky column, with the headline above. Uses the first two
+// list items as the two options (lead = the option name, text = the description).
+function vsTree(input: StephanieRenderInput, heart: string): El {
+  const items = (input.listItems ?? []).slice(0, 2);
+  const headlineText = input.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ") || input.headlineLines.map((l) => l.text).join(" ");
+  const col = (it: { lead?: string | null; text: string } | undefined, bg: string, headerBg: string, labelColor: string, txtColor: string) =>
+    h("div", { display: "flex", flexDirection: "column", width: "50%", height: "100%", background: bg }, [
+      h("div", { display: "flex", justifyContent: "center", alignItems: "center", width: "100%", padding: "44px 28px", background: headerBg }, [
+        h("div", { display: "flex", textAlign: "center", justifyContent: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "38px", lineHeight: 1.12, color: labelColor }, it?.lead || ""),
+      ]),
+      h("div", { display: "flex", flexDirection: "column", justifyContent: "flex-start", alignItems: "center", flexGrow: 1, padding: "60px 42px" }, [
+        h("div", { display: "flex", textAlign: "center", justifyContent: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "31px", lineHeight: 1.5, color: txtColor }, it?.text || ""),
+      ]),
+    ]);
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: WHITE }, [
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "52px 64px 28px" }, [
+      ...eyebrow(input.eyebrow, false),
+      h("div", { display: "flex", width: "96%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "50px", lineHeight: 1.12, color: DEEP_BLUE }, headlineText),
+    ]),
+    h("div", { display: "flex", flexDirection: "row", flexGrow: 1, width: "100%" }, [
+      col(items[0], DEEP_BLUE, "rgba(0,0,0,0.16)", WHITE, ICE_BLUE),
+      col(items[1], ICE_BLUE, SKY_BLUE, DEEP_BLUE, NEARBLACK),
+    ]),
+    footerBar(heart),
+  ]);
+}
+
+// STEPS — a clean ice-blue process card: headline, then a vertical numbered path
+// with a sky-blue connecting line tying the round chips together. No photo.
+function stepsTree(input: StephanieRenderInput, heart: string): El {
+  const items = (input.listItems ?? []).slice(0, 4);
+  const headlineText = input.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ") || input.headlineLines.map((l) => l.text).join(" ");
+  const rows = items.map((it, i) => h("div", { display: "flex", alignItems: "center", gap: "26px", width: "100%" }, [
+    h("div", { display: "flex", justifyContent: "center", alignItems: "center", width: "78px", height: "78px", borderRadius: "39px", background: DEEP_BLUE, border: `4px solid ${ICE_BLUE}`, fontFamily: "Playfair", fontWeight: 700, fontSize: "36px", color: WHITE }, String(i + 1)),
+    h("div", { display: "flex", flexDirection: "column", gap: "2px", flexGrow: 1 }, [
+      h("div", { display: "flex", fontFamily: "Montserrat", fontWeight: 700, fontSize: "32px", color: DEEP_BLUE }, it.lead || it.text),
+      ...(it.lead && it.text ? [h("div", { display: "flex", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "27px", color: NEARBLACK }, it.text)] : []),
+    ]),
+  ]));
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: ICE_BLUE }, [
+    h("div", { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexGrow: 1, width: "100%", padding: "56px 80px 44px" }, [
+      h("div", { display: "flex", width: "96%", justifyContent: "center", textAlign: "center", fontFamily: "Playfair", fontWeight: 700, fontSize: "56px", lineHeight: 1.12, color: DEEP_BLUE, marginBottom: "46px" }, headlineText),
+      h("div", { display: "flex", flexDirection: "row", width: "100%", flexGrow: 1 }, [
+        // connecting line behind the chips
+        h("div", { display: "flex", flexDirection: "column", alignItems: "center", width: "78px" }, [
+          h("div", { display: "flex", width: "4px", flexGrow: 1, background: SKY_BLUE, marginTop: "30px", marginBottom: "30px" }),
+        ]),
+        h("div", { display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "34px", flexGrow: 1, marginLeft: "-78px", width: "100%" }, rows),
+      ]),
+    ]),
+    footerBar(heart),
+  ]);
+}
+
+// BIGSTAT — a photo on top, an ice-blue panel below with a large serif numeral +
+// label + body. A bold stat moment (rates, percentages, "0% down").
+function bigStatTree(input: StephanieRenderInput, dataUri: string, heart: string): El {
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: ICE_BLUE }, [
+    h("div", { display: "flex", width: "100%", height: "54%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]),
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "10px", flexGrow: 1, width: "100%", padding: "26px 70px" }, [
+      ...eyebrow(input.eyebrow, false),
+      h("div", { display: "flex", fontFamily: "Playfair", fontWeight: 700, fontSize: "138px", lineHeight: 1.0, color: DEEP_BLUE }, input.bigStat ?? ""),
+      h("div", { display: "flex", width: "88%", justifyContent: "center", textAlign: "center", fontFamily: "PlayfairLight", fontWeight: 400, fontSize: "29px", lineHeight: 1.4, color: NEARBLACK }, (input.headlineLines[0]?.text ? input.headlineLines[0].text + (input.body ? " — " + input.body : "") : input.body) ?? ""),
+    ]),
+    footerBar(heart),
+  ]);
+}
+
 export async function renderStephanieDesign(input: StephanieRenderInput): Promise<Buffer> {
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
   const toUri = async (buf: Buffer) => `data:image/jpeg;base64,${(await sharp(buf).jpeg({ quality: 92, chromaSubsampling: "4:4:4", mozjpeg: true }).toBuffer()).toString("base64")}`;
   const a = input.archetype;
   let root: El;
-  if (a === "SIGNATURE" || a === "CHECKLIST" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID") {
+  if (a === "SIGNATURE" || a === "SIGBOTTOM" || a === "STATEMENT" || a === "CHECKLIST" || a === "ALTBARS" || a === "BIGSTAT" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID") {
     const uri = await toUri(input.photo as Buffer);
+    const heart = await heartUri(DEEP_BLUE);
     root =
-      a === "SIGNATURE" ? signatureTree(input, uri, await heartUri(DEEP_BLUE))
-      : a === "CHECKLIST" ? checklistTree(input, uri, await heartUri(DEEP_BLUE))
+      a === "SIGNATURE" ? signatureTree(input, uri, heart)
+      : a === "SIGBOTTOM" ? sigBottomTree(input, uri, heart)
+      : a === "STATEMENT" ? statementTree(input, uri, heart)
+      : a === "CHECKLIST" ? checklistTree(input, uri, heart)
+      : a === "ALTBARS" ? altBarsTree(input, uri, heart)
+      : a === "BIGSTAT" ? bigStatTree(input, uri, heart)
       : a === "PHOTOBAND" ? photoBandTree(input, uri)
       : a === "TOPBAND" ? topBandTree(input, uri)
       : a === "SPLIT" ? splitTree(input, uri, await checkUri(ICE_BLUE))
       : a === "POLAROID" ? polaroidTree(input, uri)
       : photoOverlayCardTree(input, uri);
+  } else if (a === "VS") {
+    root = vsTree(input, await heartUri(DEEP_BLUE));
+  } else if (a === "STEPS") {
+    root = stepsTree(input, await heartUri(DEEP_BLUE));
   } else if (a === "D") {
     root = quoteCardTree(input);
   } else if (a === "G") {
-    root = testimonialCardTree(input);
+    root = testimonialCardTree(input, await heartUri(DEEP_BLUE));
   } else if (a === "CHECK") {
     root = checkCardTree(input, await checkUri(ICE_BLUE));
   } else if (a === "NUMBER") {
@@ -421,5 +573,5 @@ export async function renderStephanieDesign(input: StephanieRenderInput): Promis
 }
 
 export function stephanieArchetypeNeedsPhoto(a: StephanieArchetype): boolean {
-  return a === "SIGNATURE" || a === "CHECKLIST" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID";
+  return a === "SIGNATURE" || a === "SIGBOTTOM" || a === "STATEMENT" || a === "CHECKLIST" || a === "ALTBARS" || a === "BIGSTAT" || a === "A" || a === "PHOTOBAND" || a === "TOPBAND" || a === "SPLIT" || a === "POLAROID";
 }

@@ -37,21 +37,36 @@ export type StephanieSynthResult = { ok: true; spec: StephanieSpec } | { ok: fal
 //   PHOTOBAND personal statement over a lifestyle photo
 //   D         inspirational / quote      A  lifestyle photo-overlay
 //   C         values / services workhorse
-// Stephanie's REAL design system (from her v2 reference posts) is two strong,
-// frame-filling templates — variety comes from the photo + copy, not from many
-// different silhouettes (the same way Omega works):
-//   SIGNATURE  full-bleed lifestyle photo (with people) + a dense headline band
-//              + the website footer. The workhorse — most posts.
-//   CHECKLIST  a soft photo background + "INSIDER TIP" tab + a staggered numbered
-//              card list + CTA button + footer. For tips / multi-point posts.
-//   G          a text testimonial card (client celebration).
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
+}
+
+// Content router across Stephanie's 10 distinct, reference-matched templates.
+// Each rule routes by content; the default rotates the two photo+band variants so
+// generic educational posts still vary in look.
+//   POLAROID closing celebration   G        client testimonial
+//   VS       comparison            ALTBARS  numbered myth/mistake list
+//   STEPS    process / path        CHECKLIST tips / what-to-know list
+//   BIGSTAT  a rate / % / number   SIGBOTTOM personal (band-bottom)
+//   STATEMENT inspirational hook   SIGNATURE default photo + band
+const STEPHANIE_DEFAULT_ROTATION: StephanieArchetype[] = ["SIGNATURE", "SIGBOTTOM"];
+
 export function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
-  if (has(/testimonial|review|what (my )?clients say|client said|hear from|client (win|story|spotlight)/)) return "G";
-  if (has(/\b\d+\s+(things|steps|tips|ways|reasons|signs|mistakes|questions|items|documents|moves|hacks)\b|check ?list|first steps|before you (shop|buy|sign|tour)|what (lenders|to look for|you need)|how to (choose|prep|get)|things to (do|gather|know)/)) return "CHECKLIST";
-  return "SIGNATURE";
+  if (has(/just closed|in contract|closing day|welcome home|keys to|client win|new homeowner|congrat/)) return "POLAROID";
+  if (has(/testimonial|review|what (my )?clients say|client said|hear from|client (story|spotlight)|success story/)) return "G";
+  if (has(/ vs\.?\b| versus |rent vs|pre-?qual.* (vs|or) |fixed (vs|or)|fha (vs|or)|which is (right|better)|\b\w+ or \w+\?/)) return "VS";
+  if (has(/\b\d+\s+(myths|mistakes|things not|don'?ts)\b|myths? (exposed|busted)|things not to do|\bmistakes to avoid/)) return "ALTBARS";
+  if (has(/the process|your path|step-by-step|step by step|road ?map|timeline|what happens (after|next)|from .* to the keys|how (it works|to buy)/)) return "STEPS";
+  if (has(/\b\d+\s+(things|steps|tips|ways|reasons|signs|questions|items|documents|hacks)\b|check ?list|first steps|before you (shop|buy|sign|tour)|what (lenders|to look for|you need)|improv(e|ing)|boost your|demystif|lingo|terms|glossary|things to (do|gather|know)/)) return "CHECKLIST";
+  if (has(/\b\d+ ?- ?\d+%|\b\d+%|\b\d+\.\d|\brate(s)?\b|down payment|0% down|zero down|by the numbers|\$\d/)) return "BIGSTAT";
+  if (has(/why i|my story|about me|behind the|law enforcement|i became|meet your|treat every client|like family|you can trust|relationship/)) return "SIGBOTTOM";
+  if (has(/dream|believe|\bfear\b|closer than|you deserve|mindset|don'?t let|imagine|peace of mind|empower/)) return "STATEMENT";
+  return STEPHANIE_DEFAULT_ROTATION[hashStr(`${pillar ?? ""}|${concept ?? ""}`) % STEPHANIE_DEFAULT_ROTATION.length];
 }
 
 const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
@@ -65,6 +80,18 @@ function dataInstruction(a: StephanieArchetype): string {
       return `SIGNATURE HERO (full-bleed photo + headline band + footer). headline_lines = ONE warm serif headline that states the idea plainly (a hook or promise, e.g. "You don't need 20% down."). body = REQUIRED — 2-3 dense first-person sentences that deliver the actual value/explanation (this fills the band, so never leave it short). photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
     case "CHECKLIST":
       return `NUMBERED CHECKLIST over a soft photo. eyebrow = a SHORT all-caps tab label (e.g. "INSIDER TIP", "BUYER CHECKLIST", "BEFORE YOU BUY"). headline_lines = ONE serif headline naming the list. Fill "list_items" with EXACTLY 4 objects { "lead":"<a 2-4 word bold title>", "text":"<one short subtitle line>" }. cta = a short imperative (e.g. "DM CHECK to start", "Save this list"). photo.include = true; "photo.description" = ${SOFT_BG}`;
+    case "SIGBOTTOM":
+      return `SIGNATURE HERO (photo + headline band at the BOTTOM) — use for PERSONAL / trust / "why I do this" posts. headline_lines = ONE warm first-person serif line (e.g. "This is why I do what I do."). body = REQUIRED 2-3 first-person sentences (her story / values / why clients can trust her). photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
+    case "STATEMENT":
+      return `BOLD STATEMENT over a darkened full-bleed photo. eyebrow = a short all-caps label (e.g. "A GENTLE REMINDER"). headline_lines = ONE short, punchy, uplifting serif line (<=8 words; e.g. "Your dream home is closer than you think.") + AT MOST one short script accent. body = optional ONE short sentence. cta = a soft 2-3 word invite. photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
+    case "ALTBARS":
+      return `NUMBERED MYTH/MISTAKE LIST over a soft photo (full-width alternating bars). headline_lines = ONE serif headline (e.g. "4 Credit Score Myths Exposed"). Fill "list_items" with EXACTLY 4 objects { "lead":"<the myth/mistake, 3-5 words>", "text":"<the one-line truth/correction>" }. photo.include = true; "photo.description" = ${SOFT_BG}`;
+    case "STEPS":
+      return `NUMBERED PROCESS / PATH (no photo — clean ice-blue card with a timeline). headline_lines = ONE serif headline (e.g. "Your Path to the Keys"). Fill "list_items" with EXACTLY 4 objects in ORDER { "lead":"<the step, 2-4 words>", "text":"<one short line>" }. photo.include = false.`;
+    case "VS":
+      return `TWO-COLUMN COMPARISON (no photo). headline_lines = ONE serif headline naming the two things (e.g. "Pre-Qualification vs. Pre-Approval"). eyebrow = a short label (e.g. "KNOW THE DIFFERENCE"). Fill "list_items" with EXACTLY 2 objects { "lead":"<option name>", "text":"<one short sentence describing it>" } — the left is usually the lesser/first option, the right the stronger one. photo.include = false.`;
+    case "BIGSTAT":
+      return `BIG STAT (photo on top + a large numeral below). eyebrow = a short label (e.g. "MORTGAGE MYTH BUSTED"). big_stat = the single key figure (<=5 chars, e.g. "3.5%", "3%", "0%"). headline_lines = ONE short serif line framing the number (e.g. "could be your down payment"). body = ONE short clause of context. photo.include = true; "photo.description" = ${WITH_PEOPLE}`;
     case "A":
       return `PHOTO OVERLAY CARD. photo.include = true; "photo.description" = ${PEOPLE_FREE}`;
     case "PHOTOBAND":
@@ -170,7 +197,7 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
     : null;
 
   const bodyText = clean(parsed.body);
-  const usesList = (a: StephanieArchetype) => a === "C" || a === "SPLIT" || a === "CHECK" || a === "EDITORIAL" || a === "SPLITBLOCK" || a === "CHECKLIST";
+  const usesList = (a: StephanieArchetype) => a === "C" || a === "SPLIT" || a === "CHECK" || a === "EDITORIAL" || a === "SPLITBLOCK" || a === "CHECKLIST" || a === "ALTBARS" || a === "STEPS" || a === "VS";
   const keptList = usesList(archetype) ? listItems : null;
 
   // Guard: EDITORIAL/SPLITBLOCK have a dedicated content area that looks broken
@@ -192,7 +219,7 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
     body: bodyText,
     cta: clean(parsed.cta) || "I'd love to help",
     listItems: usesList(finalArch) ? keptList : null,
-    bigStat: finalArch === "NUMBER" ? clean(parsed.big_stat) || null : null,
+    bigStat: finalArch === "NUMBER" || finalArch === "BIGSTAT" ? clean(parsed.big_stat) || null : null,
     quote: isQuote ? quoteText || null : null,
     attribution: isQuote ? clean(parsed.attribution) || null : null,
     photo: {
