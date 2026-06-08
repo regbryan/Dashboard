@@ -43,15 +43,15 @@ function hashStr(s: string): number {
   return n;
 }
 
-// When no keyword rule fires, spread across the three STRUCTURALLY DISTINCT
-// text layouts — EDITORIAL (left-rail, left-aligned column), SPLITBLOCK (two-tone
-// horizontal color block), PULLQUOTE (oversized editorial quote). These don't
-// share the centered-on-a-solid-card silhouette of C/CHECK/D/NUMBER, so the
-// all-text feed varies in SHAPE, not just wording. Index by (feed position +
-// concept hash) so neither parity nor a raw hash clusters. The old centered cards
-// stay reachable only via explicit rules (checklist→CHECK, %/rate→NUMBER,
-// testimonial→G); photo layouts stay rule-gated too.
-const STEPHANIE_TEXT_ROTATION: StephanieArchetype[] = ["EDITORIAL", "SPLITBLOCK", "PULLQUOTE"];
+// PHOTO-FORWARD, like Omega: when no keyword rule fires, the feed leads with
+// people-free lifestyle-photo layouts and drops in the distinct text layouts as
+// the minority accent. The decision is DECOUPLED — a coarse split fixes the
+// ~70/30 photo:text ratio, then a separately-salted hash picks the layout — so
+// neither the ratio nor any single layout clusters (a single %N kept doing that).
+// Each photo post gets its own lifestyle scene, so they read varied even when the
+// composition repeats (the same way Omega's photo feed does).
+const STEPHANIE_PHOTO_SET: StephanieArchetype[] = ["PHOTOBAND", "TOPBAND", "A"];
+const STEPHANIE_TEXT_SET: StephanieArchetype[] = ["SPLITBLOCK", "PULLQUOTE"];
 
 export function pickArchetype(
   pillar: string | null,
@@ -70,8 +70,11 @@ export function pickArchetype(
   if (has(/why i do|closer than you think|i hear it all the time|here'?s the thing|you can trust|high-stakes/)) return "PHOTOBAND";
   if (has(/inspir|motivat|quote|dream|equity|fun fact|calm power|you deserve/)) return "D";
   if (has(/lifestyle|seasonal|holiday|st\.?\s*patrick|christmas|spring|summer|fall|winter/)) return "A";
-  const idx = (Math.abs(postNumber) + hashStr(`${pillar ?? ""}|${concept ?? ""}`)) % STEPHANIE_TEXT_ROTATION.length;
-  return STEPHANIE_TEXT_ROTATION[idx];
+  const key = `${pillar ?? ""}|${concept ?? ""}`;
+  const photoForward = (Math.abs(postNumber) * 3 + hashStr(key)) % 10 < 7; // ~70% photo
+  return photoForward
+    ? STEPHANIE_PHOTO_SET[hashStr(`${key}#p`) % STEPHANIE_PHOTO_SET.length]
+    : STEPHANIE_TEXT_SET[hashStr(`${key}#t`) % STEPHANIE_TEXT_SET.length];
 }
 
 const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
