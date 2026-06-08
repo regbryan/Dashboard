@@ -17,6 +17,7 @@ export type StephanieSpec = {
   body: string;
   cta: string;
   listItems?: { text: string }[] | null;
+  bigStat?: string | null;
   quote?: string | null;
   attribution?: string | null;
   photo: { include: boolean; description: string };
@@ -25,18 +26,51 @@ export type StephanieSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type StephanieSynthResult = { ok: true; spec: StephanieSpec } | { ok: false; error: string };
 
-function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
+// Content router across Stephanie's 10 layouts — picks the one that fits each
+// post for a varied, on-brand feed.
+//   POLAROID  client celebration (script + framed photo on cream)
+//   G         pure text testimonial / review
+//   NUMBER    a quiet big stat (rate / market / %)
+//   SPLIT     "choosing / what to look for" + check list beside a photo
+//   CHECK     a checklist / first-steps card (no photo)
+//   TOPBAND   explainer statement (band on top of a photo)
+//   PHOTOBAND personal statement over a lifestyle photo
+//   D         inspirational / quote      A  lifestyle photo-overlay
+//   C         values / services workhorse
+export function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
-  if (/in contract|client|testimon|celebrat|closed|congrat|review/.test(t)) return "G";
-  if (/inspir|motivat|quote|dream|equity|did you know|fun fact|calm power/.test(t)) return "D";
-  if (/lifestyle|seasonal|holiday|photo|st\.?\s*patrick|christmas|spring|summer|fall|winter/.test(t)) return "A";
+  const has = (re: RegExp) => re.test(t);
+
+  if (has(/in contract|just closed|she'?s a homeowner|he'?s a homeowner|client win|keys to|welcome home|closing day|congrat/)) return "POLAROID";
+  if (has(/testimonial|review|what (my )?clients say|client said|hear from/)) return "G";
+  if (has(/\b\d+ ?[-–] ?\d+%|\b\d+%|rate update|market update|by the numbers|the number/)) return "NUMBER";
+  if (has(/choosing a|what to look for|how to choose|red flags|questions to ask|signs of a/)) return "SPLIT";
+  if (has(/check ?list|first steps|before you (shop|buy)|to-?do|step-by-step|\b\d+ (steps|things to do|things to gather)/)) return "CHECK";
+  if (has(/let'?s clear this up|the truth about|here'?s what|explained|breaking down|what .* actually/)) return "TOPBAND";
+  if (has(/why i do|closer than you think|i hear it all the time|here'?s the thing|you can trust|high-stakes/)) return "PHOTOBAND";
+  if (has(/inspir|motivat|quote|dream|equity|fun fact|calm power|you deserve/)) return "D";
+  if (has(/lifestyle|seasonal|holiday|st\.?\s*patrick|christmas|spring|summer|fall|winter/)) return "A";
   return "C"; // values / services / education — the personal-brand workhorse
 }
+
+const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
 
 function dataInstruction(a: StephanieArchetype): string {
   switch (a) {
     case "A":
-      return `PHOTO OVERLAY CARD. photo.include = true; "photo.description" = a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.`;
+      return `PHOTO OVERLAY CARD. photo.include = true; "photo.description" = ${PEOPLE_FREE}`;
+    case "PHOTOBAND":
+      return `PHOTO + STATEMENT BAND. photo.include = true; "photo.description" = ${PEOPLE_FREE} headline_lines = ONE calm first-person serif statement (e.g. "This is why I do what I do."). body = a warm 1-2 sentence first-person elaboration.`;
+    case "TOPBAND":
+      return `PHOTO + TOP EXPLAINER BAND. photo.include = true; "photo.description" = ${PEOPLE_FREE} headline_lines = a short serif explainer line (e.g. "Closing costs — let's clear this up."). body = ONE plain-English first-person sentence that clears it up.`;
+    case "SPLIT":
+      return `PHOTO + CHECK PANEL. photo.include = true; "photo.description" = ${PEOPLE_FREE} headline_lines = a serif title + AT MOST ONE short script accent (e.g. serif "Choosing a Lender" + script "what to look for"). Fill "list_items" with 4-5 SHORT check points.`;
+    case "POLAROID":
+      return `CLIENT CELEBRATION. photo.include = true; "photo.description" = a joyful but PEOPLE-FREE celebration scene — house keys on a counter, a "SOLD" sign in a green front yard, a welcome mat at a new front door. No people/faces/hands, no text. headline_lines = ONE short SCRIPT line (e.g. "In Contract" / "Just Closed"). body = a warm 1-2 sentence first-person client celebration.`;
+    case "CHECK":
+      return `CHECKLIST CARD (no photo). headline_lines = a serif title + AT MOST ONE short script accent (e.g. serif "Your First Steps" + script "before you shop"). Fill "list_items" with 4-5 short, doable first-person steps/items. photo.include = false.`;
+    case "NUMBER":
+      return `QUIET BIG STAT (no photo). Fill "big_stat" with a short stat (<=5 chars, e.g. "2–5%", "20%", "3%"). headline_lines = a short serif label for the number (e.g. "of the loan amount"). body = ONE calm first-person sentence. photo.include = false.`;
     case "D":
       return `QUOTE / INSPIRATIONAL CARD. headline = a calm, uplifting serif line (educational hook or inspirational quote). Add a short "body" sentence. photo.include = false.`;
     case "G":
@@ -68,7 +102,7 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
     `- NEVER include the AHL logo, "Answer Home Loans", "Stevenson Lending Group", NMLS, DRE, any license number, or a compliance footer — those are added separately.`,
     `- Always first-person ("I"), never "we". Calm and values-forward, never urgent or salesy.`,
     ``,
-    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"serif"}], "body":"", "cta":"", "list_items":[{"text":""}], "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
+    `Return ONLY JSON: { "eyebrow":"", "headline_lines":[{"text":"","style":"serif"}], "body":"", "cta":"", "list_items":[{"text":""}], "big_stat":"", "quote":"", "attribution":"", "photo":{"include":false,"description":""} }`,
   ].join("\n");
 
   let res: Response;
@@ -127,10 +161,14 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
     headlineLines: lines,
     body: clean(parsed.body),
     cta: clean(parsed.cta) || "I'd love to help",
-    listItems: archetype === "C" ? listItems : null,
+    listItems: archetype === "C" || archetype === "SPLIT" || archetype === "CHECK" ? listItems : null,
+    bigStat: archetype === "NUMBER" ? clean(parsed.big_stat) || null : null,
     quote: archetype === "G" ? clean(parsed.quote) || null : null,
     attribution: archetype === "G" ? clean(parsed.attribution) || null : null,
-    photo: { include: archetype === "A" && photoObj.include !== false, description: clean(photoObj.description) },
+    photo: {
+      include: (archetype === "A" || archetype === "PHOTOBAND" || archetype === "TOPBAND" || archetype === "SPLIT" || archetype === "POLAROID") && photoObj.include !== false,
+      description: clean(photoObj.description),
+    },
   };
   return { ok: true, spec };
 }

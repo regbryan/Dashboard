@@ -492,6 +492,7 @@ export async function generateBrandPost(
         body: stspec.body,
         cta: stspec.cta,
         listItems: stspec.listItems,
+        bigStat: stspec.bigStat,
         quote: stspec.quote,
         attribution: stspec.attribution,
         photo: stephaniePhoto,
