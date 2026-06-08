@@ -8,11 +8,18 @@ import { requireUser } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
-// Reliable "most recent" value for the Designs sort. updated_at is a TEXT
-// column: autopilot rows hold real ISO timestamps, but legacy seed rows hold
-// the literal string "now()" (never set), which would lexically sort above any
-// real date. Prefer the generation ms embedded in the autopilot filename
-// (.../post-N-v<ms>.png), then a valid parsed updated_at; bogus values → 0.
+// The post's scheduled CALENDAR date (YYYY-MM-DD) as ms; invalid/missing → 0.
+// This is the primary Designs sort so the grid reads like the content calendar.
+function dateOf(p: { date: string | null }): number {
+  const t = Date.parse(p.date ?? "");
+  return Number.isNaN(t) ? 0 : t;
+}
+
+// Generation recency — used only as a tiebreaker between same-date posts so the
+// one you most recently generated shows first. updated_at is a TEXT column:
+// autopilot rows hold real ISO timestamps, but legacy seed rows hold the literal
+// string "now()" (never set). Prefer the generation ms embedded in the autopilot
+// filename (.../post-N-v<ms>.png), then a valid parsed updated_at; bogus → 0.
 function recencyOf(p: { file_path: string | null; updated_at: string | null }): number {
   const m = p.file_path?.match(/-v(\d{10,})\./);
   if (m) return Number(m[1]);
@@ -91,14 +98,15 @@ export default async function BrandDetailPage({
   // scrolling to find what you just made. Posts that actually have a generated
   // image (file_path) sort first; posts not yet generated (freshly authored
   // calendar drafts) sink to the bottom so empty calendar slots never bury real
-  // designs. Within the designs, sort by a RELIABLE recency value (see
-  // recencyOf): the generation ms embedded in the autopilot filename, else a
-  // valid parsed updated_at. The legacy seed rows store the literal text
-  // "now()", which is NOT a date and must not sort above real timestamps.
+  // designs. Within the designs, sort by the post's CALENDAR DATE (newest first)
+  // so the grid reads like the content calendar; generation recency only breaks
+  // ties between same-date posts (the one you just generated shows first).
   const recentFirst = [...filteredPosts].sort((a, b) => {
     const aHasDesign = a.file_path ? 1 : 0;
     const bHasDesign = b.file_path ? 1 : 0;
     if (aHasDesign !== bHasDesign) return bHasDesign - aHasDesign;
+    const byDate = dateOf(b) - dateOf(a);
+    if (byDate !== 0) return byDate;
     return recencyOf(b) - recencyOf(a);
   });
 
