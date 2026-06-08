@@ -31,7 +31,7 @@ import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-ri
 import { synthesizeDougSpec } from "./doug-spec";
 import { renderDougDesign, dougArchetypeNeedsPhoto } from "./render-doug";
 
-const SATORI_ARCHETYPES = new Set(["A", "C", "D", "E", "F", "G", "H"]);
+const SATORI_ARCHETYPES = new Set(["A", "B", "C", "D", "E", "F", "G", "H", "I", "QUAD"]);
 
 // The pro image model used for template (archetype) brands. Isolated to this
 // path so a model/access issue can't break the generic flow. Override via env.

@@ -42,7 +42,7 @@ const NEAR_BLACK = "#191518";
 const CREAM = "#F5F1EA";
 const EMPHASIS_ON_NAVY = "#A9C6E8";
 
-export type ArchetypeKey = "A" | "C" | "D" | "E" | "F" | "G" | "H";
+export type ArchetypeKey = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "QUAD";
 export type HeadlineLine = { text: string; style: "sans" | "italic-serif" };
 export type ArchetypeRenderInput = {
   archetype: ArchetypeKey;
@@ -298,22 +298,103 @@ function brandStory(input: ArchetypeRenderInput, width: number): El {
   ]);
 }
 
+// --- B: full-bleed photo + navy gradient panel (emergency / dramatic hero) ---
+function fullBleed(input: ArchetypeRenderInput, dataUri: string, width: number): El {
+  const pad = Math.round(width * 0.066);
+  const overlay = h(
+    "div",
+    {
+      display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: GAP,
+      position: "absolute", left: "0px", bottom: "0px", width: "100%", height: "62%",
+      padding: `${pad}px`,
+      backgroundImage: "linear-gradient(to top, rgba(16,75,148,0.97) 0%, rgba(16,75,148,0.85) 32%, rgba(16,75,148,0.0) 100%)",
+    },
+    [
+      ...eyebrowPill(input.eyebrow),
+      headlineEls(input.headlineLines, WHITE, EMPHASIS_ON_NAVY, 80),
+      ...bodyEl(input.body, "#DCE8F6"),
+      ctaPill(input.cta, false),
+    ]
+  );
+  return h("div", { display: "flex", position: "relative", width: "100%", height: "100%", background: NAVY }, [
+    img(dataUri, { position: "absolute", top: "0px", left: "0px", width: "100%", height: "100%", objectFit: "cover" }),
+    overlay,
+  ]);
+}
+
+// --- I: myth-vs-truth split (cream column + photo column + red caption bar) ---
+function mythSplit(input: ArchetypeRenderInput, dataUri: string, width: number): El {
+  const pad = Math.round(width * 0.05);
+  const label = (text: string) => h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "32px", letterSpacing: "0.5px", color: RED }, text);
+  const left = h(
+    "div",
+    { display: "flex", flexDirection: "column", justifyContent: "center", gap: "16px", width: "56%", height: "100%", background: CREAM, padding: `${pad}px` },
+    [
+      ...eyebrowPill(input.eyebrow),
+      label("MYTH:"),
+      headlineEls(input.headlineLines, NAVY, NAVY, 50),
+      h("div", { display: "flex", width: "110px", height: "6px", background: RED, borderRadius: "3px", margin: "6px 0" }, []),
+      label("TRUTH:"),
+      ...bodyEl(input.body, NEAR_BLACK),
+    ]
+  );
+  const right = h("div", { display: "flex", width: "44%", height: "100%" }, [img(dataUri, { width: "100%", height: "100%", objectFit: "cover" })]);
+  const bar = h(
+    "div",
+    { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", background: RED, padding: "26px 40px" },
+    [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "30px", color: WHITE }, input.cta)]
+  );
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [
+    h("div", { display: "flex", flexDirection: "row", flexGrow: 1, width: "100%" }, [left, right]),
+    bar,
+  ]);
+}
+
+// --- QUAD: 2x2 cards (4 warning signs / services) ---------------------------
+function quad(input: ArchetypeRenderInput, width: number): El {
+  const pad = Math.round(width * 0.06);
+  const items = (input.listItems ?? []).slice(0, 4);
+  const header = h(
+    "div",
+    { display: "flex", flexDirection: "column", gap: GAP, background: NAVY, padding: `${pad}px ${pad}px ${Math.round(pad * 0.8)}px` },
+    [...eyebrowPill(input.eyebrow), headlineEls(input.headlineLines, WHITE, EMPHASIS_ON_NAVY, 60)]
+  );
+  const card = (it: { number?: string | null; text: string }, i: number) =>
+    h("div", { display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px", width: "47%", flexGrow: 1, background: WHITE, borderRadius: "20px", padding: "28px 28px" }, [
+      h("div", { display: "flex", fontFamily: "Oswald", fontWeight: 600, fontSize: "64px", lineHeight: 1, color: RED }, it.number ?? String(i + 1)),
+      h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "29px", lineHeight: 1.18, color: NAVY }, it.text),
+    ]);
+  const grid = h(
+    "div",
+    { display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignContent: "stretch", gap: "22px", flexGrow: 1, padding: `${pad}px`, width: "100%" },
+    items.map(card)
+  );
+  const footer = h("div", { display: "flex", justifyContent: "center", padding: `0 ${pad}px ${pad}px` }, [ctaPill(input.cta, false)]);
+  return h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: CREAM }, [header, grid, footer]);
+}
+
 export async function renderArchetypeDesign(input: ArchetypeRenderInput): Promise<Buffer> {
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
 
   let root: El;
-  if (input.archetype === "A" || input.archetype === "C") {
+  if (input.archetype === "A" || input.archetype === "B" || input.archetype === "C" || input.archetype === "I") {
     const jpeg = await sharp(input.photo as Buffer).jpeg({ quality: 90 }).toBuffer();
     const dataUri = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
-    const surface: "navy" | "light-blue" = input.archetype === "A" ? "navy" : "light-blue";
-    const panelEl = panel(input, surface, width);
-    const photoBlock = h("div", { display: "flex", flexGrow: 1, width: "100%" }, [
-      img(dataUri, { width: "100%", height: "100%", objectFit: "cover" }),
-    ]);
-    const seam = await seamStar(surface === "navy" ? NAVY : LIGHT_BLUE, width);
-    const order = input.archetype === "A" ? [panelEl, seam, photoBlock] : [photoBlock, seam, panelEl];
-    root = h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: NAVY }, order);
+    if (input.archetype === "B") {
+      root = fullBleed(input, dataUri, width);
+    } else if (input.archetype === "I") {
+      root = mythSplit(input, dataUri, width);
+    } else {
+      const surface: "navy" | "light-blue" = input.archetype === "A" ? "navy" : "light-blue";
+      const panelEl = panel(input, surface, width);
+      const photoBlock = h("div", { display: "flex", flexGrow: 1, width: "100%" }, [
+        img(dataUri, { width: "100%", height: "100%", objectFit: "cover" }),
+      ]);
+      const seam = await seamStar(surface === "navy" ? NAVY : LIGHT_BLUE, width);
+      const order = input.archetype === "A" ? [panelEl, seam, photoBlock] : [photoBlock, seam, panelEl];
+      root = h("div", { display: "flex", flexDirection: "column", width: "100%", height: "100%", background: NAVY }, order);
+    }
   } else if (input.archetype === "D") {
     root = await testimonial(input, width);
   } else if (input.archetype === "E") {
@@ -322,6 +403,8 @@ export async function renderArchetypeDesign(input: ArchetypeRenderInput): Promis
     root = bigNumberHero(input, width);
   } else if (input.archetype === "G") {
     root = statCard(input, width);
+  } else if (input.archetype === "QUAD") {
+    root = quad(input, width);
   } else {
     root = brandStory(input, width);
   }
@@ -332,5 +415,5 @@ export async function renderArchetypeDesign(input: ArchetypeRenderInput): Promis
 
 // archetypes that need an AI photo (others are pure code)
 export function archetypeNeedsPhoto(a: ArchetypeKey): boolean {
-  return a === "A" || a === "C";
+  return a === "A" || a === "B" || a === "C" || a === "I";
 }
