@@ -163,7 +163,18 @@ export default function LogoOverlayPanel({
     for (let i = 0; i < 90; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const res = await fetch(`/api/run-script/${runId}`);
-      if (!res.ok) continue;
+      if (!res.ok) {
+        // 404/501 won't resolve by waiting — surface instead of spinning to the
+        // 90s timeout. Transient codes keep polling.
+        if (res.status === 404 || res.status === 501) {
+          setMessage({
+            tone: "err",
+            text: `Couldn't read job status (${res.status}). The logo may have applied — refresh to check.`,
+          });
+          return;
+        }
+        continue;
+      }
       const body = (await res.json()) as {
         status: "running" | "success" | "error";
         output: string | null;

@@ -233,7 +233,19 @@ export default function FooterOverlayPanel({
     for (let i = 0; i < 90; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const res = await fetch(`/api/run-script/${runId}`);
-      if (!res.ok) continue;
+      if (!res.ok) {
+        // 404 (no such run) and 501 (route misconfigured) will never resolve by
+        // waiting — surface them immediately instead of spinning to the 90s
+        // timeout. Other non-OK codes (e.g. a transient 503) keep polling.
+        if (res.status === 404 || res.status === 501) {
+          setMessage({
+            tone: "err",
+            text: `Couldn't read job status (${res.status}). The footer may have applied — refresh to check.`,
+          });
+          return;
+        }
+        continue;
+      }
       const body = (await res.json()) as {
         status: "running" | "success" | "error";
         output: string | null;

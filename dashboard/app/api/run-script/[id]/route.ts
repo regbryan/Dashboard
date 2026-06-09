@@ -16,16 +16,12 @@ async function handleGET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.ENABLE_LOCAL_SCRIPTS !== "1"
-  ) {
-    return Response.json(
-      { error: "Script execution is only available in local development" },
-      { status: 501 }
-    );
-  }
-
+  // NOTE: no production gate here. This endpoint only READS a script_runs row
+  // (it executes nothing), and the client must be able to poll run status in
+  // production for the production-safe scripts (overlay_logo, overlay_footer,
+  // and their undos). The POST route is what gates actual execution. A stray
+  // 501 here made the client poll until its 90s timeout — apply jobs ran fine
+  // server-side but never reported success/failure back to the UI.
   try {
     await requireAdmin();
   } catch (err) {
