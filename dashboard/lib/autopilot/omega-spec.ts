@@ -129,47 +129,37 @@ function hashStr(s: string): number {
   return n;
 }
 
-// Generic educational concepts would all collapse onto the "C" listicle — spread
-// them across a varied mix (listicle, photo+list, photo+statement, grid) so the
-// feed never repeats a layout. Holiday/recap-specific layouts stay rule-gated.
-const OMEGA_DEFAULT_ROTATION: OmegaArchetype[] = ["C", "A", "E", "QUAD"];
+// VARIETY ORDER — the full template set, interleaved so adjacent posts contrast
+// (photo / text / grid / collage). Posts are DEALT across this list by position
+// (post_number) so a month cycles through every layout instead of clustering on
+// one. This is the fix for "all the designs look the same": variety is forced by
+// distribution, not left to content keywords (which kept funneling onto E/D/C).
+const OMEGA_VARIETY_ORDER: OmegaArchetype[] = [
+  "A", "C", "E", "QUAD", "B", "COLLAGE", "F", "D", "BHEADER", "G", "COLLAGE6",
+];
 
-export function pickArchetype(concept: string | null, pillar: string | null): OmegaArchetype {
+// Only a few layouts are genuinely content-LOCKED (a closure card, the seasonal
+// parent posts, an actual market roundup). Everything else is spread by position.
+export function pickArchetype(
+  concept: string | null,
+  pillar: string | null,
+  postNumber?: number | null
+): OmegaArchetype {
   const c = (concept ?? "").toLowerCase();
   const p = (pillar ?? "").toLowerCase();
   const has = (re: RegExp) => re.test(c);
 
-  // 1. Holiday CLOSURE → dignified statement card (no numeral). Must be an actual
-  //    office-closed notice — a celebratory holiday post (e.g. "Juneteenth & the
-  //    Dream of Homeownership", Client Stories) is NOT a closure and should get a
-  //    warm photo instead.
-  if (has(/closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/)) return "D";
-  // 2. "What X covers / includes" multi-part explainer → quadrant card-grid.
-  if (has(/what .{0,30}\b(cover|covers|include|includes)\b|what'?s included|\bbreakdown\b|four (things|parts|components)|components of/)) return "QUAD";
-  // 3. Myth-bust / punchy single claim that benefits from a home photo → full-bleed
-  //    with a top header bar ("You Don't Need 20% Down").
-  if (has(/you don'?t need|don'?t need \d+%|\d+% (rule|myth)|is a myth|debunk/)) return "BHEADER";
-  // 4. Father's Day / dad → full-bleed warm photo (magazine cover).
-  if (has(/father|\bdad\b|\bdads\b/) || p.includes("father")) return "B";
-  // 5. Mother's Day / mom → photo-left + cream panel split (the "For the Moms" look).
-  if (has(/mother'?s day|\bmoms?\b|mothers/) || p.includes("mother")) return "F";
-  // 6. Market recap / mid-year / round-up → 6-photo magazine collage.
-  if (has(/recap|mid-?year|year in review|round-?up|by the numbers|highlights|state of the market/)) return "COLLAGE6";
-  // 7. Market update → photo-collage hero (the v8_08 silhouette).
-  if (p.includes("market") || has(/market update/)) return "COLLAGE";
-  // 4. Testimonial / client story / referral / gratitude → photo + statement.
-  if (p.includes("testimonial") || p.includes("client") || p.includes("refer") ||
-      has(/client win|testimonial|thank you|families|grateful|refer|who do you know/)) return "E";
-  // 5. Refi math / break-even → a big-number moment.
-  if ((p.includes("refinance") || has(/\brefi\b/)) && has(/math|break-?even|number|formula/)) return "D";
-  // 6. Big-number stat → 0% down, percentages, dollar amounts, day counts.
-  if (p.includes("down payment") || has(/\b\d+%|\$\d|\bzero down\b|\b0% down\b|\b\d{2,}\b.*\b(day|families|clients|points|pts)\b|credit boost/)) return "D";
-  // 7. Comparison / "vs" / either-or → numbered comparison list.
-  if (has(/ vs\.?\b| versus |≠|pre-?qual|qualification|lock.*float|float.*lock|\bfha\b|conventional|is it still/)) return "C";
-  // 8. Step-by-step / checklist (often with a photo) → photo + numbered list.
-  if (has(/before you tour|things to do|\bsteps\b|checklist|before you/)) return "A";
-  // 9. Default educational → spread across a varied mix (was always "C").
-  return OMEGA_DEFAULT_ROTATION[hashStr(`${c}|${p}`) % OMEGA_DEFAULT_ROTATION.length];
+  // Content-locked exceptions (rare, genuinely layout-specific):
+  if (has(/closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/)) return "D"; // dignified closure card
+  if (has(/father|\bdad\b|\bdads\b/) || p.includes("father")) return "B"; // Father's Day → warm full-bleed photo
+  if (has(/mother'?s day|\bmoms?\b|mothers/) || p.includes("mother")) return "F"; // Mother's Day → photo + panel
+  if (has(/recap|mid-?year|year in review|round-?up|by the numbers|state of the market/) || p.includes("market")) return "COLLAGE6"; // market roundup → 6-photo collage
+
+  // Everything else: DEAL a distinct layout by position so the feed varies. Use
+  // post_number when available (consecutive posts → consecutive, distinct layouts);
+  // fall back to a concept hash so it's still deterministic without a number.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(`${c}|${p}`);
+  return OMEGA_VARIETY_ORDER[((n % OMEGA_VARIETY_ORDER.length) + OMEGA_VARIETY_ORDER.length) % OMEGA_VARIETY_ORDER.length];
 }
 
 function dataInstruction(a: OmegaArchetype, isClosure: boolean): string {
@@ -209,7 +199,7 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.concept, post.content_pillar);
+  const archetype = pickArchetype(post.concept, post.content_pillar, post.post_number);
   const isClosure = /closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/i.test(post.concept ?? "");
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,
