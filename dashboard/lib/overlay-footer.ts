@@ -255,8 +255,29 @@ export async function applyOverlayFooter(
     })
       .png()
       .toBuffer({ resolveWithObject: true });
-    const textW = textImg.info.width;
-    const textH = textImg.info.height;
+    // Guard: a large font (or a narrow width) can render the text layer WIDER or
+    // TALLER than the post — Pango overflows the wrap width on unbreakable tokens
+    // (e.g. a long URL), and many wrapped lines can exceed the post height. sharp
+    // refuses to composite a layer bigger than the base ("Image to composite must
+    // have same dimensions or smaller"), so shrink an oversized text layer to fit
+    // inside the post before compositing. The common fit-to-width path already
+    // fits, so this is a no-op there.
+    let textData = textImg.data;
+    let textW = textImg.info.width;
+    let textH = textImg.info.height;
+    if (textW > postW || textH > postH) {
+      const fitted = await sharp(textImg.data)
+        .resize({
+          width: Math.min(textW, postW),
+          height: Math.min(textH, postH),
+          fit: "inside",
+        })
+        .png()
+        .toBuffer({ resolveWithObject: true });
+      textData = fitted.data;
+      textW = fitted.info.width;
+      textH = fitted.info.height;
+    }
 
     const padding = clamp(vars.edgePadding ?? 24, 0, Math.min(postW, postH));
     const position = (vars.position ?? "bottom-center") as FooterPosition;
@@ -328,7 +349,7 @@ export async function applyOverlayFooter(
         top: bandTop,
       });
     }
-    composites.push({ input: textImg.data, left: textX, top: textY });
+    composites.push({ input: textData, left: textX, top: textY });
 
     const composed = sharp(baseBuf).composite(composites);
     const outBuf = await (
