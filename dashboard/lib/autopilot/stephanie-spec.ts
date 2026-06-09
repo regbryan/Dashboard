@@ -180,7 +180,9 @@ export function pickArchetype(
   // Content-locked exceptions (rare, genuinely layout-specific):
   if (has(/just closed|in contract|closing day|welcome home|keys to|client win|new homeowner|congrat/)) return "POLAROID";
   if (has(/testimonial|review|what (my )?clients say|client said|hear from|client (story|spotlight)|success story/)) return "G";
-  if (has(/ vs\.?\b| versus |rent vs|pre-?qual.* (vs|or) |fixed (vs|or)|fha (vs|or)|which is (right|better)|\b\w+ or \w+\?/)) return "VS";
+  // NOTE: no "vs" → VS lock. Stephanie's June had 3 comparison posts; locking them
+  // all to VS clustered the feed onto the two-column layout. VS still appears via
+  // the variety order below — comparisons just spread across other layouts too.
   if (has(/\b\d+\s+(myths|mistakes|things not|don'?ts)\b|myths? (exposed|busted)|things not to do|\bmistakes to avoid/)) return "ALTBARS";
   if (has(/the process|your path|step-by-step|step by step|road ?map|timeline|what happens (after|next)|from .* to the keys|how (it works|to buy)/)) return "STEPS";
 
