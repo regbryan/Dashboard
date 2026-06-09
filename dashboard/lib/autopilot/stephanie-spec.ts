@@ -26,6 +26,69 @@ export type StephanieSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null; post_number?: number | null };
 export type StephanieSynthResult = { ok: true; spec: StephanieSpec } | { ok: false; error: string };
 
+// ── AI FULL-DESIGN path ───────────────────────────────────────────────────────
+// The model draws the ENTIRE post (photo + layout + text). Variety + polish come
+// from the model; the brand kit is fully encoded so it stays on-brand. Every
+// restriction from her kit is baked in so nothing gets dropped.
+const WITH_PEOPLE_SCENE =
+  "a warm, bright, photorealistic LIFESTYLE photo with REAL PEOPLE relevant to the topic — a happy couple or young family at home (a sunny porch, a kitchen, a living room, unpacking moving boxes, reviewing papers at a table). Natural daylight, aspirational but candid lifestyle stock; NEVER stiff corporate stock, never dark or moody. Generic everyday people, NOT a specific identifiable person";
+
+function archetypeLayout(spec: StephanieSpec): string {
+  switch (spec.archetype) {
+    case "SIGNATURE": case "A": case "PHOTOBAND":
+      return `A full-bleed lifestyle PHOTOGRAPH (${WITH_PEOPLE_SCENE}) fills the whole frame. A semi-transparent dusty STEEL-BLUE banner (#3D5A80, ~88% opacity) spans the width near the TOP holding the headline + body. A clean solid WHITE footer strip at the very bottom with the website centered.`;
+    case "SIGBOTTOM": case "TOPBAND":
+      return `A full-bleed lifestyle PHOTOGRAPH (${WITH_PEOPLE_SCENE}) fills the whole frame. A semi-transparent dusty STEEL-BLUE banner (#3D5A80, ~88% opacity) spans the width at the BOTTOM holding the headline + body, with the website on a small white line beneath.`;
+    case "STATEMENT": case "D":
+      return `A full-bleed lifestyle PHOTOGRAPH (${WITH_PEOPLE_SCENE}), softly DARKENED with a steel-blue overlay, fills the frame. The bold serif headline sits centered over it in white, large and editorial. A small white footer line at the bottom with the website.`;
+    case "CHECKLIST": case "CHECK": case "C":
+      return `A soft, lightly-lit home/desk PHOTOGRAPH (keys on a counter, mortgage papers, a bright kitchen) under a light white scrim fills the frame. A small deep-blue TAB at the top holds the eyebrow label; below it a bold serif headline; then 4 numbered cards, each a deep-blue number box beside a pale ice-blue bar with a bold title + a short subtitle; a deep-blue CTA button; a white footer with the website.`;
+    case "ALTBARS":
+      return `A soft lifestyle PHOTOGRAPH background. A bold serif headline at the top. Below it, 4 FULL-WIDTH bars alternating color (sky blue, white, deep steel-blue, white) and alternating the number side left/right; each bar shows a number + a short myth/title + a one-line truth. A white footer with the website.`;
+    case "STEPS":
+      return `A clean ICE-BLUE card (no photo). A serif headline at the top. Below, a vertical numbered PATH: 4 deep-blue round number chips down the left connected by a thin sky-blue line, each beside a bold step title + a short detail. A white footer with the website.`;
+    case "VS":
+      return `A TWO-COLUMN comparison. The headline across the top on white. Then two equal columns, EACH with its own lifestyle PHOTOGRAPH (${WITH_PEOPLE_SCENE}) behind a brand-color tint (left column deep steel-blue, right column lighter sky-blue), each with a label band naming the option and one short line describing it. A white footer with the website.`;
+    case "BIGSTAT": case "NUMBER":
+      return `A lifestyle PHOTOGRAPH (${WITH_PEOPLE_SCENE}) fills the TOP half. The bottom half is an ICE-BLUE panel with a small eyebrow label, a VERY LARGE serif numeral, and a short caption. A white footer with the website.`;
+    case "G":
+      return `An elegant testimonial card on a solid dusty STEEL-BLUE background (no photo). A flowing script header, the client quote in large white serif, and an attribution beneath. A white footer with the website.`;
+    case "POLAROID":
+      return `A warm CREAM background. A large flowing-script header at the top. A white-framed celebration PHOTOGRAPH (house keys on a counter, a "SOLD" sign in a green yard, a welcome mat — no people, no text) below it, with a short warm caption. A white footer with the website.`;
+    default:
+      return `A full-bleed lifestyle PHOTOGRAPH (${WITH_PEOPLE_SCENE}) with a steel-blue headline band and a white website footer.`;
+  }
+}
+
+export function buildStephanieDesignPrompt(spec: StephanieSpec): string {
+  const serif = spec.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ");
+  const script = spec.headlineLines.find((l) => l.style === "script")?.text || "";
+  const list = (spec.listItems ?? []).map((it, i) => `  ${i + 1}. ${it.lead ? it.lead + " — " : ""}${it.text}`).join("\n");
+  return [
+    `Design a polished, professional, editorial vertical Instagram post (4:5, 1080x1350) for a warm, trustworthy female mortgage loan officer's PERSONAL brand (Stephanie Perez Home Loans). Soft, feminine, calming — NOT corporate, NOT fintech. Magazine quality; "a trusted guide with great taste."`,
+    ``,
+    `LAYOUT: ${archetypeLayout(spec)}`,
+    ``,
+    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish:`,
+    spec.eyebrow ? `- Small label / eyebrow: ${spec.eyebrow}` : ``,
+    serif ? `- Headline (elegant serif): ${serif}` : ``,
+    script ? `- Script accent (flowing handwritten): ${script}` : ``,
+    spec.body ? `- Body (lighter serif): ${spec.body}` : ``,
+    list ? `- List items:\n${list}` : ``,
+    spec.bigStat ? `- Big number: ${spec.bigStat}` : ``,
+    spec.quote ? `- Quote: ${spec.quote}` : ``,
+    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
+    spec.cta ? `- CTA: ${spec.cta}` : ``,
+    `- Footer (small, centered, on a white strip): stephanieperezhomeloans.com`,
+    ``,
+    `COLOR PALETTE — use ONLY: dusty steel blue #3D5A80, light sky blue #98C1D9, ice blue #E0FBFC, white, near-black text. NO tan, gold, brown, or any other accent color.`,
+    `TYPOGRAPHY: elegant high-contrast serif for headlines; a refined lighter serif for body; a flowing script ONLY for the accent word; a clean simple sans for small labels/footer.`,
+    `VOICE: first-person, warm, calm, values-forward.`,
+    ``,
+    `STRICT RULES: NO logo, wordmark, monogram, brand mark, or company-name graphic. NO "NMLS", "DRE", license numbers, phone numbers, or compliance/legal fine print. NO misspellings. No watermarks, no UI elements, no borders.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
 // Content router across Stephanie's 10 layouts — picks the one that fits each
 // post for a varied, on-brand feed.
 //   POLAROID  client celebration (script + framed photo on cream)

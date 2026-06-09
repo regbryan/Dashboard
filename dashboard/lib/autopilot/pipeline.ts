@@ -24,8 +24,7 @@ import { synthesizeCscSpec } from "./csc-spec";
 import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
 import { synthesizeBlitzSpec } from "./blitz-spec";
 import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
-import { synthesizeStephanieSpec } from "./stephanie-spec";
-import { renderStephanieDesign, stephanieArchetypeNeedsPhoto } from "./render-stephanie";
+import { synthesizeStephanieSpec, buildStephanieDesignPrompt } from "./stephanie-spec";
 import { synthesizeRiversideSpec } from "./riverside-spec";
 import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-riverside";
 import { synthesizeDougSpec } from "./doug-spec";
@@ -474,52 +473,20 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `stephanie spec: ${s.error}` };
       }
       const stspec = s.spec;
-      let stephaniePhoto: Buffer | null = null;
-      let stephaniePhoto2: Buffer | null = null;
-      let tag = "stephanie";
-      const stPhotoPrompt = (desc: string) =>
-        `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${desc}. Warm, inviting, soft natural light; bright and aspirational, magazine-quality lifestyle stock. Never stiff corporate stock, never dark or moody.`;
-      if (stephanieArchetypeNeedsPhoto(stspec.archetype)) {
-        if (stspec.archetype === "VS") {
-          // VS needs two photos (one per column) — generate in parallel.
-          const [g1, g2] = await Promise.all([
-            genImage(stPhotoPrompt(stspec.photo.description)),
-            genImage(stPhotoPrompt(stspec.photo.description)),
-          ]);
-          if (!g1.ok) {
-            await revert();
-            return { ok: false, postId: post.id, error: g1.error };
-          }
-          stephaniePhoto = g1.bytes;
-          stephaniePhoto2 = g2.ok ? g2.bytes : g1.bytes;
-          tag = `${g1.model}+stephanie`;
-        } else {
-          const gen = await genImage(stPhotoPrompt(stspec.photo.description));
-          if (!gen.ok) {
-            await revert();
-            return { ok: false, postId: post.id, error: gen.error };
-          }
-          stephaniePhoto = gen.bytes;
-          tag = `${gen.model}+stephanie`;
-        }
+      // AI FULL-DESIGN: the model draws the ENTIRE post (photo + layout + text)
+      // from a brand-kit-complete prompt (buildStephanieDesignPrompt). Variety +
+      // polish come from the model; every brand restriction is baked into the
+      // prompt. Uses the dashboard's own Gemini image model (free), uploaded like
+      // every other post. (Replaces the deterministic Satori overlay path.)
+      const stDesignPrompt = buildStephanieDesignPrompt(stspec);
+      const stGen = await genImage(stDesignPrompt, "4:5");
+      if (!stGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: stGen.error };
       }
-      bytes = await renderStephanieDesign({
-        archetype: stspec.archetype,
-        width,
-        height,
-        eyebrow: stspec.eyebrow,
-        headlineLines: stspec.headlineLines,
-        body: stspec.body,
-        cta: stspec.cta,
-        listItems: stspec.listItems,
-        bigStat: stspec.bigStat,
-        quote: stspec.quote,
-        attribution: stspec.attribution,
-        photo: stephaniePhoto,
-        photo2: stephaniePhoto2,
-      });
-      mimeType = "image/png";
-      model = `${tag}-${stspec.archetype}`;
+      bytes = stGen.bytes;
+      mimeType = stGen.mimeType;
+      model = `${stGen.model}+stephanie-ai-${stspec.archetype}`;
     } else if (template?._engine === "riverside") {
       // RIVERSIDE PATH: modern-Western design language (warm earthy palette,
       // crafted slab serif + condensed rust labels). Only the product-hero (A)
