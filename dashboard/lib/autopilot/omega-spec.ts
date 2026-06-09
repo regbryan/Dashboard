@@ -30,6 +30,83 @@ type SpecPost = {
 };
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
+// ============================================================================
+// AI FULL-DESIGN PROMPT (the model draws the ENTIRE post — photo + layout +
+// text). Mirrors stephanie-spec's buildStephanieDesignPrompt: variety + polish
+// come from the model; Omega's whole kit is baked in so nothing gets dropped.
+// Replaces the deterministic Satori render-omega path.
+// ============================================================================
+const OMEGA_PEOPLE =
+  "a warm, bright, photorealistic LIFESTYLE photograph with REAL, DIVERSE people relevant to homeownership — a happy first-time-buyer couple or a young multigenerational family at home (a sunny porch, a kitchen, a living room, unpacking moving boxes, holding house keys, reviewing papers at a table). Natural daylight, aspirational but candid editorial lifestyle stock; NEVER stiff corporate stock, never fintech illustration, never dark or moody. Generic everyday people, NOT a specific identifiable person";
+
+function omegaArchetypeLayout(spec: OmegaSpec): string {
+  switch (spec.archetype) {
+    case "A":
+      return `A warm lifestyle PHOTOGRAPH (${OMEGA_PEOPLE}) fills the TOP ~55% of the frame. Below it, on a near-white panel: a small solid NAVY pill holding the eyebrow label, then the editorial serif headline (one word in flowing script accent), then a NUMBERED LIST — each row a thin HOLLOW navy ring with a navy numeral inside (never a filled circle), a short bold lead, and a one-line detail.`;
+    case "B":
+      return `A full-bleed warm lifestyle PHOTOGRAPH (${OMEGA_PEOPLE}) fills the ENTIRE frame, magazine-cover style. A soft navy gradient scrim across the BOTTOM holds the serif+script headline in white and one short body line beneath it.`;
+    case "BHEADER":
+      return `A full-bleed warm lifestyle PHOTOGRAPH (${OMEGA_PEOPLE}) fills the frame. A solid NAVY header bar across the TOP holds the serif+script headline in white; a short body line sits just beneath the bar over a subtle scrim.`;
+    case "C":
+      return `NO photo. A clean near-white editorial card. A small solid NAVY pill holds the eyebrow; below it a large serif headline with one italic/script accent word; then a NUMBERED LIST (3-5 rows, or EXACTLY 2 for a comparison) — each row a thin HOLLOW navy ring with a navy numeral inside (never filled), a bold lead, and a one-line detail. Generous navy-on-cream editorial spacing.`;
+    case "D":
+      return spec.bigStat
+        ? `NO photo. A solid NAVY field. ONE giant editorial serif numeral/stat in white or warm cream dominates the upper-center; a short serif topic line and a 1-2 sentence body sit beneath it. Calm, premium, lots of negative space.`
+        : `NO photo. A dignified, restrained card (solid navy or warm cream). A respectful serif headline centered with a short sincere 1-2 sentence message. No CTA, no numerals — quiet and tasteful (an office-closed / observance card).`;
+    case "E":
+      return `A warm lifestyle PHOTOGRAPH (${OMEGA_PEOPLE}) fills roughly the LEFT or TOP portion. The remaining area is a navy or cream panel carrying a serif+script headline and a warm 2-3 sentence statement (or, for a testimonial, the client's quote in large serif with an attribution beneath — gold 5 stars allowed here ONLY).`;
+    case "F":
+      return `A PHOTO-LEFT / PANEL-RIGHT split. The left ~half is a warm lifestyle PHOTOGRAPH (${OMEGA_PEOPLE}); the right ~half is a warm CREAM panel with an eyebrow, a serif+script headline, a heartfelt 1-2 sentence body, and a soft CTA.`;
+    case "G":
+      return `NO photo. An elegant testimonial card on solid NAVY. A flowing script header, a row of GOLD 5-star marks (gold is allowed ONLY here), the client quote in large white serif, and an attribution beneath.`;
+    case "QUAD":
+      return `NO photo. A four-quadrant CARD GRID on cream/navy. A serif headline names the topic across the top; below, EXACTLY 4 equal cards, each with a short bold heading and one supporting phrase. Clean editorial grid, hollow-ring or simple icon accents (no filled number circles).`;
+    case "COLLAGE":
+      return `A 2x2 GRID of four warm homeownership lifestyle PHOTOGRAPHS (${OMEGA_PEOPLE}) behind a centered near-white card. The card holds a serif+script headline and 2-3 short standalone lines about where the market/rates/inventory stand. Editorial magazine collage.`;
+    case "COLLAGE6":
+      return `A SIX-photo magazine COLLAGE of warm homeownership lifestyle PHOTOGRAPHS (${OMEGA_PEOPLE}) arranged in a clean grid, with a horizontal NAVY band across the middle holding a serif+script headline and a warm 1-2 sentence summary.`;
+    default:
+      return `A warm lifestyle PHOTOGRAPH (${OMEGA_PEOPLE}) with a navy serif+script headline treatment. Editorial, premium, magazine quality.`;
+  }
+}
+
+export function buildOmegaDesignPrompt(spec: OmegaSpec): string {
+  const serif = spec.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ");
+  const script = spec.headlineLines.find((l) => l.style === "script")?.text || "";
+  const list = (spec.listItems ?? [])
+    .map((it, i) => `  ${it.number || i + 1}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
+    .join("\n");
+  const quad = (spec.quadItems ?? []).map((q) => `  • ${q.heading}: ${q.text}`).join("\n");
+  return [
+    `Design a polished, premium, EDITORIAL vertical Instagram post (4:5, 1080x1350) for Omega Mortgage Group — a warm, trustworthy mortgage lender's brand. Think upscale real-estate magazine: navy + warm cream, elegant serif display, aspirational but human. NOT fintech, NOT flat, NOT corporate-stock.`,
+    ``,
+    `LAYOUT: ${omegaArchetypeLayout(spec)}`,
+    ``,
+    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no extra invented words:`,
+    spec.eyebrow ? `- Eyebrow label (small, ALL-CAPS sans, on a navy pill): ${spec.eyebrow}` : ``,
+    serif ? `- Headline (elegant editorial serif, mixed-case): ${serif}` : ``,
+    script ? `- Script accent (ONE flowing handwritten word/phrase): ${script}` : ``,
+    spec.body ? `- Body (clean serif or sans): ${spec.body}` : ``,
+    list ? `- Numbered list:\n${list}` : ``,
+    quad ? `- Four cards:\n${quad}` : ``,
+    spec.bigStat ? `- Big number/stat (giant serif): ${spec.bigStat}` : ``,
+    spec.quote ? `- Quote: ${spec.quote}` : ``,
+    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
+    spec.cta ? `- Soft CTA (small, NOT hard-sell): ${spec.cta}` : ``,
+    ``,
+    `COLOR PALETTE — use ONLY: navy #005181 (the DOMINANT color on every post), warm cream #FBF9F5, near-white #FEFEFE, white, near-black #231F20 for dark text. GOLD #FDD314 is RESERVED for 5-star review marks ONLY — never as a background, fill, or accent anywhere else.`,
+    `TYPOGRAPHY: high-contrast editorial serif (Playfair/Didot style) for headlines and any big numeral, italic for an emphasis word; a flowing script for at most ONE accent word; a clean sans (Montserrat style) for eyebrow labels and body. Numbered lists use THIN HOLLOW navy rings with navy numerals — NEVER filled circles with white numerals.`,
+    `VOICE: a warm, patient senior loan officer guiding a first-time buyer — educational, reassuring, partnering. Never pushy.`,
+    ``,
+    `STRICT RULES (a violation makes the post unusable):`,
+    `- NO logo, monogram, brand mark, or the wordmark "OMEGA", "MORTGAGE", or "GROUP" anywhere — those are added separately after delivery.`,
+    `- NO "NMLS", license numbers, phone numbers, website, or compliance/legal fine print anywhere.`,
+    `- NO "APPLY NOW", "LIMITED TIME", or hard-sell language.`,
+    `- Keep the bottom ~12% of the canvas a calm, uncluttered zone (no text, no key content) so a compliance line can be overlaid later.`,
+    `- NO misspellings, no watermarks, no UI elements, no stray borders. Photographs must look like real editorial photography, never AI-plastic or stock-cheesy.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
 // Route each post to the layout that FITS ITS CONTENT — this is what gives the
 // feed real variety (the v8 design language), instead of forcing everything into
 // one photo-top mold. Mirrors the brand's archetype taxonomy:

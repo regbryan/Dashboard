@@ -18,8 +18,7 @@ import {
 } from "./archetype-prompt";
 import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
-import { synthesizeOmegaSpec } from "./omega-spec";
-import { renderOmegaDesign, omegaArchetypeNeedsPhoto, omegaArchetypeNeedsPhotoGrid, omegaPhotoGridCount } from "./render-omega";
+import { synthesizeOmegaSpec, buildOmegaDesignPrompt } from "./omega-spec";
 import { synthesizeCscSpec } from "./csc-spec";
 import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
 import { synthesizeBlitzSpec } from "./blitz-spec";
@@ -295,9 +294,12 @@ export async function generateBrandPost(
 
   try {
     if (template?._engine === "omega") {
-      // OMEGA PATH: its own design language (serif + Allura script, navy/cream,
-      // hollow rings, photo-forward). Photo-hero needs a text-free AI photo;
-      // list/stat/review render fully in code. No logo / NMLS ever drawn.
+      // OMEGA PATH (AI FULL-DESIGN): the model draws the ENTIRE post (photo +
+      // layout + text) from a brand-kit-complete prompt (buildOmegaDesignPrompt).
+      // Variety + polish come from the model; every Omega restriction (navy/cream
+      // palette, hollow rings, gold-for-stars-only, NO logo/wordmark/NMLS/
+      // compliance) is baked into the prompt. Free Gemini, uploaded like every
+      // other post. (Replaces the deterministic Satori render-omega path.)
       const s = await synthesizeOmegaSpec({
         concept: post.concept,
         content_pillar: post.content_pillar,
@@ -309,58 +311,15 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `omega spec: ${s.error}` };
       }
       const ospec = s.spec;
-      let omegaPhoto: Buffer | null = null;
-      let omegaPhotos: Buffer[] | null = null;
-      let tag = "omega";
-      if (omegaArchetypeNeedsPhotoGrid(ospec.archetype)) {
-        // Collage heroes use a grid of warm summer-home photographs (4 or 6).
-        // Generate them IN PARALLEL — sequential generation of 6 photos blew past
-        // the serverless function timeout (~240s). Parallel keeps wall-clock to
-        // roughly one photo's time.
-        const want = omegaPhotoGridCount(ospec.archetype);
-        const cellPrompt = (scene: string) =>
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole SQUARE frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${scene}. Real, diverse people where present; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR at 35-50mm in warm natural light, sharp focus, realistic skin texture and fine detail, crisp high-resolution editorial photography, very fine barely-there film grain. Warm, optimistic summer real-estate mood.`;
-        const gens = await Promise.all(
-          omegaCollageScenes(post).slice(0, want).map((scene) => genImage(cellPrompt(scene), "1:1"))
-        );
-        const failed = gens.find((g) => !g.ok);
-        if (failed && !failed.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: failed.error };
-        }
-        omegaPhotos = gens.map((g) => (g.ok ? g.bytes : Buffer.alloc(0)));
-        const okGen = gens.find((g) => g.ok);
-        if (okGen && okGen.ok) tag = `${okGen.model}+omega`;
-      } else if (omegaArchetypeNeedsPhoto(ospec.archetype)) {
-        const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge — ONE real photograph that fills the whole frame, NOT a framed print, polaroid, collage, border, or photo-within-a-photo. Scene: ${omegaPhotoScene(post)}. Real, diverse people; authentic and lived-in, never stock-cheesy or fintech illustration; no stiff posing. Shot on a full-frame DSLR with a 50mm prime lens at f/2, sharp focus on the subjects with fine natural detail, realistic skin texture and pores (not smooth, waxy, or plasticky), crisp high-resolution editorial photography, very fine barely-there film grain that stays clean in smooth areas like walls. Photojournalistic, not AI-rendered. Compose as a WIDE landscape shot: the people prominent and large in the lower-center of the frame, faces clearly visible and unobstructed, with a simple, uncluttered band of background across the TOP (sky, wall, greenery) that can be cropped away.`,
-          "16:9"
-        );
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
-        }
-        omegaPhoto = gen.bytes;
-        tag = `${gen.model}+omega`;
+      const omDesignPrompt = buildOmegaDesignPrompt(ospec);
+      const omGen = await genImage(omDesignPrompt, "4:5");
+      if (!omGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: omGen.error };
       }
-      bytes = await renderOmegaDesign({
-        archetype: ospec.archetype,
-        width,
-        height,
-        eyebrow: ospec.eyebrow,
-        headlineLines: ospec.headlineLines,
-        body: ospec.body,
-        cta: ospec.cta,
-        listItems: ospec.listItems,
-        quadItems: ospec.quadItems,
-        bigStat: ospec.bigStat,
-        quote: ospec.quote,
-        attribution: ospec.attribution,
-        photo: omegaPhoto,
-        photos: omegaPhotos,
-      });
-      mimeType = "image/png";
-      model = `${tag}-${ospec.archetype}`;
+      bytes = omGen.bytes;
+      mimeType = omGen.mimeType;
+      model = `${omGen.model}+omega-ai-${ospec.archetype}`;
     } else if (template?._engine === "csc") {
       // CSC PATH: its own design language (heavy bold sans, sunny yellow +
       // electric blue, FILLED numbered circles, calm-not-alarmist). Only the
