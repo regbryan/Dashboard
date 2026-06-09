@@ -19,7 +19,8 @@
       "#231F20": "Near-black, dark text on light backgrounds.",
       "#FFFFFF": "White headlines/body over navy or photo."
     },
-    "FORBIDDEN": ["red accents (that's IEC)", "filled navy circles with white numerals (that's IEC/CSC — Omega rings are HOLLOW)", "bright primary colors", "rainbow gradients", "gold as a primary field on a non-review post"]
+    "FORBIDDEN": ["red accents (that's IEC)", "filled navy circles with white numerals (that's IEC/CSC — Omega rings are HOLLOW)", "bright primary colors", "rainbow gradients", "gold as a primary field on a non-review post", "a navy lighter than #005181", "a navy darker than #005181", "royal blue", "slate blue", "cobalt", "any blue other than #005181"],
+    "_ENFORCE_EXACT": "Use these EXACT hex values everywhere — they are a locked palette, not a suggestion. The navy is EXACTLY #005181 on EVERY post and EVERY panel: never lighten it, darken it, desaturate it, or shift it toward royal / slate / teal / cobalt blue, and never let the navy vary from one post to the next. Sample #005181 precisely and reuse that identical value across the whole feed."
   },
 
   "BRAND": {
@@ -86,5 +87,5 @@
     "Render every word crisply and correctly spelled."
   ],
 
-  "GLOBAL_NEGATIVE_PROMPT": "logo, wordmark, OMEGA MORTGAGE GROUP text, NMLS, MLS, NMLS number, license number, lic #, DFPI, DBO, Infinity Equity Group, nmlsconsumeraccess.org, state license codes, compliance band, footer disclosure band, disclaimer text, red, filled numbered circles with white numerals, bright primary colors, rainbow gradients, gold as a background, fintech flat illustration, stock-photo cheese, emoji, luxury mansion fantasy, all-caps bold-sans shouting, border, outer frame, rounded outer corners, drop shadow, floating card, APPLY NOW, LIMITED TIME, misspelled or garbled text"
+  "GLOBAL_NEGATIVE_PROMPT": "logo, wordmark, OMEGA MORTGAGE GROUP text, NMLS, MLS, NMLS number, license number, lic #, DFPI, DBO, Infinity Equity Group, nmlsconsumeraccess.org, state license codes, compliance band, footer disclosure band, disclaimer text, red, navy lighter than #005181, navy darker than #005181, royal blue, slate blue, cobalt, teal, any blue other than #005181, inconsistent navy, filled numbered circles with white numerals, bright primary colors, rainbow gradients, gold as a background, fintech flat illustration, stock-photo cheese, emoji, luxury mansion fantasy, all-caps bold-sans shouting, border, outer frame, rounded outer corners, drop shadow, floating card, APPLY NOW, LIMITED TIME, misspelled or garbled text"
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import type { OmegaArchetype, OmegaHeadlineLine } from "./render-omega";
+import { loadBrandTemplate } from "./archetype-prompt";
 
 // Synthesizes an Omega design spec from a calendar post. Photo-FIRST: most posts
 // are the photo-hero (A); text archetypes (C list, D big-number, G review) are
@@ -70,41 +71,47 @@ function omegaArchetypeLayout(spec: OmegaSpec): string {
   }
 }
 
+// JSON-CONTRACT generation: instead of a prose paragraph (which lets the model
+// re-interpret "navy" and drift the brand color post-to-post), we hand the model
+// the brand's STRICT JSON contract from brand-templates/omega.json — exact hexes,
+// a forbidden-color list, hard rules, and a negative prompt — with this post's
+// copy + layout filled in. The model follows the contract instead of guessing, so
+// #005181 is locked across the whole feed. (This is the "JSON gives full control"
+// approach the brand was built on.)
 export function buildOmegaDesignPrompt(spec: OmegaSpec): string {
+  const tpl = loadBrandTemplate("omega");
   const serif = spec.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ");
   const script = spec.headlineLines.find((l) => l.style === "script")?.text || "";
-  const list = (spec.listItems ?? [])
-    .map((it, i) => `  ${it.number || i + 1}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
-    .join("\n");
-  const quad = (spec.quadItems ?? []).map((q) => `  • ${q.heading}: ${q.text}`).join("\n");
-  return [
-    `Design a polished, premium, EDITORIAL vertical Instagram post (4:5, 1080x1350) for Omega Mortgage Group — a warm, trustworthy mortgage lender's brand. Think upscale real-estate magazine: navy + warm cream, elegant serif display, aspirational but human. NOT fintech, NOT flat, NOT corporate-stock.`,
-    ``,
-    `LAYOUT: ${omegaArchetypeLayout(spec)}`,
-    ``,
-    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no extra invented words:`,
-    spec.eyebrow ? `- Eyebrow label (small, ALL-CAPS sans, on a navy pill): ${spec.eyebrow}` : ``,
-    serif ? `- Headline (elegant editorial serif, mixed-case): ${serif}` : ``,
-    script ? `- Script accent (ONE flowing handwritten word/phrase): ${script}` : ``,
-    spec.body ? `- Body (clean serif or sans): ${spec.body}` : ``,
-    list ? `- Numbered list:\n${list}` : ``,
-    quad ? `- Four cards:\n${quad}` : ``,
-    spec.bigStat ? `- Big number/stat (giant serif): ${spec.bigStat}` : ``,
-    spec.quote ? `- Quote: ${spec.quote}` : ``,
-    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
-    spec.cta ? `- Soft CTA (small, NOT hard-sell): ${spec.cta}` : ``,
-    ``,
-    `COLOR PALETTE — use ONLY: navy #005181 (the DOMINANT color on every post), warm cream #FBF9F5, near-white #FEFEFE, white, near-black #231F20 for dark text. GOLD #FDD314 is RESERVED for 5-star review marks ONLY — never as a background, fill, or accent anywhere else.`,
-    `TYPOGRAPHY: high-contrast editorial serif (Playfair/Didot style) for headlines and any big numeral, italic for an emphasis word; a flowing script for at most ONE accent word; a clean sans (Montserrat style) for eyebrow labels and body. Numbered lists use THIN HOLLOW navy rings with navy numerals — NEVER filled circles with white numerals.`,
-    `VOICE: a warm, patient senior loan officer guiding a first-time buyer — educational, reassuring, partnering. Never pushy.`,
-    ``,
-    `STRICT RULES (a violation makes the post unusable):`,
-    `- NO logo, monogram, brand mark, or the wordmark "OMEGA", "MORTGAGE", or "GROUP" anywhere — those are added separately after delivery.`,
-    `- NO "NMLS", license numbers, phone numbers, website, or compliance/legal fine print anywhere.`,
-    `- NO "APPLY NOW", "LIMITED TIME", or hard-sell language.`,
-    `- Keep the bottom ~12% of the canvas a calm, uncluttered zone (no text, no key content) so a compliance line can be overlaid later.`,
-    `- NO misspellings, no watermarks, no UI elements, no stray borders. Photographs must look like real editorial photography, never AI-plastic or stock-cheesy.`,
-  ].filter((l) => l !== "").join("\n");
+  const numbered_list = (spec.listItems ?? []).map((it, i) => ({
+    hollow_navy_ring_numeral: String(it.number || i + 1),
+    lead: it.lead || null,
+    text: it.text,
+  }));
+  const four_cards = (spec.quadItems ?? []).map((q) => ({ heading: q.heading, text: q.text }));
+
+  const contract = {
+    INSTRUCTION:
+      "Create ONE Instagram post graphic, 4:5 portrait (1080x1350), for Omega Mortgage Group. This JSON is a STRICT brand contract — obey every field exactly. Do NOT improvise or vary the colors; use the STRICT_COLOR_CONTRACT hex values precisely. Render every word EXACTLY as written under CONTENT, crisp and correctly spelled, no invented words.",
+    STRICT_COLOR_CONTRACT: tpl?.STRICT_COLOR_CONTRACT ?? {},
+    TYPOGRAPHY: tpl?.TYPOGRAPHY ?? {},
+    LAYOUT: { archetype: spec.archetype, description: omegaArchetypeLayout(spec) },
+    CONTENT: {
+      eyebrow_pill: spec.eyebrow || null,
+      headline_serif: serif || null,
+      headline_script_accent: script || null,
+      body: spec.body || null,
+      numbered_list: numbered_list.length ? numbered_list : null,
+      four_cards: four_cards.length ? four_cards : null,
+      big_stat: spec.bigStat || null,
+      quote: spec.quote || null,
+      attribution: spec.attribution || null,
+      cta: spec.cta || null,
+      footer: "NONE — leave the bottom ~12% a calm, empty quiet zone (no text, no logo); compliance is overlaid after delivery.",
+    },
+    GLOBAL_HARD_RULES: tpl?.GLOBAL_HARD_RULES ?? [],
+    GLOBAL_NEGATIVE_PROMPT: tpl?.GLOBAL_NEGATIVE_PROMPT ?? "",
+  };
+  return "Follow this JSON brand contract EXACTLY when generating the image:\n\n" + JSON.stringify(contract, null, 2);
 }
 
 // Route each post to the layout that FITS ITS CONTENT — this is what gives the
