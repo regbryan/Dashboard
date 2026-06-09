@@ -150,6 +150,20 @@ export function buildArchetypePrompt(
     out.push(`- Trust element: ${spec.trust_element.trim()}`);
   }
   out.push(`- CTA: a rounded pill button with a small red arrow: "${spec.cta.text}"`);
+  // Phone burn-in (contract-driven): if the brand defines a social phone for the
+  // image, render it EXACTLY (dots format) and forbid the website-only number.
+  const phoneOnImage = typeof brand.phone_on_image === "string" ? (brand.phone_on_image as string) : null;
+  const phoneForbidden =
+    typeof brand.phone_website_only_NEVER_on_image === "string"
+      ? (brand.phone_website_only_NEVER_on_image as string)
+      : null;
+  if (phoneOnImage) {
+    out.push(
+      `- Phone (REQUIRED): render the phone number exactly as "${phoneOnImage}" — same digits, dots format, no parentheses or dashes — clearly legible in the CTA or footer area.${
+        phoneForbidden ? ` NEVER render "${phoneForbidden}" or any other phone number.` : ""
+      }`
+    );
+  }
   if (spec.photo?.include) {
     out.push(
       `- Photo: ${spec.photo.description.trim()} Photorealistic, natural light, not a stock-photo cliché.`

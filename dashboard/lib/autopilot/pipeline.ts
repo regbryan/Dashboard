@@ -473,8 +473,19 @@ export async function generateBrandPost(
       // Archetypes A and C render deterministically full-bleed in code (Satori):
       // the AI makes ONLY a text-free photo; the panel + all text are drawn here,
       // so the design can never frame, garble text, or drift off-brand.
+      //
+      // IEC EXCEPTION (AI FULL-DESIGN): route EVERY IEC archetype through the
+      // contract prompt (buildArchetypePrompt) so the model draws the entire post
+      // — photo + layout + text — matching the rest of the brands. The IEC
+      // contract bakes in the phone-burn rule (951.789.3238, dots; never
+      // (951) 482-7457), the no-logo clean top zone, and the full color contract.
+      const brandShort =
+        typeof template.BRAND?.short === "string" ? (template.BRAND.short as string) : "";
+      const brandName =
+        typeof template.BRAND?.name === "string" ? (template.BRAND.name as string) : "";
+      const isIec = brandShort === "IEC" || brandName.includes("Inland Empire");
       const letter = spec.archetype.split("_")[0].toUpperCase();
-      const satoriArch = (SATORI_ARCHETYPES.has(letter) ? letter : null) as ArchetypeKey | null;
+      const satoriArch = (!isIec && SATORI_ARCHETYPES.has(letter) ? letter : null) as ArchetypeKey | null;
 
       if (satoriArch) {
         // Code-rendered, full-bleed. A/C need a text-free AI photo; D/E/F/G/H
