@@ -11,6 +11,22 @@ import { supabaseAdmin } from "./supabase-admin";
 
 const BUCKET = "post-images";
 
+// Explicit font for sharp/Pango text rendering. The Vercel serverless runtime
+// has NO system fonts and a broken fontconfig ("Cannot load default config
+// file"), so without a fontfile Pango miscomputes the text layout and blows the
+// surface up to multi-GB → "vips_tracked: out of memory". Pointing at a bundled
+// font (loaded directly via FreeType) makes rendering deterministic and avoids
+// fontconfig discovery entirely. Same fonts the Satori path bundles; the
+// run-script route includes them via next.config.ts outputFileTracingIncludes.
+const FOOTER_FONT_FAMILY = "Montserrat";
+const FOOTER_FONT_FILE = path.join(
+  process.cwd(),
+  "lib",
+  "autopilot",
+  "fonts",
+  "montserrat-400.woff"
+);
+
 export type FooterPosition =
   | "bottom-center"
   | "bottom-left"
@@ -251,6 +267,11 @@ export async function applyOverlayFooter(
         rgba: true,
         width: blockWidth,
         align,
+        // Use the bundled font explicitly + a fixed DPI so rendering doesn't
+        // depend on (missing) serverless system fonts. See FOOTER_FONT_FILE.
+        font: FOOTER_FONT_FAMILY,
+        fontfile: FOOTER_FONT_FILE,
+        dpi: 72,
       },
     })
       .png()

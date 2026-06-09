@@ -36,6 +36,10 @@ const nextConfig: NextConfig = {
       "./lib/autopilot/fonts/**",
       "./lib/autopilot/brand-templates/**",
     ],
+    // The footer overlay (lib/overlay-footer.ts) renders compliance text with
+    // sharp/Pango and needs a bundled font at runtime — serverless has no
+    // system fonts. Force the font into this route's lambda.
+    "/api/run-script": ["./lib/autopilot/fonts/**"],
   },
   // Baseline security headers on every response. Intentionally NO strict
   // script-src/style-src CSP: the app uses inline styles throughout plus
