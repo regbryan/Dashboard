@@ -29,6 +29,83 @@ export type CscSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type CscSynthResult = { ok: true; spec: CscSpec } | { ok: false; error: string };
 
+// ============================================================================
+// AI FULL-DESIGN PROMPT (the model draws the ENTIRE post). Mirrors
+// buildStephanieDesignPrompt: CSC's whole kit (heavy bold sans, sunny yellow +
+// electric blue, FILLED blue number circles, calm-not-alarmist, no logo/url
+// baked) is encoded so nothing gets dropped. Replaces the Satori render-csc path.
+// ============================================================================
+const CSC_KIDS_PHOTO =
+  "a warm, bright, POSITIVE photorealistic photo of a calm parent and child (or a tween/teen) together at home using a phone or tablet — reassuring and capable, NEVER scared, shocked, panicked, or in danger. Natural light, real diverse people, magazine quality, no stock cheese. No text or logos in the photo";
+
+function cscArchetypeLayout(spec: CscSpec): string {
+  switch (spec.archetype) {
+    case "A":
+      return `SUNNY YELLOW (#FFDE59) full background. A bold header pill at the top holds the eyebrow/title; below it the headline; then 3 NUMBERED ROWS, each a FILLED solid electric-blue circle with a white numeral (NEVER a hollow ring), a bold ALL-CAPS action lead, and one short supporting line.`;
+    case "QUAD":
+      return `A clean white or ice-blue (#D9EDF8) field. A bold header at top, then a 2x2 GRID of EXACTLY 4 rounded cards (blue or yellow accented), each with a short bold heading and one doable phrase.`;
+    case "PHOTOSPLIT":
+      return `A SPLIT layout: a ${CSC_KIDS_PHOTO} fills one half; the other half is a solid electric-blue panel with the bold headline, 3 short benefit bullet lines (each with a small check), and a short trust tag line. NO partner brand names.`;
+    case "YHEADER":
+      return `A bold SUNNY-YELLOW header bar across the TOP holds the headline plus a short electric-blue accent line; below it a ${CSC_KIDS_PHOTO} fills the rest, with one short white caption sentence on a blue band.`;
+    case "COMPARE":
+      return `A TWO-COLUMN compare on white. The headline across the top. Left column (electric-blue header) lists 3 short "do/safe" phrases each with a check; right column (gray header) lists 3 short "avoid/risky" phrases each with an X. Heavy bold sans throughout.`;
+    case "CHECK":
+      return `A clean white/ice-blue checklist card. A bold headline at the top, then 4-5 rows each with a sunny-yellow or blue CHECKMARK and one short doable item in bold sans.`;
+    case "STATEMENT":
+      return `A bold electric-blue or sunny-yellow field (no photo). ONE large, calm, bold myth-busting headline dominates the frame; one short reassuring sentence beneath. Heavy bold sans, mixed-case.`;
+    case "D":
+      return `SUNNY-YELLOW background. ONE huge electric-blue NUMERAL/stat dominates the upper area; a bold topic headline beneath. A ${CSC_KIDS_PHOTO} can fill the lower portion behind a blue swoosh band.`;
+    case "C":
+      return `A full-bleed ${CSC_KIDS_PHOTO} fills the frame. A short bold ALL-CAPS command (3-5 words) sits in the upper-left in white or sunny-yellow over a subtle scrim.`;
+    case "G":
+      return `A clean card (white or ice-blue). A bold header, a warm parent quote in large bold sans, optional row of sunny-yellow stars, and an attribution line beneath. Calm and relieved in tone, never fearful.`;
+    default:
+      return `SUNNY YELLOW background with a bold header pill and 3 FILLED-blue-circle numbered rows. Heavy bold sans, calm and empowering.`;
+  }
+}
+
+export function buildCscDesignPrompt(spec: CscSpec): string {
+  const list = (spec.listItems ?? [])
+    .map((it, i) => `  ${it.number || String(i + 1).padStart(2, "0")}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
+    .join("\n");
+  const quad = (spec.quadItems ?? []).map((q) => `  • ${q.heading}: ${q.text}`).join("\n");
+  const bullets = (spec.bullets ?? []).map((b) => `  • ${b}`).join("\n");
+  const cmp = spec.compare
+    ? `  ${spec.compare.goodLabel || "Do this"}: ${(spec.compare.good ?? []).join("; ")}\n  ${spec.compare.badLabel || "Not that"}: ${(spec.compare.bad ?? []).join("; ")}`
+    : "";
+  return [
+    `Design a bright, bold, modern vertical Instagram post (4:5, 1080x1350) for Cyber Safety Cop — a brand that teaches parents to keep kids safe online. Tone is CALM, EMPOWERING, and capable — never scary, never alarmist, never a shocked-parent or predator-panic vibe. Clean, friendly, confident.`,
+    ``,
+    `LAYOUT: ${cscArchetypeLayout(spec)}`,
+    ``,
+    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
+    spec.eyebrow ? `- Eyebrow label (small, ALL-CAPS, on a pill): ${spec.eyebrow}` : ``,
+    spec.headline ? `- Headline (heavy bold sans, mixed-case): ${spec.headline}` : ``,
+    spec.headlineAccent ? `- Accent line (bold blue, smaller): ${spec.headlineAccent}` : ``,
+    spec.body ? `- Body (regular sans): ${spec.body}` : ``,
+    list ? `- Numbered steps:\n${list}` : ``,
+    quad ? `- Four cards:\n${quad}` : ``,
+    bullets ? `- Benefit bullets:\n${bullets}` : ``,
+    cmp ? `- Compare columns:\n${cmp}` : ``,
+    spec.coralTag ? `- Trust tag: ${spec.coralTag}` : ``,
+    spec.bigStat ? `- Big number/stat: ${spec.bigStat}` : ``,
+    spec.quote ? `- Quote: ${spec.quote}` : ``,
+    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
+    spec.cta ? `- CTA (small, action — never fear): ${spec.cta}` : ``,
+    ``,
+    `COLOR PALETTE — use ONLY: electric blue #057AC0, lighter blue #66ABD3, SATURATED sunny yellow #FFDE59 (never muted/pastel), ice blue #D9EDF8, white, dark gray #646668 / #AEAFB0 for secondary text. NO coral/pink (that is reserved for co-branded posts only).`,
+    `TYPOGRAPHY: HEAVY bold sans-serif headlines (Montserrat / Poppins / Bebas Neue style), mixed-case — command via weight and case. ABSOLUTELY NO italic, NO serif emphasis, NO script. Numbered lists use FILLED solid blue circles with white numerals — NEVER hollow rings.`,
+    `VOICE: a calm, empowering, practical guide who helps parents feel CAPABLE. Always "here's what you can do" — never fear.`,
+    ``,
+    `STRICT RULES (a violation makes the post unusable):`,
+    `- NO logo, brand mark, or the words "CYBER SAFETY COP" / "CYBERSAFETYCOP.COM" / any URL — the logo is composited separately after delivery.`,
+    `- Leave a clean SOLID-COLOR top ~12% zone (no key text/content) so the logo can be overlaid cleanly later.`,
+    `- NEVER show "BRIGHT CANARY", "OURPACT", or any partner/app brand name; no predator/fear/horror imagery; no shocked-parent cliché.`,
+    `- NO misspellings, no watermarks, no UI chrome, no stray borders. Photos must look like real editorial photography, never AI-plastic.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
 // Content router — picks the layout that fits each post for a varied feed.
 //   A          bold numbered STEPS (sequence: tell/block/delete, "3 steps")
 //   QUAD       2x2 cards (a count of settings/signs/apps/features)

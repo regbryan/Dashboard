@@ -27,6 +27,78 @@ export type BlitzSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type BlitzSynthResult = { ok: true; spec: BlitzSpec } | { ok: false; error: string };
 
+// ============================================================================
+// AI FULL-DESIGN PROMPT (the model draws the ENTIRE post). Blitz's whole kit
+// (dusty rose + sage + beige, casual script hook + light sans, organized-SPACES
+// photos with NO people, warm-encourager voice, no logo baked) is encoded so
+// nothing gets dropped. Replaces the Satori render-blitz path.
+// ============================================================================
+const BLITZ_SPACE =
+  "a bright, airy, photorealistic ORGANIZED SPACE — a pantry, closet, drawer, linen shelf, or cabinets with clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, lots of breathing room, magazine quality. ABSOLUTELY NO people, hands, or faces. No text or logos in the photo";
+
+function blitzArchetypeLayout(spec: BlitzSpec): string {
+  switch (spec.archetype) {
+    case "A":
+      return `A full-bleed ${BLITZ_SPACE} fills the frame. A soft, airy panel or gentle scrim carries a casual handwritten SCRIPT hook plus a short light-sans line, with a soft CTA. Lots of breathing room.`;
+    case "C":
+      return `A soft cream/dusty-rose card (no photo). A casual handwritten SCRIPT hook at the top, then 3-5 NUMBERED ROWS/soft bars, each with a small rounded number chip, a short bold lead, and one doable line. Airy spacing, sage + rose accents.`;
+    case "QUAD":
+      return `A soft cream card (no photo). A script hook header, then a 2x2 GRID of EXACTLY 4 gentle rounded cards (rose/sage/beige), each with a short heading (a zone/area) and one doable phrase.`;
+    case "CHECK":
+      return `A soft cream/beige checklist card (no photo). A script hook header, then 4-5 rows each with a soft sage or rose CHECKMARK and one short reset step in light sans.`;
+    case "COMPARE":
+      return `A soft two-column KEEP / TOSS card (no photo). A script "Keep or Toss?" hook on top; left column "Keep" (sage) with 3 short phrases each with a check; right column "Toss" (dusty rose) with 3 short phrases each with a soft x. Gentle, never shaming.`;
+    case "STAT":
+      return `A soft cream card (no photo). ONE large dusty-rose or sage NUMBER as the focal point, a script line naming the trick, and one short light-sans explanation beneath.`;
+    case "PHOTOPANEL":
+      return `A split card: a ${BLITZ_SPACE} fills one side; the other side is a soft cream/beige panel with a short light-sans QUESTION and a warm 1-2 sentence practical answer.`;
+    case "STATEMENT":
+      return `A soft, airy cream/rose field (no photo). A warm handwritten SCRIPT line plus a short light-sans line, centered with generous space, and one reassuring sentence. Gentle and encouraging, never shaming.`;
+    case "D":
+      return `A soft cream/beige card (no photo). ONE casual handwritten SCRIPT question or warm hook dominates, with a short reassuring light-sans line beneath. Empathetic and calming.`;
+    case "G":
+      return `A soft cream testimonial card (no photo). A small script header, the client's warm quote in light sans, and an attribution beneath. Relief and calm in tone.`;
+    default:
+      return `A full-bleed ${BLITZ_SPACE} with a casual script hook and a soft light-sans line. Airy, warm, encouraging.`;
+  }
+}
+
+export function buildBlitzDesignPrompt(spec: BlitzSpec): string {
+  const script = spec.headlineLines.find((l) => l.style === "script")?.text || "";
+  const sans = spec.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ");
+  const list = (spec.listItems ?? [])
+    .map((it, i) => `  ${it.number || String(i + 1).padStart(2, "0")}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
+    .join("\n");
+  const quad = (spec.quadItems ?? []).map((q) => `  • ${q.heading}: ${q.text}`).join("\n");
+  const cmp = spec.compare
+    ? `  ${spec.compare.keepLabel || "Keep"}: ${(spec.compare.keep ?? []).join("; ")}\n  ${spec.compare.tossLabel || "Toss"}: ${(spec.compare.toss ?? []).join("; ")}`
+    : "";
+  return [
+    `Design a soft, airy, warm vertical Instagram post (4:5, 1080x1350) for Blitz Organization — a professional home-organizing service. Calm, encouraging, beautifully tidy; like a Pinterest home-organization aesthetic. NOT corporate, NOT busy, never cluttered or harsh.`,
+    ``,
+    `LAYOUT: ${blitzArchetypeLayout(spec)}`,
+    ``,
+    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
+    spec.eyebrow ? `- Small label: ${spec.eyebrow}` : ``,
+    script ? `- Script hook (casual handwritten, the emotional line): ${script}` : ``,
+    sans ? `- Supporting line (light clean sans): ${sans}` : ``,
+    spec.body ? `- Body (light sans): ${spec.body}` : ``,
+    list ? `- List:\n${list}` : ``,
+    quad ? `- Four cards:\n${quad}` : ``,
+    cmp ? `- Keep / Toss:\n${cmp}` : ``,
+    spec.bigStat ? `- Big number: ${spec.bigStat}` : ``,
+    spec.quote ? `- Quote: ${spec.quote}` : ``,
+    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
+    spec.cta ? `- Soft CTA (gentle invite): ${spec.cta}` : ``,
+    ``,
+    `COLOR PALETTE — use ONLY: dusty rose #ECB7B9, soft sage green #9CAF9C, warm beige #DAD6CF, cream/off-white, and a soft warm charcoal for text. Muted, soft, pastel — NO bright/saturated colors, no black blocks.`,
+    `TYPOGRAPHY: a CASUAL handwritten SCRIPT for the hook/emotional line; a LIGHT, clean, airy sans for everything else. No heavy bold blocks, no serif, no all-caps shouting.`,
+    `VOICE: a warm, encouraging friend who's great at organizing — calm, practical, never shaming. NEVER the words "messy", "dirty", "disaster", "hoarder". Soft CTAs only (never "BOOK NOW").`,
+    ``,
+    `STRICT RULES: NO logo, wordmark, or brand mark anywhere (added separately). Photos are organized SPACES with ABSOLUTELY NO people, hands, or faces. NO misspellings, no watermarks, no UI elements, no harsh borders. Keep it soft, airy, and uncluttered.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
 // Content router across Blitz's 10 layouts.
 //   C         the signature numbered BARS (5 things / steps)
 //   QUAD      a 2x2 grid (zones / areas)        CHECK  a reset checklist

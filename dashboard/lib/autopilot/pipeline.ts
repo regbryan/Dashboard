@@ -19,15 +19,11 @@ import {
 import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
 import { synthesizeOmegaSpec, buildOmegaDesignPrompt } from "./omega-spec";
-import { synthesizeCscSpec } from "./csc-spec";
-import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
-import { synthesizeBlitzSpec } from "./blitz-spec";
-import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
+import { synthesizeCscSpec, buildCscDesignPrompt } from "./csc-spec";
+import { synthesizeBlitzSpec, buildBlitzDesignPrompt } from "./blitz-spec";
 import { synthesizeStephanieSpec, buildStephanieDesignPrompt } from "./stephanie-spec";
-import { synthesizeRiversideSpec } from "./riverside-spec";
-import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-riverside";
-import { synthesizeDougSpec } from "./doug-spec";
-import { renderDougDesign, dougArchetypeNeedsPhoto } from "./render-doug";
+import { synthesizeRiversideSpec, buildRiversideDesignPrompt } from "./riverside-spec";
+import { synthesizeDougSpec, buildDougDesignPrompt } from "./doug-spec";
 
 const SATORI_ARCHETYPES = new Set(["A", "B", "C", "D", "E", "F", "G", "H", "I", "QUAD"]);
 
@@ -321,10 +317,10 @@ export async function generateBrandPost(
       mimeType = omGen.mimeType;
       model = `${omGen.model}+omega-ai-${ospec.archetype}`;
     } else if (template?._engine === "csc") {
-      // CSC PATH: its own design language (heavy bold sans, sunny yellow +
-      // electric blue, FILLED numbered circles, calm-not-alarmist). Only the
-      // command-photo (C) needs a text-free AI photo; listicle/big-number/review
-      // render fully in code. Logo + CYBERSAFETYCOP.COM are composited on top.
+      // CSC PATH (AI FULL-DESIGN): the model draws the ENTIRE post from a
+      // brand-kit-complete prompt (buildCscDesignPrompt). Heavy bold sans, sunny
+      // yellow + electric blue, FILLED number circles, calm-not-alarmist, and the
+      // no-logo/no-url + clean-top-zone rules are baked in. Logo composited later.
       const s = await synthesizeCscSpec({
         concept: post.concept,
         content_pillar: post.content_pillar,
@@ -335,40 +331,15 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `csc spec: ${s.error}` };
       }
       const cspec = s.spec;
-      let cscPhoto: Buffer | null = null;
-      let tag = "csc";
-      if (cscArchetypeNeedsPhoto(cspec.archetype)) {
-        const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${cspec.photo.description}. Bright, warm, reassuring — NEVER scared, shocked, panicked, or in danger. Natural light, real diverse people, magazine quality. No stock cheese.`
-        );
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
-        }
-        cscPhoto = gen.bytes;
-        tag = `${gen.model}+csc`;
+      const cscDesignPrompt = buildCscDesignPrompt(cspec);
+      const cscGen = await genImage(cscDesignPrompt, "4:5");
+      if (!cscGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: cscGen.error };
       }
-      bytes = await renderCscDesign({
-        archetype: cspec.archetype,
-        width,
-        height,
-        eyebrow: cspec.eyebrow,
-        headline: cspec.headline,
-        headlineAccent: cspec.headlineAccent,
-        body: cspec.body,
-        cta: cspec.cta,
-        listItems: cspec.listItems,
-        quadItems: cspec.quadItems,
-        bullets: cspec.bullets,
-        coralTag: cspec.coralTag,
-        compare: cspec.compare,
-        bigStat: cspec.bigStat,
-        quote: cspec.quote,
-        attribution: cspec.attribution,
-        photo: cscPhoto,
-      });
-      mimeType = "image/png";
-      model = `${tag}-${cspec.archetype}`;
+      bytes = cscGen.bytes;
+      mimeType = cscGen.mimeType;
+      model = `${cscGen.model}+csc-ai-${cspec.archetype}`;
     } else if (template?._engine === "blitz") {
       // BLITZ PATH: soft, feminine, airy design language (dusty rose + sage +
       // beige, casual script hook + light sans). Only the photo-hero (A) needs
@@ -384,37 +355,18 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `blitz spec: ${s.error}` };
       }
       const bspec = s.spec;
-      let blitzPhoto: Buffer | null = null;
-      let tag = "blitz";
-      if (blitzArchetypeNeedsPhoto(bspec.archetype)) {
-        const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${bspec.photo.description}. A bright, airy, beautifully ORGANIZED home space — clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, lots of breathing room. ABSOLUTELY NO people, hands, or faces. Magazine quality, never cluttered or moody.`
-        );
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
-        }
-        blitzPhoto = gen.bytes;
-        tag = `${gen.model}+blitz`;
+      // AI FULL-DESIGN: the model draws the ENTIRE post from a brand-kit-complete
+      // prompt (buildBlitzDesignPrompt) — soft rose/sage/beige, casual script
+      // hook + light sans, organized-SPACES photos with no people, no logo baked.
+      const blitzDesignPrompt = buildBlitzDesignPrompt(bspec);
+      const blitzGen = await genImage(blitzDesignPrompt, "4:5");
+      if (!blitzGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: blitzGen.error };
       }
-      bytes = await renderBlitzDesign({
-        archetype: bspec.archetype,
-        width,
-        height,
-        eyebrow: bspec.eyebrow,
-        headlineLines: bspec.headlineLines,
-        body: bspec.body,
-        cta: bspec.cta,
-        listItems: bspec.listItems,
-        quadItems: bspec.quadItems,
-        compare: bspec.compare,
-        bigStat: bspec.bigStat,
-        quote: bspec.quote,
-        attribution: bspec.attribution,
-        photo: blitzPhoto,
-      });
-      mimeType = "image/png";
-      model = `${tag}-${bspec.archetype}`;
+      bytes = blitzGen.bytes;
+      mimeType = blitzGen.mimeType;
+      model = `${blitzGen.model}+blitz-ai-${bspec.archetype}`;
     } else if (template?._engine === "stephanie") {
       // STEPHANIE PATH: dusty steel-blue + white serif overlay cards, Allura
       // script personal accent. TEXT-CARD-first (personal brand — real photos
@@ -461,34 +413,18 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `riverside spec: ${s.error}` };
       }
       const rvspec = s.spec;
-      let riversidePhoto: Buffer | null = null;
-      let tag = "riverside";
-      if (riversideArchetypeNeedsPhoto(rvspec.archetype)) {
-        const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${rvspec.photo.description}. A richly-lit Western HAT in context on a rich dark background (dark wood, tooled leather, rope), warm side-light, shallow depth of field. ABSOLUTELY NO people, faces, or hands. Modern Western, never costume. Never floating-product-on-white.`
-        );
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
-        }
-        riversidePhoto = gen.bytes;
-        tag = `${gen.model}+riverside`;
+      // AI FULL-DESIGN: the model draws the ENTIRE post from a brand-kit-complete
+      // prompt (buildRiversideDesignPrompt) — earthy tan/saddle/rust/cream,
+      // crafted slab serif, HATS-in-context photos with no people, no logo baked.
+      const rvDesignPrompt = buildRiversideDesignPrompt(rvspec);
+      const rvGen = await genImage(rvDesignPrompt, "4:5");
+      if (!rvGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: rvGen.error };
       }
-      bytes = await renderRiversideDesign({
-        archetype: rvspec.archetype,
-        width,
-        height,
-        eyebrow: rvspec.eyebrow,
-        headline: rvspec.headline,
-        body: rvspec.body,
-        cta: rvspec.cta,
-        listItems: rvspec.listItems,
-        quote: rvspec.quote,
-        attribution: rvspec.attribution,
-        photo: riversidePhoto,
-      });
-      mimeType = "image/png";
-      model = `${tag}-${rvspec.archetype}`;
+      bytes = rvGen.bytes;
+      mimeType = rvGen.mimeType;
+      model = `${rvGen.model}+riverside-ai-${rvspec.archetype}`;
     } else if (template?._engine === "doug") {
       // DOUG PATH: quiet corporate LinkedIn thought-leadership (teal + cream-mint,
       // no accent), LANDSCAPE 16:9 to match his reference designs. Photo covers
@@ -504,33 +440,19 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `doug spec: ${s.error}` };
       }
       const dgspec = s.spec;
-      let dougPhoto: Buffer | null = null;
-      let tag = "doug";
-      if (dougArchetypeNeedsPhoto(dgspec.archetype)) {
-        const gen = await genImage(
-          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${dgspec.photo.description}. A quiet, corporate, architectural image (glass towers, a city skyline at dusk, an empty boardroom) — ABSOLUTELY NO people, faces, or hands. Restrained and professional. It will sit under a heavy teal overlay.`
-        );
-        if (!gen.ok) {
-          await revert();
-          return { ok: false, postId: post.id, error: gen.error };
-        }
-        dougPhoto = gen.bytes;
-        tag = `${gen.model}+doug`;
+      // AI FULL-DESIGN: the model draws the ENTIRE LANDSCAPE card from a
+      // brand-kit-complete prompt (buildDougDesignPrompt) — quiet teal + cream-mint,
+      // no accent/emoji, corporate no-people photos, plain-text byline, no SCALE
+      // LLP wordmark. 16:9 from the template aspect (no override).
+      const dgDesignPrompt = buildDougDesignPrompt(dgspec);
+      const dgGen = await genImage(dgDesignPrompt, "16:9");
+      if (!dgGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: dgGen.error };
       }
-      // LinkedIn landscape — output 1200 wide (the renderer's 16:9 canvas → 1200x675).
-      bytes = await renderDougDesign({
-        archetype: dgspec.archetype,
-        width: 1200,
-        eyebrow: dgspec.eyebrow,
-        headline: dgspec.headline,
-        subtitle: dgspec.subtitle,
-        listItems: dgspec.listItems,
-        bigStat: dgspec.bigStat,
-        quote: dgspec.quote,
-        photo: dougPhoto,
-      });
-      mimeType = "image/png";
-      model = `${tag}-${dgspec.archetype}`;
+      bytes = dgGen.bytes;
+      mimeType = dgGen.mimeType;
+      model = `${dgGen.model}+doug-ai-${dgspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;

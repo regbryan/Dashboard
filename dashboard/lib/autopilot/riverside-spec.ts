@@ -24,6 +24,52 @@ export type RiversideSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type RiversideSynthResult = { ok: true; spec: RiversideSpec } | { ok: false; error: string };
 
+// ============================================================================
+// AI FULL-DESIGN PROMPT (the model draws the ENTIRE post). Riverside's whole kit
+// (earthy tan/saddle/rust/cream, crafted slab serif + condensed rust label,
+// HATS-in-context photos with NO people, modern-Western-not-costume voice, no
+// EST.2021 logo baked) is encoded. Replaces the Satori render-riverside path.
+// ============================================================================
+const RIVERSIDE_HAT =
+  "a richly-lit, photorealistic Western HAT in context — a black felt cowboy hat or a woven straw hat resting on a dark wood credenza, tooled leather, or coiled rope, warm directional side-light, shallow depth of field, moody and crafted. Modern Western, never costume or rhinestone kitsch. ABSOLUTELY NO people, faces, or hands; never a floating product on a white background. No text or logos in the photo";
+
+function riversideArchetypeLayout(spec: RiversideSpec): string {
+  switch (spec.archetype) {
+    case "C":
+      return `A warm CREAM (#F2E6D5) card (no photo). A tall condensed rust (#C9572C) eyebrow label, a crafted slab-serif headline, then 3-4 craft-forward steps in a clean list (each naming what's done). Earthy, tactile, editorial.`;
+    case "D":
+      return `A confident announcement card. A rich earthy background (saddle brown #3A2E1F or a moody hat-shop scene) with a crafted slab-serif headline, a condensed rust label, and one short detail line (days, booking). Bold but understated.`;
+    case "G":
+      return `A warm CREAM customer-feature card (no photo, NO fabricated face). A condensed rust label, the customer's quote in crafted slab serif, and a first-name + city attribution beneath.`;
+    default:
+      return `A full-bleed ${RIVERSIDE_HAT} fills the frame. A crafted slab-serif headline and a tall condensed rust (#C9572C) label sit over a moody lower scrim, with a short detail line and a direct CTA.`;
+  }
+}
+
+export function buildRiversideDesignPrompt(spec: RiversideSpec): string {
+  const list = (spec.listItems ?? []).map((it, i) => `  ${i + 1}. ${it.text}`).join("\n");
+  return [
+    `Design a warm, crafted, modern-Western vertical Instagram post (4:5, 1080x1350) for Riverside Hat Co — a small-batch custom Western hat shop. Tactile, editorial, lived-in (Yellowstone / Stagecoach mood), NEVER costume-cowboy, rhinestone, or "yeehaw" kitsch.`,
+    ``,
+    `LAYOUT: ${riversideArchetypeLayout(spec)}`,
+    ``,
+    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
+    spec.eyebrow ? `- Label (tall condensed, rust): ${spec.eyebrow}` : ``,
+    spec.headline ? `- Headline (warm crafted slab serif): ${spec.headline}` : ``,
+    spec.body ? `- Body (one short detail line): ${spec.body}` : ``,
+    list ? `- Steps:\n${list}` : ``,
+    spec.quote ? `- Quote: ${spec.quote}` : ``,
+    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
+    spec.cta ? `- CTA (short, direct): ${spec.cta}` : ``,
+    ``,
+    `COLOR PALETTE — use ONLY: warm tan #B89A6D, dark saddle brown #3A2E1F, rust #C9572C (accent — labels/CTAs), cream #F2E6D5. Earthy, warm, no bright/neon colors, no pure white blocks.`,
+    `TYPOGRAPHY: a warm crafted SLAB SERIF for headlines; a TALL CONDENSED sans (rust) for eyebrow labels; a clean sans for detail lines. Confident, understated.`,
+    `VOICE: confidently casual, craft-forward, locally proud (Riverside / the IE). Avoid "yeehaw", "howdy", "partner", "vibes", "statement piece", em dashes.`,
+    ``,
+    `STRICT RULES: NO "EST. 2021" logo, brand mark, monogram, or phone number anywhere (added separately). Product photos are HATS in context with ABSOLUTELY NO people, faces, or hands, and never a floating product on white. NO misspellings, no watermarks, no UI elements.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
 function pickArchetype(pillar: string | null, concept: string | null): RiversideArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   if (/customer|feature|review|testimon|came in|wore|client/.test(t)) return "G";

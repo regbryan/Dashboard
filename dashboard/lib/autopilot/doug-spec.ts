@@ -23,6 +23,67 @@ export type DougSpec = {
 type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
 export type DougSynthResult = { ok: true; spec: DougSpec } | { ok: false; error: string };
 
+// ============================================================================
+// AI FULL-DESIGN PROMPT (the model draws the ENTIRE post). Doug's whole kit
+// (quiet teal + cream-mint, NO accent color, NO emoji, corporate no-people
+// photos, McKinsey-partner restraint, LANDSCAPE LinkedIn) is encoded. The
+// SCALE LLP wordmark/logo is NEVER drawn; a plain-text byline IS rendered.
+// Replaces the Satori render-doug path.
+// ============================================================================
+const DOUG_CORP =
+  "a quiet, restrained corporate/architectural scene — glass towers, a city skyline at dusk, an empty modern boardroom table, clean office architecture. ABSOLUTELY NO people, faces, or hands. Muted and professional, sitting under a deep teal scrim. No text or logos in the photo";
+
+function dougArchetypeLayout(spec: DougSpec): string {
+  switch (spec.archetype) {
+    case "PHOTO":
+    case "PANEL":
+    case "SPLIT":
+      return `A LANDSCAPE cover: a ${DOUG_CORP} under a deep teal (#1F5560) scrim. The advisory headline sits large in cream-mint (#D8EBE5)/white over the lower-left, with one sharp subtitle line beneath. Calm, premium, lots of negative space.`;
+    case "WARSTORY":
+      return `A LANDSCAPE dark cover: a ${DOUG_CORP} under a heavy near-black teal scrim. ONE short, specific hook line sits large in cream-mint, understated and serious.`;
+    case "TITLE":
+      return `A text-only LANDSCAPE title card on a solid deep TEAL (#1F5560) field. The advisory headline is large in cream-mint/white, with one sharp subtitle line beneath. Generous margins, quiet authority — no photo, no decoration.`;
+    case "LIST":
+      return `A LANDSCAPE list card (teal or cream-mint field). A headline promise on top, then 3-4 advisory points each as a clean row with a small marker and one operator-language line. Restrained, no icons-as-clutter.`;
+    case "FRAMEWORK":
+      return `A LANDSCAPE framework card. The framework's name as the headline, then EXACTLY 3 parts in a clean horizontal row, each with a one-word part name and one short sentence. Teal + cream-mint, structured and quiet.`;
+    case "STAT":
+      return `A LANDSCAPE big-number card on a solid deep TEAL field. ONE large figure in cream-mint dominates; a short supporting headline and one sentence of context beneath. Minimal.`;
+    case "CONTRAST":
+      return `A LANDSCAPE belief-vs-reality card. A smaller muted "the belief" line on top, then the sharper "reality" headline large beneath it, divided by a thin rule. Teal + cream-mint, no accent color.`;
+    case "MINT":
+      return `A LANDSCAPE light insight card on a CREAM-MINT (#D8EBE5) field. ONE quiet, quotable advisory principle in teal as the headline, with one supporting line beneath. Calm and spacious.`;
+    default:
+      return `A text-only LANDSCAPE title card on a deep TEAL field with a cream-mint advisory headline and one sharp subtitle line.`;
+  }
+}
+
+export function buildDougDesignPrompt(spec: DougSpec): string {
+  const list = (spec.listItems ?? [])
+    .map((it, i) => `  ${i + 1}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
+    .join("\n");
+  return [
+    `Design a quiet, premium, LANDSCAPE LinkedIn title card (16:9, 1920x1080) for Doug Mitchell, Esq., a Partner at Scale LLP who writes on M&A for founders. Tone test: a McKinsey partner's LinkedIn — restrained, authoritative, never a hustle bro. Clean, spacious, serious.`,
+    ``,
+    `LAYOUT: ${dougArchetypeLayout(spec)}`,
+    ``,
+    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
+    spec.eyebrow ? `- Eyebrow label (small, ALL-CAPS): ${spec.eyebrow}` : ``,
+    spec.headline ? `- Headline (clean professional sans/serif): ${spec.headline}` : ``,
+    spec.subtitle ? `- Subtitle (one sharp line): ${spec.subtitle}` : ``,
+    list ? `- Points:\n${list}` : ``,
+    spec.bigStat ? `- Big figure: ${spec.bigStat}` : ``,
+    spec.quote ? `- Hook line: ${spec.quote}` : ``,
+    `- Small byline, bottom corner (plain text, exact): Doug Mitchell, Esq. · Scale LLP`,
+    ``,
+    `COLOR PALETTE — use ONLY: deep teal #1F5560, cream-mint #D8EBE5, white, and a muted gray for secondary text. NO accent color, NO bright colors, NO gradients-of-many-hues. Teal is dominant.`,
+    `TYPOGRAPHY: a clean, professional, high-legibility sans or restrained serif. NO script, NO emoji, NO decorative type. Authority through whitespace and hierarchy, not ornament.`,
+    `VOICE: expert but plain-spoken, advisory, specific, quiet authority. No bravado, no hustle, nothing political.`,
+    ``,
+    `STRICT RULES: Do NOT draw the SCALE LLP wordmark, logo, or firm mark — only the plain-text byline above is allowed. NO emoji, NO hustle language, NO stock-photo people. NO misspellings, no watermarks, no UI chrome. Keep it calm and uncluttered.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
 function hashStr(s: string): number {
   let n = 0;
   for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
