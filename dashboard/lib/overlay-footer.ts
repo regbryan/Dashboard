@@ -185,6 +185,12 @@ export async function applyOverlayFooter(
 
   const postObj = postKey(post.brand_id, post.file_path);
   const snapObj = snapshotKey(post.brand_id, post.file_path);
+  // Preserve the original format on re-upload — the AI designs are now .jpg, and
+  // writing PNG bytes to a .jpg key (image/png content-type) is a mismatch that
+  // can break display/publishing.
+  const outExt = path.posix.extname(post.file_path).toLowerCase();
+  const isJpeg = outExt === ".jpg" || outExt === ".jpeg";
+  const outType = isJpeg ? "image/jpeg" : outExt === ".webp" ? "image/webp" : "image/png";
 
   const snapExisted = await objectExists(snapObj);
   let baseBuf: Buffer;
@@ -193,7 +199,7 @@ export async function applyOverlayFooter(
       baseBuf = await downloadObject(snapObj);
     } else {
       baseBuf = await downloadObject(postObj);
-      await uploadObject(snapObj, baseBuf, "image/png");
+      await uploadObject(snapObj, baseBuf, outType);
     }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -219,18 +225,17 @@ export async function applyOverlayFooter(
     // illegible single line. Short text lands on one full-width line.
     let sizePt: number;
     if (vars.fitToWidth) {
-      const probe = 100;
-      const probeImg = await sharp({
-        text: { text: buildPangoMarkup(text, color, probe), rgba: true },
-      })
-        .png()
-        .toBuffer({ resolveWithObject: true });
-      const naturalW = probeImg.info.width || blockWidth;
-      // 0.97 keeps short text comfortably on one line; clamp to a readable band.
-      const sizeOneLine = probe * (blockWidth / naturalW) * 0.97;
-      const readableMin = Math.round(postW * 0.013);
-      const readableMax = Math.round(postW * 0.03);
-      sizePt = clamp(Math.floor(sizeOneLine), readableMin, readableMax);
+      // Auto-size the font to span the block width on ~one line, then clamp to a
+      // readable band so long text WRAPS instead of shrinking. Estimate the
+      // single-line width from CHARACTER COUNT (avg advance ≈ 0.5em) rather than
+      // rendering a probe — a long compliance string probed at a large point size
+      // produced a Cairo text surface past the 32767px limit and crashed
+      // ("text: invalid value (too big)" / vips out-of-memory). This mirrors the
+      // client preview's sizing, so the rendered output matches what's shown.
+      const charUnits = Math.max(text.replace(/\n/g, "").length * 0.5, 1);
+      const singleLineFrac = widthPct / charUnits;
+      const effFrac = clamp(singleLineFrac * 0.97, 0.013, 0.03);
+      sizePt = Math.max(5, Math.round(postW * effFrac));
     } else {
       const fontSizePct = clamp(vars.fontSizePct ?? 0.014, 0.004, 0.06);
       // Sharp's text input treats size in points; we approximate px≈pt here.
@@ -307,8 +312,11 @@ export async function applyOverlayFooter(
     }
     composites.push({ input: textImg.data, left: x, top: y });
 
-    const outBuf = await sharp(baseBuf).composite(composites).png().toBuffer();
-    await uploadObject(postObj, outBuf, "image/png");
+    const composed = sharp(baseBuf).composite(composites);
+    const outBuf = await (
+      isJpeg ? composed.jpeg({ quality: 92 }) : outExt === ".webp" ? composed.webp() : composed.png()
+    ).toBuffer();
+    await uploadObject(postObj, outBuf, outType);
 
     await supabaseAdmin()
       .from("posts")
@@ -339,9 +347,16 @@ export async function undoOverlayFooter(
   if (!(await objectExists(snapObj))) {
     return { ok: false, error: "No footer snapshot to restore" };
   }
+  const undoExt = path.posix.extname(post.file_path).toLowerCase();
+  const undoType =
+    undoExt === ".jpg" || undoExt === ".jpeg"
+      ? "image/jpeg"
+      : undoExt === ".webp"
+        ? "image/webp"
+        : "image/png";
   try {
     const buf = await downloadObject(snapObj);
-    await uploadObject(postObj, buf, "image/png");
+    await uploadObject(postObj, buf, undoType);
     const sb = supabaseAdmin();
     await sb.storage.from(BUCKET).remove([snapObj]);
     await sb
