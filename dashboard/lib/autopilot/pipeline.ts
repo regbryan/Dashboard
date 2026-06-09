@@ -20,11 +20,16 @@ import { synthesizeArchetypeSpec } from "./archetype-spec";
 import { renderArchetypeDesign, archetypeNeedsPhoto, type ArchetypeKey } from "./render-archetype";
 import { synthesizeOmegaSpec } from "./omega-spec";
 import { renderOmegaDesign, omegaArchetypeNeedsPhoto, omegaArchetypeNeedsPhotoGrid, omegaPhotoGridCount } from "./render-omega";
-import { synthesizeCscSpec, buildCscDesignPrompt } from "./csc-spec";
-import { synthesizeBlitzSpec, buildBlitzDesignPrompt } from "./blitz-spec";
-import { synthesizeStephanieSpec, buildStephanieDesignPrompt } from "./stephanie-spec";
-import { synthesizeRiversideSpec, buildRiversideDesignPrompt } from "./riverside-spec";
-import { synthesizeDougSpec, buildDougDesignPrompt } from "./doug-spec";
+import { synthesizeCscSpec } from "./csc-spec";
+import { renderCscDesign, cscArchetypeNeedsPhoto } from "./render-csc";
+import { synthesizeBlitzSpec } from "./blitz-spec";
+import { renderBlitzDesign, blitzArchetypeNeedsPhoto } from "./render-blitz";
+import { synthesizeStephanieSpec } from "./stephanie-spec";
+import { renderStephanieDesign, stephanieArchetypeNeedsPhoto } from "./render-stephanie";
+import { synthesizeRiversideSpec } from "./riverside-spec";
+import { renderRiversideDesign, riversideArchetypeNeedsPhoto } from "./render-riverside";
+import { synthesizeDougSpec } from "./doug-spec";
+import { renderDougDesign, dougArchetypeNeedsPhoto } from "./render-doug";
 
 const SATORI_ARCHETYPES = new Set(["A", "B", "C", "D", "E", "F", "G", "H", "I", "QUAD"]);
 
@@ -360,10 +365,10 @@ export async function generateBrandPost(
       mimeType = "image/png";
       model = `${tag}-${ospec.archetype}`;
     } else if (template?._engine === "csc") {
-      // CSC PATH (AI FULL-DESIGN): the model draws the ENTIRE post from a
-      // brand-kit-complete prompt (buildCscDesignPrompt). Heavy bold sans, sunny
-      // yellow + electric blue, FILLED number circles, calm-not-alarmist, and the
-      // no-logo/no-url + clean-top-zone rules are baked in. Logo composited later.
+      // CSC PATH (HYBRID — exact brand color): the AI generates ONLY the
+      // command-photo (C); render-csc.ts (Satori) paints the sunny-yellow field,
+      // FILLED blue number circles, and ALL text in code at exact hex, perfectly
+      // spelled. An image model can't reproduce an exact brand color; code can.
       const s = await synthesizeCscSpec({
         concept: post.concept,
         content_pillar: post.content_pillar,
@@ -374,15 +379,40 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `csc spec: ${s.error}` };
       }
       const cspec = s.spec;
-      const cscDesignPrompt = buildCscDesignPrompt(cspec);
-      const cscGen = await genImage(cscDesignPrompt, "4:5");
-      if (!cscGen.ok) {
-        await revert();
-        return { ok: false, postId: post.id, error: cscGen.error };
+      let cscPhoto: Buffer | null = null;
+      let tag = "csc";
+      if (cscArchetypeNeedsPhoto(cspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${cspec.photo.description}. Bright, warm, reassuring — NEVER scared, shocked, panicked, or in danger. Natural light, real diverse people, magazine quality. No stock cheese.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        cscPhoto = gen.bytes;
+        tag = `${gen.model}+csc`;
       }
-      bytes = cscGen.bytes;
-      mimeType = cscGen.mimeType;
-      model = `${cscGen.model}+csc-ai-${cspec.archetype}`;
+      bytes = await renderCscDesign({
+        archetype: cspec.archetype,
+        width,
+        height,
+        eyebrow: cspec.eyebrow,
+        headline: cspec.headline,
+        headlineAccent: cspec.headlineAccent,
+        body: cspec.body,
+        cta: cspec.cta,
+        listItems: cspec.listItems,
+        quadItems: cspec.quadItems,
+        bullets: cspec.bullets,
+        coralTag: cspec.coralTag,
+        compare: cspec.compare,
+        bigStat: cspec.bigStat,
+        quote: cspec.quote,
+        attribution: cspec.attribution,
+        photo: cscPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${cspec.archetype}`;
     } else if (template?._engine === "blitz") {
       // BLITZ PATH: soft, feminine, airy design language (dusty rose + sage +
       // beige, casual script hook + light sans). Only the photo-hero (A) needs
@@ -398,18 +428,39 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `blitz spec: ${s.error}` };
       }
       const bspec = s.spec;
-      // AI FULL-DESIGN: the model draws the ENTIRE post from a brand-kit-complete
-      // prompt (buildBlitzDesignPrompt) — soft rose/sage/beige, casual script
-      // hook + light sans, organized-SPACES photos with no people, no logo baked.
-      const blitzDesignPrompt = buildBlitzDesignPrompt(bspec);
-      const blitzGen = await genImage(blitzDesignPrompt, "4:5");
-      if (!blitzGen.ok) {
-        await revert();
-        return { ok: false, postId: post.id, error: blitzGen.error };
+      // HYBRID — exact brand color: AI generates ONLY the organized-space photo;
+      // render-blitz.ts paints the rose/sage/beige + script hook + all text in code.
+      let blitzPhoto: Buffer | null = null;
+      let tag = "blitz";
+      if (blitzArchetypeNeedsPhoto(bspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${bspec.photo.description}. A bright, airy, beautifully ORGANIZED home space — clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, lots of breathing room. ABSOLUTELY NO people, hands, or faces. Magazine quality, never cluttered or moody.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        blitzPhoto = gen.bytes;
+        tag = `${gen.model}+blitz`;
       }
-      bytes = blitzGen.bytes;
-      mimeType = blitzGen.mimeType;
-      model = `${blitzGen.model}+blitz-ai-${bspec.archetype}`;
+      bytes = await renderBlitzDesign({
+        archetype: bspec.archetype,
+        width,
+        height,
+        eyebrow: bspec.eyebrow,
+        headlineLines: bspec.headlineLines,
+        body: bspec.body,
+        cta: bspec.cta,
+        listItems: bspec.listItems,
+        quadItems: bspec.quadItems,
+        compare: bspec.compare,
+        bigStat: bspec.bigStat,
+        quote: bspec.quote,
+        attribution: bspec.attribution,
+        photo: blitzPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${bspec.archetype}`;
     } else if (template?._engine === "stephanie") {
       // STEPHANIE PATH: dusty steel-blue + white serif overlay cards, Allura
       // script personal accent. TEXT-CARD-first (personal brand — real photos
@@ -427,20 +478,54 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `stephanie spec: ${s.error}` };
       }
       const stspec = s.spec;
-      // AI FULL-DESIGN: the model draws the ENTIRE post (photo + layout + text)
-      // from a brand-kit-complete prompt (buildStephanieDesignPrompt). Variety +
-      // polish come from the model; every brand restriction is baked into the
-      // prompt. Uses the dashboard's own Gemini image model (free), uploaded like
-      // every other post. (Replaces the deterministic Satori overlay path.)
-      const stDesignPrompt = buildStephanieDesignPrompt(stspec);
-      const stGen = await genImage(stDesignPrompt, "4:5");
-      if (!stGen.ok) {
-        await revert();
-        return { ok: false, postId: post.id, error: stGen.error };
+      // HYBRID — exact brand color: AI generates ONLY the people-free lifestyle
+      // photo(s); render-stephanie.ts paints the steel-blue bands + serif/script
+      // text + footer in code at exact hex, perfectly spelled.
+      let stephaniePhoto: Buffer | null = null;
+      let stephaniePhoto2: Buffer | null = null;
+      let tag = "stephanie";
+      const stPhotoPrompt = (desc: string) =>
+        `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${desc}. Warm, inviting, soft natural light; bright and aspirational, magazine-quality lifestyle stock. Never stiff corporate stock, never dark or moody.`;
+      if (stephanieArchetypeNeedsPhoto(stspec.archetype)) {
+        if (stspec.archetype === "VS") {
+          const [g1, g2] = await Promise.all([
+            genImage(stPhotoPrompt(stspec.photo.description)),
+            genImage(stPhotoPrompt(stspec.photo.description)),
+          ]);
+          if (!g1.ok) {
+            await revert();
+            return { ok: false, postId: post.id, error: g1.error };
+          }
+          stephaniePhoto = g1.bytes;
+          stephaniePhoto2 = g2.ok ? g2.bytes : g1.bytes;
+          tag = `${g1.model}+stephanie`;
+        } else {
+          const gen = await genImage(stPhotoPrompt(stspec.photo.description));
+          if (!gen.ok) {
+            await revert();
+            return { ok: false, postId: post.id, error: gen.error };
+          }
+          stephaniePhoto = gen.bytes;
+          tag = `${gen.model}+stephanie`;
+        }
       }
-      bytes = stGen.bytes;
-      mimeType = stGen.mimeType;
-      model = `${stGen.model}+stephanie-ai-${stspec.archetype}`;
+      bytes = await renderStephanieDesign({
+        archetype: stspec.archetype,
+        width,
+        height,
+        eyebrow: stspec.eyebrow,
+        headlineLines: stspec.headlineLines,
+        body: stspec.body,
+        cta: stspec.cta,
+        listItems: stspec.listItems,
+        bigStat: stspec.bigStat,
+        quote: stspec.quote,
+        attribution: stspec.attribution,
+        photo: stephaniePhoto,
+        photo2: stephaniePhoto2,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${stspec.archetype}`;
     } else if (template?._engine === "riverside") {
       // RIVERSIDE PATH: modern-Western design language (warm earthy palette,
       // crafted slab serif + condensed rust labels). Only the product-hero (A)
@@ -456,18 +541,36 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `riverside spec: ${s.error}` };
       }
       const rvspec = s.spec;
-      // AI FULL-DESIGN: the model draws the ENTIRE post from a brand-kit-complete
-      // prompt (buildRiversideDesignPrompt) — earthy tan/saddle/rust/cream,
-      // crafted slab serif, HATS-in-context photos with no people, no logo baked.
-      const rvDesignPrompt = buildRiversideDesignPrompt(rvspec);
-      const rvGen = await genImage(rvDesignPrompt, "4:5");
-      if (!rvGen.ok) {
-        await revert();
-        return { ok: false, postId: post.id, error: rvGen.error };
+      // HYBRID — exact brand color: AI generates ONLY the hat-in-context photo;
+      // render-riverside.ts paints the earthy palette + slab serif + text in code.
+      let riversidePhoto: Buffer | null = null;
+      let tag = "riverside";
+      if (riversideArchetypeNeedsPhoto(rvspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${rvspec.photo.description}. A richly-lit Western HAT in context on a rich dark background (dark wood, tooled leather, rope), warm side-light, shallow depth of field. ABSOLUTELY NO people, faces, or hands. Modern Western, never costume. Never floating-product-on-white.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        riversidePhoto = gen.bytes;
+        tag = `${gen.model}+riverside`;
       }
-      bytes = rvGen.bytes;
-      mimeType = rvGen.mimeType;
-      model = `${rvGen.model}+riverside-ai-${rvspec.archetype}`;
+      bytes = await renderRiversideDesign({
+        archetype: rvspec.archetype,
+        width,
+        height,
+        eyebrow: rvspec.eyebrow,
+        headline: rvspec.headline,
+        body: rvspec.body,
+        cta: rvspec.cta,
+        listItems: rvspec.listItems,
+        quote: rvspec.quote,
+        attribution: rvspec.attribution,
+        photo: riversidePhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${rvspec.archetype}`;
     } else if (template?._engine === "doug") {
       // DOUG PATH: quiet corporate LinkedIn thought-leadership (teal + cream-mint,
       // no accent), LANDSCAPE 16:9 to match his reference designs. Photo covers
@@ -483,19 +586,35 @@ export async function generateBrandPost(
         return { ok: false, postId: post.id, error: `doug spec: ${s.error}` };
       }
       const dgspec = s.spec;
-      // AI FULL-DESIGN: the model draws the ENTIRE LANDSCAPE card from a
-      // brand-kit-complete prompt (buildDougDesignPrompt) — quiet teal + cream-mint,
-      // no accent/emoji, corporate no-people photos, plain-text byline, no SCALE
-      // LLP wordmark. 16:9 from the template aspect (no override).
-      const dgDesignPrompt = buildDougDesignPrompt(dgspec);
-      const dgGen = await genImage(dgDesignPrompt, "16:9");
-      if (!dgGen.ok) {
-        await revert();
-        return { ok: false, postId: post.id, error: dgGen.error };
+      // HYBRID — exact brand color: AI generates ONLY the corporate photo;
+      // render-doug.ts paints the teal/cream-mint panels + text + byline in code.
+      let dougPhoto: Buffer | null = null;
+      let tag = "doug";
+      if (dougArchetypeNeedsPhoto(dgspec.archetype)) {
+        const gen = await genImage(
+          `A single photorealistic PHOTOGRAPH only — no text, letters, numbers, logos, or watermarks anywhere, edge-to-edge. Scene: ${dgspec.photo.description}. A quiet, corporate, architectural image (glass towers, a city skyline at dusk, an empty boardroom) — ABSOLUTELY NO people, faces, or hands. Restrained and professional. It will sit under a heavy teal overlay.`
+        );
+        if (!gen.ok) {
+          await revert();
+          return { ok: false, postId: post.id, error: gen.error };
+        }
+        dougPhoto = gen.bytes;
+        tag = `${gen.model}+doug`;
       }
-      bytes = dgGen.bytes;
-      mimeType = dgGen.mimeType;
-      model = `${dgGen.model}+doug-ai-${dgspec.archetype}`;
+      // LinkedIn landscape — output 1200 wide (the renderer's 16:9 canvas → 1200x675).
+      bytes = await renderDougDesign({
+        archetype: dgspec.archetype,
+        width: 1200,
+        eyebrow: dgspec.eyebrow,
+        headline: dgspec.headline,
+        subtitle: dgspec.subtitle,
+        listItems: dgspec.listItems,
+        bigStat: dgspec.bigStat,
+        quote: dgspec.quote,
+        photo: dougPhoto,
+      });
+      mimeType = "image/png";
+      model = `${tag}-${dgspec.archetype}`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;
@@ -513,22 +632,14 @@ export async function generateBrandPost(
       }
       specToPersist = spec;
 
-      // Archetypes A and C render deterministically full-bleed in code (Satori):
-      // the AI makes ONLY a text-free photo; the panel + all text are drawn here,
-      // so the design can never frame, garble text, or drift off-brand.
-      //
-      // IEC EXCEPTION (AI FULL-DESIGN): route EVERY IEC archetype through the
-      // contract prompt (buildArchetypePrompt) so the model draws the entire post
-      // — photo + layout + text — matching the rest of the brands. The IEC
-      // contract bakes in the phone-burn rule (951.789.3238, dots; never
-      // (951) 482-7457), the no-logo clean top zone, and the full color contract.
-      const brandShort =
-        typeof template.BRAND?.short === "string" ? (template.BRAND.short as string) : "";
-      const brandName =
-        typeof template.BRAND?.name === "string" ? (template.BRAND.name as string) : "";
-      const isIec = brandShort === "IEC" || brandName.includes("Inland Empire");
+      // IEC HYBRID (exact brand color): archetypes A-J render deterministically
+      // full-bleed in code (Satori) — the AI makes ONLY the text-free photo; the
+      // navy/red panels, the phone (951.789.3238), and ALL text are drawn in code
+      // at exact hex, so the design can never drift off-brand, garble text, or burn
+      // the wrong phone number. (buildArchetypePrompt remains for any non-Satori
+      // archetype, with the contract's phone/color rules baked in.)
       const letter = spec.archetype.split("_")[0].toUpperCase();
-      const satoriArch = (!isIec && SATORI_ARCHETYPES.has(letter) ? letter : null) as ArchetypeKey | null;
+      const satoriArch = (SATORI_ARCHETYPES.has(letter) ? letter : null) as ArchetypeKey | null;
 
       if (satoriArch) {
         // Code-rendered, full-bleed. A/C need a text-free AI photo; D/E/F/G/H

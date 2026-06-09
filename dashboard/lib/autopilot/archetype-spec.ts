@@ -52,16 +52,23 @@ function hashStr(s: string): number {
 function pickArchetypeLetter(pillar: string | null, concept: string | null): string {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
-  if (has(/\bmyth\b|misconcept|truth about|debunk|don'?t believe|actually/)) return "I"; // myth-vs-truth split
-  if (has(/community|trust|review|testimon|spotlight|customer|5[- ]star/)) return "D"; // testimonial
-  if (has(/financ|\$\s?\d|\b\d+%|special|\boffer\b|\bdeal\b|coupon|no money down|0 down/)) return "F"; // big-number offer
-  if (has(/sustainab|efficiency|energy|saving|lower|\bbill\b|thermostat|\b\d+\s?°|degrees?/)) return "G"; // stat card
-  if (has(/story|family|founder|about us|values|history|since \d{4}|years (in|of)/)) return "H"; // brand story
-  if (has(/emergency|24\/7|broke down|no (heat|a\/?c|cooling)|heat ?wave|middle of (summer|the night)|stuck without/)) return "B"; // dramatic full-bleed
-  if (has(/\b4\s+(signs|reasons|things|ways|tips|mistakes|questions)\b/)) return "QUAD"; // 2x2 grid
-  if (has(/education|maintenance|\btips?\b|how[- ]to|guide|checklist|\bsigns?\b|\b\d+\s+(reasons|things|ways|steps)/)) return "E"; // numbered list
-  // Promos / awareness / seasonal / everything else → photo layouts; alternate
-  // A vs C by a concept hash so two promos in a row don't look identical.
+  // PHOTO-FORWARD (Instagram + HVAC research, 2026-06-09): Instagram favors real
+  // photos, and for HVAC the best-performing content is real on-site / before-
+  // after imagery — NOT text cards. So default to the PHOTO archetypes (A/B/C/I,
+  // the ones archetypeNeedsPhoto() is true for) and reserve the text-only cards
+  // (D/E/F/G/H/QUAD) ONLY for content that genuinely needs that format. ~70-80%
+  // of posts land on a real photo.
+  if (has(/\bmyth\b|misconcept|truth about|debunk|don'?t believe/)) return "I"; // PHOTO — myth-vs-truth split
+  if (has(/emergency|24\/7|broke down|no (heat|a\/?c|cooling)|heat ?wave|middle of (summer|the night)|stuck without/)) return "B"; // PHOTO — dramatic full-bleed
+  // Genuinely text-only content types (a real photo wouldn't fit):
+  if (has(/\breview\b|testimon|\bspotlight\b|customer (love|story|win)|5[- ]star/)) return "D"; // testimonial (no fabricated customer photo)
+  if (has(/financ|\$\s?\d|\b\d+%\s*(off|financing|apr)|special offer|coupon|no money down|0 down/)) return "F"; // $ offer big-number
+  if (has(/founder|family[- ]owned|about us|our story|since \d{4}|\b\d+\s+years (in|of)/)) return "H"; // founder/brand story
+  // A genuine multi-item list keeps a list format (mostly the QUAD/E text cards):
+  if (has(/\b\d+\s+(signs|reasons|things|ways|tips|mistakes|questions|steps|myths)\b/)) return hashStr(t) % 3 === 0 ? "QUAD" : "E";
+  // EVERYTHING ELSE — education, maintenance, seasonal, efficiency, savings,
+  // comfort, thermostat, air quality, awareness, community — gets a REAL PHOTO
+  // (A photo-split or C photo-top); alternate by concept hash for feed variety.
   return hashStr(concept ?? t) % 2 === 0 ? "A" : "C";
 }
 
