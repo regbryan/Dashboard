@@ -63,8 +63,14 @@ export default function LogoOverlayPanel({
   const logoUrl = selectedLogo?.previewUrl ?? null;
 
   const aspectRatio = thumbAspect === "landscape" ? "1.91 / 1" : "4 / 5";
-  const logoWidthPct = maxLogoWidth / 100; // 0–1 fraction of stage width
-  const logoHeightPct = logoWidthPct / logoNaturalAspect; // fraction of stage height
+  const logoWidthPct = maxLogoWidth / 100; // fraction of stage WIDTH
+  // Logo height as a fraction of stage HEIGHT. A width-fraction must be scaled by
+  // the post's width/height ratio to become a height-fraction — otherwise the
+  // center→top-left conversion in anchorToTopLeft() over-subtracts and the applied
+  // logo lands a little HIGHER than where it was placed (the reported bug). The
+  // stage aspect equals the post aspect, so reuse it here.
+  const stageWHRatio = thumbAspect === "landscape" ? 1.91 : 4 / 5;
+  const logoHeightPct = (logoWidthPct / logoNaturalAspect) * stageWHRatio; // fraction of stage height
 
   // Memoize per postId so the effect deps array stays stable and
   // useExhaustiveDependencies is satisfied without a lint-disable.
