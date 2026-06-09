@@ -285,7 +285,7 @@ export default function FooterOverlayPanel({
     fontWeight: 500,
     lineHeight: 1.3,
     padding: bgEnabled ? "6px 10px" : 0,
-    borderRadius: bgEnabled ? "4px" : 0,
+    borderRadius: 0, // square corners — match the 90° server band
     textAlign: align,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",

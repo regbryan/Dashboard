@@ -146,11 +146,9 @@ function buildPangoMarkup(text: string, color: string, sizePt: number): string {
 function bgBarSvg(width: number, height: number, hex: string, opacity: number): Buffer {
   const safe = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#000000";
   const op = clamp(opacity, 0, 1);
-  // Gentle rounding to match the panel preview's 4px radius, but never so much
-  // that a full-width strip looks like a pill — cap at 12px.
-  const r = Math.min(12, Math.round(height * 0.12));
+  // Square corners — 90° edges, no rounding (per brand preference).
   return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" rx="${r}" ry="${r}" fill="${safe}" fill-opacity="${op}"/></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" fill="${safe}" fill-opacity="${op}"/></svg>`
   );
 }
 
