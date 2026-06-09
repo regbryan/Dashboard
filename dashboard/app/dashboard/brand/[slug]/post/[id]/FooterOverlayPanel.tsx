@@ -20,6 +20,17 @@ const FOOTER_DEFAULT_BLUE = "#1C4E80";
 const isHex6 = (s: string | null | undefined): s is string =>
   typeof s === "string" && /^#[0-9a-fA-F]{6}$/.test(s);
 
+// The EyeDropper API (Chrome/Edge 95+) lets the user sample any visible pixel —
+// including the design preview at the top of this very panel — so they can grab
+// the exact design color without scrolling the page or fighting the OS dialog.
+type EyeDropperResult = { sRGBHex: string };
+type EyeDropperInstance = { open: () => Promise<EyeDropperResult> };
+declare global {
+  interface Window {
+    EyeDropper?: new () => EyeDropperInstance;
+  }
+}
+
 const PRESETS: { value: string; label: string; xPct: number; yPct: number }[] = [
   { value: "bottom-center", label: "Bottom", xPct: 0.5, yPct: 0.96 },
   { value: "bottom-left", label: "Bottom-L", xPct: 0.04, yPct: 0.96 },
@@ -54,6 +65,7 @@ export default function FooterOverlayPanel({
   );
   const [hasSnapshot, setHasSnapshot] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0.5, y: 0.96 }); // bottom-center
+  const [eyedropOk, setEyedropOk] = useState(false);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ active: boolean; pointerId?: number }>({
@@ -95,6 +107,23 @@ export default function FooterOverlayPanel({
   useEffect(() => {
     void refreshSnapshotState();
   }, [refreshSnapshotState]);
+
+  // Feature-detect the EyeDropper API in an effect so SSR and the first client
+  // render agree (avoids a hydration mismatch from touching window during render).
+  useEffect(() => {
+    setEyedropOk(typeof window !== "undefined" && "EyeDropper" in window);
+  }, []);
+
+  const pickFromScreen = useCallback(async (apply: (hex: string) => void) => {
+    if (typeof window === "undefined" || !window.EyeDropper) return;
+    try {
+      const ed = new window.EyeDropper();
+      const { sRGBHex } = await ed.open();
+      if (isHex6(sRGBHex)) apply(sRGBHex);
+    } catch {
+      // user pressed Esc / cancelled — no-op
+    }
+  }, []);
 
   function clamp01(n: number): number {
     if (Number.isNaN(n)) return 0;
@@ -564,6 +593,29 @@ export default function FooterOverlayPanel({
                 marginLeft: "auto",
               }}
             />
+            {eyedropOk && (
+              <button
+                type="button"
+                onClick={() => void pickFromScreen(setColor)}
+                disabled={!!busy}
+                title="Eyedrop — sample a color from the design preview above"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "5px 8px",
+                  borderRadius: "8px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "transparent",
+                  color: "#bfbfcc",
+                  cursor: busy ? "not-allowed" : "pointer",
+                }}
+              >
+                <span aria-hidden>🎯</span> Pick
+              </button>
+            )}
           </div>
         </div>
 
@@ -580,20 +632,48 @@ export default function FooterOverlayPanel({
             />
             Background bar
             {bgEnabled && (
-              <input
-                type="color"
-                value={bgColor}
-                onChange={(e) => setBgColor(e.target.value)}
-                disabled={!!busy}
-                style={{
-                  marginLeft: "auto",
-                  width: "32px",
-                  height: "24px",
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                }}
-              />
+              <span
+                className="flex items-center"
+                style={{ marginLeft: "auto", gap: "6px" }}
+                onClick={(e) => e.preventDefault()}
+              >
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  disabled={!!busy}
+                  style={{
+                    width: "32px",
+                    height: "24px",
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                  }}
+                />
+                {eyedropOk && (
+                  <button
+                    type="button"
+                    onClick={() => void pickFromScreen(setBgColor)}
+                    disabled={!!busy}
+                    title="Eyedrop — sample the band color from the design preview above"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "4px 8px",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "transparent",
+                      color: "#bfbfcc",
+                      cursor: busy ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <span aria-hidden>🎯</span> Pick
+                  </button>
+                )}
+              </span>
             )}
           </label>
           {bgEnabled && (

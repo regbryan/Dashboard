@@ -146,8 +146,11 @@ function buildPangoMarkup(text: string, color: string, sizePt: number): string {
 function bgBarSvg(width: number, height: number, hex: string, opacity: number): Buffer {
   const safe = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#000000";
   const op = clamp(opacity, 0, 1);
+  // Gentle rounding to match the panel preview's 4px radius, but never so much
+  // that a full-width strip looks like a pill — cap at 12px.
+  const r = Math.min(12, Math.round(height * 0.12));
   return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" fill="${safe}" fill-opacity="${op}"/></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" rx="${r}" ry="${r}" fill="${safe}" fill-opacity="${op}"/></svg>`
   );
 }
 
@@ -260,57 +263,74 @@ export async function applyOverlayFooter(
     const padding = clamp(vars.edgePadding ?? 24, 0, Math.min(postW, postH));
     const position = (vars.position ?? "bottom-center") as FooterPosition;
 
-    let x: number;
-    let y: number;
+    // The footer is a BAND that spans the requested width (the Width slider), not
+    // a bar that hugs the text. At 100% it's a true edge-to-edge strip — which is
+    // what the panel preview shows, so preview now matches the baked output.
+    const vPad = Math.max(8, Math.round(sizePt * 0.5)); // inner vertical breathing room
+    const hPad = Math.max(8, Math.round(sizePt * 0.5)); // inset text from band edge when left/right aligned
+    const bandWidth = clamp(blockWidth, 64, postW);
+    const bandHeight = Math.min(postH, textH + vPad * 2);
+
+    // Horizontal + vertical band placement.
+    let bandLeft: number;
+    let bandTop: number;
     switch (position) {
       case "bottom-left":
-        x = padding;
-        y = postH - textH - padding;
+        bandLeft = padding;
+        bandTop = postH - bandHeight - padding;
         break;
       case "bottom-right":
-        x = postW - textW - padding;
-        y = postH - textH - padding;
+        bandLeft = postW - bandWidth - padding;
+        bandTop = postH - bandHeight - padding;
         break;
       case "top-left":
-        x = padding;
-        y = padding;
+        bandLeft = padding;
+        bandTop = padding;
         break;
       case "top-center":
-        x = Math.floor((postW - textW) / 2);
-        y = padding;
+        bandLeft = Math.round((postW - bandWidth) / 2);
+        bandTop = padding;
         break;
       case "top-right":
-        x = postW - textW - padding;
-        y = padding;
+        bandLeft = postW - bandWidth - padding;
+        bandTop = padding;
         break;
       case "custom": {
+        // xPct/yPct are the top-left of the text block (panel converts the drag
+        // anchor → top-left). The band starts at that left and lifts above the
+        // text by vPad so the text sits vertically centered in the band.
         const xp = vars.xPct ?? 0.04;
         const yp = vars.yPct ?? 0.92;
-        x = clamp(Math.round(postW * xp), 0, Math.max(0, postW - textW));
-        y = clamp(Math.round(postH * yp), 0, Math.max(0, postH - textH));
+        bandLeft = Math.round(postW * xp);
+        bandTop = Math.round(postH * yp) - vPad;
         break;
       }
       case "bottom-center":
       default:
-        x = Math.floor((postW - textW) / 2);
-        y = postH - textH - padding;
+        bandLeft = Math.round((postW - bandWidth) / 2);
+        bandTop = postH - bandHeight - padding;
         break;
     }
+    bandLeft = clamp(bandLeft, 0, Math.max(0, postW - bandWidth));
+    bandTop = clamp(bandTop, 0, Math.max(0, postH - bandHeight));
+
+    // Text placement WITHIN the band, honoring alignment.
+    let textX: number;
+    if (align === "left") textX = bandLeft + hPad;
+    else if (align === "right") textX = bandLeft + bandWidth - textW - hPad;
+    else textX = bandLeft + Math.round((bandWidth - textW) / 2);
+    textX = clamp(textX, 0, Math.max(0, postW - textW));
+    const textY = clamp(bandTop + vPad, 0, Math.max(0, postH - textH));
 
     const composites: sharp.OverlayOptions[] = [];
     if (vars.background) {
-      const barPad = Math.max(8, Math.round(sizePt * 0.4));
-      const barW = textW + barPad * 2;
-      const barH = textH + barPad * 2;
-      const barX = clamp(x - barPad, 0, postW);
-      const barY = clamp(y - barPad, 0, postH);
       composites.push({
-        input: bgBarSvg(barW, barH, vars.background, vars.backgroundOpacity ?? 0.55),
-        left: barX,
-        top: barY,
+        input: bgBarSvg(bandWidth, bandHeight, vars.background, vars.backgroundOpacity ?? 0.55),
+        left: bandLeft,
+        top: bandTop,
       });
     }
-    composites.push({ input: textImg.data, left: x, top: y });
+    composites.push({ input: textImg.data, left: textX, top: textY });
 
     const composed = sharp(baseBuf).composite(composites);
     const outBuf = await (
