@@ -131,10 +131,14 @@ function pickArchetype(
 ): RiversideArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
 
-  // Content-locked exceptions (rare, genuinely layout-specific):
-  if (/customer|feature|review|testimon|came in|wore|client/.test(t)) return "G";
-  if (/process|how to|care|clean|shape|re-?crease|re-?band|steps|maintain|how a hat/.test(t)) return "C";
-  if (/event|hat bar|trailer|promo|sale|gift|book|wedding|father|drop event|pop-?up/.test(t)) return "D";
+  // Content-locked exceptions — kept DELIBERATELY NARROW. (A previous broad
+  // "event|sale|drop|promo|gift|..." rule caught nearly all Riverside content —
+  // which is mostly "new arrivals / drops" — and clustered the whole feed onto the
+  // D text card. A new-arrival/drop is best shown as the hat PHOTO, so it now
+  // falls through to the position-dealt spread (mostly A) instead of a text card.)
+  if (/\bcustomer\b|\breview\b|testimon|came in|\bwore\b/.test(t)) return "G"; // genuine customer feature
+  if (/process|how to|care|clean|shape|re-?crease|re-?band|\bsteps\b|maintain|how a hat/.test(t)) return "C"; // genuine how-to
+  if (/hat bar|trailer|pop-?up|brought the bar|book a chair/.test(t)) return "D"; // a real in-person EVENT only
 
   // Everything else: DEAL a distinct layout by position so the feed varies. Use
   // post_number when available (consecutive posts → consecutive, distinct
