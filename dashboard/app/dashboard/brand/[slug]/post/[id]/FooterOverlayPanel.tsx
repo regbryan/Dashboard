@@ -65,9 +65,12 @@ export default function FooterOverlayPanel({
   );
   const [hasSnapshot, setHasSnapshot] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0.5, y: 0.96 }); // bottom-center
-  const [eyedropOk, setEyedropOk] = useState(false);
+  // When set, the next click on the design preview SAMPLES a color into that
+  // target instead of moving the footer anchor.
+  const [sampling, setSampling] = useState<null | "text" | "bg">(null);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<{ active: boolean; pointerId?: number }>({
     active: false,
   });
@@ -108,22 +111,72 @@ export default function FooterOverlayPanel({
     void refreshSnapshotState();
   }, [refreshSnapshotState]);
 
-  // Feature-detect the EyeDropper API in an effect so SSR and the first client
-  // render agree (avoids a hydration mismatch from touching window during render).
-  useEffect(() => {
-    setEyedropOk(typeof window !== "undefined" && "EyeDropper" in window);
-  }, []);
+  // Enter color-sampling mode: scroll the design preview into view (so it's
+  // reachable no matter how far down the page the controls are) and arm the
+  // next preview click to grab a pixel color into the chosen target.
+  function startSampling(which: "text" | "bg") {
+    setSampling(which);
+    setMessage({ tone: "ok", text: "Click the design above to grab that color." });
+    stageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-  const pickFromScreen = useCallback(async (apply: (hex: string) => void) => {
-    if (typeof window === "undefined" || !window.EyeDropper) return;
+  // Read the color of the design pixel under a screen point. Maps the click
+  // through the preview's object-fit:cover crop to the image's natural pixels,
+  // then reads that single pixel via a 1×1 canvas. Returns null if the read
+  // fails (e.g. a cross-origin taint) so the caller can fall back.
+  function sampleColorAt(clientX: number, clientY: number): string | null {
+    const stage = stageRef.current;
+    const img = imgRef.current;
+    if (!stage || !img || !img.naturalWidth || !img.naturalHeight) return null;
+    const rect = stage.getBoundingClientRect();
+    const scale = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+    const dispW = img.naturalWidth * scale;
+    const dispH = img.naturalHeight * scale;
+    const offX = (rect.width - dispW) / 2;
+    const offY = (rect.height - dispH) / 2;
+    let ix = (clientX - rect.left - offX) / scale;
+    let iy = (clientY - rect.top - offY) / scale;
+    ix = Math.max(0, Math.min(img.naturalWidth - 1, ix));
+    iy = Math.max(0, Math.min(img.naturalHeight - 1, iy));
     try {
-      const ed = new window.EyeDropper();
-      const { sRGBHex } = await ed.open();
-      if (isHex6(sRGBHex)) apply(sRGBHex);
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return null;
+      ctx.drawImage(img, ix, iy, 1, 1, 0, 0, 1, 1);
+      const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+      const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+      return isHex6(hex) ? hex : null;
     } catch {
-      // user pressed Esc / cancelled — no-op
+      return null;
     }
-  }, []);
+  }
+
+  // Apply a sampled color to the armed target, with an EyeDropper fallback if
+  // the canvas read was blocked.
+  async function pickPixel(clientX: number, clientY: number, which: "text" | "bg") {
+    const apply = which === "text" ? setColor : setBgColor;
+    const hex = sampleColorAt(clientX, clientY);
+    if (hex) {
+      apply(hex);
+      setMessage({ tone: "ok", text: `Picked ${hex.toUpperCase()}` });
+      return;
+    }
+    if (typeof window !== "undefined" && window.EyeDropper) {
+      try {
+        const { sRGBHex } = await new window.EyeDropper().open();
+        if (isHex6(sRGBHex)) {
+          apply(sRGBHex);
+          setMessage({ tone: "ok", text: `Picked ${sRGBHex.toUpperCase()}` });
+          return;
+        }
+      } catch {
+        /* cancelled */
+      }
+    }
+    setMessage({ tone: "err", text: "Couldn't read that color — use the swatch picker instead." });
+  }
 
   function clamp01(n: number): number {
     if (Number.isNaN(n)) return 0;
@@ -141,6 +194,13 @@ export default function FooterOverlayPanel({
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (busy) return;
+    // Color-sampling mode: this click grabs a pixel color, not a drag position.
+    if (sampling) {
+      const which = sampling;
+      setSampling(null);
+      void pickPixel(e.clientX, e.clientY, which);
+      return;
+    }
     dragRef.current.active = true;
     dragRef.current.pointerId = e.pointerId;
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
@@ -324,15 +384,18 @@ export default function FooterOverlayPanel({
             background: "#0a0a14",
             borderRadius: "10px",
             overflow: "hidden",
-            cursor: busy ? "not-allowed" : "crosshair",
+            cursor: busy ? "not-allowed" : sampling ? "copy" : "crosshair",
             touchAction: "none",
             userSelect: "none",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={imgRef}
             src={postImageUrl}
             alt="Post preview"
+            // Request with CORS so the sampling canvas can read pixels.
+            crossOrigin="anonymous"
             draggable={false}
             style={{
               position: "absolute",
@@ -593,29 +656,30 @@ export default function FooterOverlayPanel({
                 marginLeft: "auto",
               }}
             />
-            {eyedropOk && (
-              <button
-                type="button"
-                onClick={() => void pickFromScreen(setColor)}
-                disabled={!!busy}
-                title="Eyedrop — sample a color from the design preview above"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  padding: "5px 8px",
-                  borderRadius: "8px",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "transparent",
-                  color: "#bfbfcc",
-                  cursor: busy ? "not-allowed" : "pointer",
-                }}
-              >
-                <span aria-hidden>🎯</span> Pick
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => startSampling("text")}
+              disabled={!!busy}
+              title="Pick — then click the design preview above to grab that color"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "5px 8px",
+                borderRadius: "8px",
+                fontSize: "11px",
+                fontWeight: 500,
+                border:
+                  sampling === "text"
+                    ? "1px solid #fbb27a"
+                    : "1px solid rgba(255,255,255,0.12)",
+                background: sampling === "text" ? "rgba(251,178,122,0.15)" : "transparent",
+                color: sampling === "text" ? "#fbb27a" : "#bfbfcc",
+                cursor: busy ? "not-allowed" : "pointer",
+              }}
+            >
+              <span aria-hidden>🎯</span> {sampling === "text" ? "Click design…" : "Pick"}
+            </button>
           </div>
         </div>
 
@@ -650,29 +714,30 @@ export default function FooterOverlayPanel({
                     cursor: "pointer",
                   }}
                 />
-                {eyedropOk && (
-                  <button
-                    type="button"
-                    onClick={() => void pickFromScreen(setBgColor)}
-                    disabled={!!busy}
-                    title="Eyedrop — sample the band color from the design preview above"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      padding: "4px 8px",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      background: "transparent",
-                      color: "#bfbfcc",
-                      cursor: busy ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <span aria-hidden>🎯</span> Pick
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => startSampling("bg")}
+                  disabled={!!busy}
+                  title="Pick — then click the design preview above to grab the band color"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "4px 8px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    border:
+                      sampling === "bg"
+                        ? "1px solid #fbb27a"
+                        : "1px solid rgba(255,255,255,0.12)",
+                    background: sampling === "bg" ? "rgba(251,178,122,0.15)" : "transparent",
+                    color: sampling === "bg" ? "#fbb27a" : "#bfbfcc",
+                    cursor: busy ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <span aria-hidden>🎯</span> {sampling === "bg" ? "Click design…" : "Pick"}
+                </button>
               </span>
             )}
           </label>
