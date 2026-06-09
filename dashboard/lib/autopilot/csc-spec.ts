@@ -26,7 +26,7 @@ export type CscSpec = {
   photo: { include: boolean; description: string };
 };
 
-type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
+type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null; post_number?: number | null };
 export type CscSynthResult = { ok: true; spec: CscSpec } | { ok: false; error: string };
 
 // ============================================================================
@@ -65,73 +65,160 @@ function cscArchetypeLayout(spec: CscSpec): string {
   }
 }
 
+// CSC's STRICT brand contract, encoded inline (exact hexes/fonts/rules lifted
+// verbatim from this file's prior prose version). Handing the model the JSON
+// contract — exact hexes, a FORBIDDEN list, hard rules, and a negative prompt —
+// instead of a prose paragraph stops it re-interpreting "blue"/"yellow" and
+// drifting the brand color post-to-post. This is the same pattern proven on
+// Omega; #057AC0 + #FFDE59 stay locked across the whole feed.
+const CSC_STRICT_COLOR_CONTRACT = {
+  electric_blue: "#057AC0",
+  light_blue: "#66ABD3",
+  sunny_yellow: "#FFDE59",
+  ice_blue: "#D9EDF8",
+  white: "#FFFFFF",
+  dark_gray: "#646668",
+  light_gray: "#AEAFB0",
+  color_roles: {
+    "#057AC0": "Electric blue — eyebrow pills, FILLED numbered circles, big numerals, CTAs, swooshes.",
+    "#66ABD3": "Lighter blue — soft secondary fills.",
+    "#FFDE59": "SATURATED sunny yellow — dominant background on listicle/stat posts. NEVER muted or pastel.",
+    "#D9EDF8": "Ice blue — soft alternate background.",
+    "#FFFFFF": "White — text on blue, card fills.",
+    "#646668": "Dark gray — headline + body text on yellow/white.",
+    "#AEAFB0": "Light gray — secondary text only.",
+  },
+  FORBIDDEN: [
+    "NO coral / pink (reserved for co-branded posts ONLY)",
+    "NO muted or pastel yellow — sunny yellow must stay saturated #FFDE59",
+    "NO blue other than #057AC0 / #66ABD3",
+    "NO italic, NO serif emphasis, NO script (that is another brand's pattern)",
+    "NO hollow numbered rings — CSC circles are FILLED solid blue with white numerals",
+  ],
+  _ENFORCE_EXACT:
+    "Use these hex values EXACTLY. Do NOT improvise, re-interpret, or shift any color — #057AC0 and #FFDE59 must be identical on every post.",
+};
+
+const CSC_TYPOGRAPHY = {
+  display:
+    "HEAVY bold sans-serif headlines (Montserrat / Poppins / Bebas Neue style), mixed-case — command via WEIGHT and CASE.",
+  rule: "ABSOLUTELY NO italic, NO serif emphasis, NO script. CSC is bold sans only.",
+  numbered_circles: "FILLED solid electric-blue (#057AC0) circles with WHITE numerals — NEVER hollow rings.",
+  body: "Regular/medium sans, dark gray (#646668) or white, generous line height.",
+  eyebrow: "Solid electric-blue pill, white ALL-CAPS bold label.",
+};
+
+const CSC_GLOBAL_HARD_RULES = [
+  "NO logo, brand mark, or the words \"CYBER SAFETY COP\" / \"CYBERSAFETYCOP.COM\" / any URL — the logo is composited separately after delivery.",
+  "Leave a clean SOLID-COLOR top ~12% zone (no key text/content) so the logo can be overlaid cleanly later.",
+  "Numbered lists use FILLED solid blue circles with white numerals — NEVER hollow rings.",
+  "Calm, EMPOWERING, capable tone — never scary, never alarmist, never a shocked-parent or predator-panic vibe. Always \"here's what you can do\".",
+  "NEVER show \"BRIGHT CANARY\", \"OURPACT\", or any partner/app brand name; no predator/fear/horror imagery; no shocked-parent cliché.",
+  "NO misspellings, no watermarks, no UI chrome, no stray borders. Photos must look like real editorial photography, never AI-plastic.",
+];
+
+const CSC_GLOBAL_NEGATIVE_PROMPT =
+  "italic, serif, script font, hollow numbered circles, muted yellow, pastel yellow, coral, pink, Bright Canary palette, OurPact, alarmist, fear-mongering, shocked parent, panicked face, scared child, predator, horror palette, dark moody, logo, CYBER SAFETY COP, CYBERSAFETYCOP.COM, any URL, watermark, UI chrome, border, outer frame, stray borders, AI-plastic photo, misspelled or garbled text";
+
+// JSON-CONTRACT generation (same shape as buildOmegaDesignPrompt): we hand the
+// model the STRICT JSON contract — exact hexes, a FORBIDDEN list, hard rules,
+// and a negative prompt — with this post's copy + layout filled in. The model
+// follows the contract instead of guessing, so the brand color is locked feed-wide.
 export function buildCscDesignPrompt(spec: CscSpec): string {
-  const list = (spec.listItems ?? [])
-    .map((it, i) => `  ${it.number || String(i + 1).padStart(2, "0")}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
-    .join("\n");
-  const quad = (spec.quadItems ?? []).map((q) => `  • ${q.heading}: ${q.text}`).join("\n");
-  const bullets = (spec.bullets ?? []).map((b) => `  • ${b}`).join("\n");
-  const cmp = spec.compare
-    ? `  ${spec.compare.goodLabel || "Do this"}: ${(spec.compare.good ?? []).join("; ")}\n  ${spec.compare.badLabel || "Not that"}: ${(spec.compare.bad ?? []).join("; ")}`
-    : "";
-  return [
-    `Design a bright, bold, modern vertical Instagram post (4:5, 1080x1350) for Cyber Safety Cop — a brand that teaches parents to keep kids safe online. Tone is CALM, EMPOWERING, and capable — never scary, never alarmist, never a shocked-parent or predator-panic vibe. Clean, friendly, confident.`,
-    ``,
-    `LAYOUT: ${cscArchetypeLayout(spec)}`,
-    ``,
-    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
-    spec.eyebrow ? `- Eyebrow label (small, ALL-CAPS, on a pill): ${spec.eyebrow}` : ``,
-    spec.headline ? `- Headline (heavy bold sans, mixed-case): ${spec.headline}` : ``,
-    spec.headlineAccent ? `- Accent line (bold blue, smaller): ${spec.headlineAccent}` : ``,
-    spec.body ? `- Body (regular sans): ${spec.body}` : ``,
-    list ? `- Numbered steps:\n${list}` : ``,
-    quad ? `- Four cards:\n${quad}` : ``,
-    bullets ? `- Benefit bullets:\n${bullets}` : ``,
-    cmp ? `- Compare columns:\n${cmp}` : ``,
-    spec.coralTag ? `- Trust tag: ${spec.coralTag}` : ``,
-    spec.bigStat ? `- Big number/stat: ${spec.bigStat}` : ``,
-    spec.quote ? `- Quote: ${spec.quote}` : ``,
-    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
-    spec.cta ? `- CTA (small, action — never fear): ${spec.cta}` : ``,
-    ``,
-    `COLOR PALETTE — use ONLY: electric blue #057AC0, lighter blue #66ABD3, SATURATED sunny yellow #FFDE59 (never muted/pastel), ice blue #D9EDF8, white, dark gray #646668 / #AEAFB0 for secondary text. NO coral/pink (that is reserved for co-branded posts only).`,
-    `TYPOGRAPHY: HEAVY bold sans-serif headlines (Montserrat / Poppins / Bebas Neue style), mixed-case — command via weight and case. ABSOLUTELY NO italic, NO serif emphasis, NO script. Numbered lists use FILLED solid blue circles with white numerals — NEVER hollow rings.`,
-    `VOICE: a calm, empowering, practical guide who helps parents feel CAPABLE. Always "here's what you can do" — never fear.`,
-    ``,
-    `STRICT RULES (a violation makes the post unusable):`,
-    `- NO logo, brand mark, or the words "CYBER SAFETY COP" / "CYBERSAFETYCOP.COM" / any URL — the logo is composited separately after delivery.`,
-    `- Leave a clean SOLID-COLOR top ~12% zone (no key text/content) so the logo can be overlaid cleanly later.`,
-    `- NEVER show "BRIGHT CANARY", "OURPACT", or any partner/app brand name; no predator/fear/horror imagery; no shocked-parent cliché.`,
-    `- NO misspellings, no watermarks, no UI chrome, no stray borders. Photos must look like real editorial photography, never AI-plastic.`,
-  ].filter((l) => l !== "").join("\n");
+  const numbered_list = (spec.listItems ?? []).map((it, i) => ({
+    filled_blue_circle_numeral: String(it.number || String(i + 1).padStart(2, "0")),
+    lead: it.lead || null,
+    text: it.text,
+  }));
+  const four_cards = (spec.quadItems ?? []).map((q) => ({ heading: q.heading, text: q.text }));
+  const compare = spec.compare
+    ? {
+        good_label: spec.compare.goodLabel || "Do this",
+        good: spec.compare.good ?? [],
+        bad_label: spec.compare.badLabel || "Not that",
+        bad: spec.compare.bad ?? [],
+      }
+    : null;
+
+  const contract = {
+    INSTRUCTION:
+      "Create ONE Instagram post graphic, 4:5 portrait (1080x1350), for Cyber Safety Cop — a brand that teaches parents to keep kids safe online. This JSON is a STRICT brand contract — obey every field exactly. Do NOT improvise or vary the colors; use the STRICT_COLOR_CONTRACT hex values precisely. Render every word EXACTLY as written under CONTENT, crisp and correctly spelled, no invented words. Tone is CALM, EMPOWERING, capable — never scary or alarmist.",
+    STRICT_COLOR_CONTRACT: CSC_STRICT_COLOR_CONTRACT,
+    TYPOGRAPHY: CSC_TYPOGRAPHY,
+    LAYOUT: { archetype: spec.archetype, description: cscArchetypeLayout(spec) },
+    CONTENT: {
+      eyebrow_pill: spec.eyebrow || null,
+      headline: spec.headline || null,
+      headline_accent: spec.headlineAccent || null,
+      body: spec.body || null,
+      numbered_list: numbered_list.length ? numbered_list : null,
+      four_cards: four_cards.length ? four_cards : null,
+      benefit_bullets: spec.bullets && spec.bullets.length ? spec.bullets : null,
+      compare,
+      trust_tag: spec.coralTag || null,
+      big_stat: spec.bigStat || null,
+      quote: spec.quote || null,
+      attribution: spec.attribution || null,
+      cta: spec.cta || null,
+      footer:
+        "NONE — leave the bottom ~12% a calm, empty quiet zone (no text, no logo, no URL); the logo is overlaid after delivery.",
+    },
+    GLOBAL_HARD_RULES: CSC_GLOBAL_HARD_RULES,
+    GLOBAL_NEGATIVE_PROMPT: CSC_GLOBAL_NEGATIVE_PROMPT,
+  };
+  return "Follow this JSON brand contract EXACTLY when generating the image:\n\n" + JSON.stringify(contract, null, 2);
 }
 
-// Content router — picks the layout that fits each post for a varied feed.
-//   A          bold numbered STEPS (sequence: tell/block/delete, "3 steps")
-//   QUAD       2x2 cards (a count of settings/signs/apps/features)
-//   COMPARE    do-this/not-that, public vs private
-//   STATEMENT  myth-bust / bold claim
-//   CHECK      checkmark checklist
-//   PHOTOSPLIT product/partner explainer (photo + blue/coral panel)
-//   YHEADER    single spotlight setting (yellow header + photo)
-//   D          big-number stat        C  command photo        G  review
-export function pickArchetype(pillar: string | null, concept: string | null): CscArchetype {
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
+}
+
+// VARIETY ORDER — the FULL CscArchetype set, interleaved so adjacent posts
+// contrast (text / grid / photo / compare). Posts are DEALT across this list by
+// position (post_number) so a month cycles through every layout instead of
+// clustering on the "A" workhorse. This is the fix for "all the designs look the
+// same": variety is forced by distribution, not by content keywords (which kept
+// funneling everything onto A). Mirrors OMEGA_VARIETY_ORDER.
+//   A          bold numbered STEPS          (text, yellow)
+//   QUAD       2x2 cards                    (text grid)
+//   PHOTOSPLIT photo + blue panel           (photo)
+//   YHEADER    yellow header + photo        (photo)
+//   COMPARE    do-this / not-that columns   (text)
+//   CHECK      checkmark checklist          (text)
+//   STATEMENT  myth-bust / bold claim       (text, bold field)
+//   D          big-number stat              (text/photo)
+//   C          full-bleed command photo     (photo)
+//   G          parent review card           (text)
+const CSC_VARIETY_ORDER: CscArchetype[] = [
+  "A", "QUAD", "PHOTOSPLIT", "YHEADER", "COMPARE", "CHECK", "STATEMENT", "D", "C", "G",
+];
+
+// Only a few layouts are genuinely content-LOCKED (a real testimonial, the "1
+// setting" spotlight, a partner/Bright-Canary explainer, an explicit compare).
+// Everything else is spread by position so the feed varies.
+export function pickArchetype(
+  pillar: string | null,
+  concept: string | null,
+  postNumber?: number | null
+): CscArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
-  if (has(/review|testimon|parent said|5-star|five star|what parents/)) return "G";
+  // Content-locked exceptions (rare, genuinely layout-specific):
+  if (has(/review|testimon|parent said|5-star|five star|what parents/)) return "G"; // a real review → testimonial card
   // "The 1 setting" spotlight wins over the generic Bright Canary explainer — the
   // YHEADER reference is itself a Bright Canary post.
-  if (has(/\bthe (1|one)\b|one setting|single setting|spotlight|inside bright/)) return "YHEADER";
-  if (has(/bright canary|how .{0,24}(protects?|works|keeps)|membership|partner|trusted by|the app that/)) return "PHOTOSPLIT";
-  if (has(/ vs\.?\b| versus |public.{0,12}private|private.{0,12}public|safe.{0,8}(vs|or).{0,8}risky|do this|not that|difference between/)) return "COMPARE";
-  if (has(/check ?list|things to check|tech check|audit their|back-to-school list/)) return "CHECK";
-  if (has(/\bmyth\b|isn'?t (actually|really|truly)|not as private|truth about|reality check|debunk/)) return "STATEMENT";
-  if (has(/\b\d+%|percent|how many|\b\d+ in \d+\b|the number/)) return "D";
-  if (has(/\b\d+\s+(settings?|signs?|apps?|features?|red flags?|reasons?|rules?)\b/)) return "QUAD";
-  if (has(/\b\d+\s+(steps?|ways?|things?|tips?|mistakes?)\b|how to|step-by-step|if .{0,20}(wrong|happens)|what to do/)) return "A";
-  if (has(/talk to your|conversation|sit down|moment|tonight|family time/)) return "C";
-  return "A"; // numbered steps is the workhorse default
+  if (has(/\bthe (1|one)\b|one setting|single setting|spotlight|inside bright/)) return "YHEADER"; // single-setting spotlight
+  if (has(/bright canary|how .{0,24}(protects?|works|keeps)|membership|partner|trusted by|the app that/)) return "PHOTOSPLIT"; // partner / Bright Canary explainer
+  if (has(/ vs\.?\b| versus |public.{0,12}private|private.{0,12}public|safe.{0,8}(vs|or).{0,8}risky|do this|not that|difference between/)) return "COMPARE"; // explicit compare / vs
+
+  // Everything else: DEAL a distinct layout by position so the feed varies. Use
+  // post_number when available (consecutive posts → consecutive, distinct
+  // layouts); fall back to a concept hash so it's still deterministic without one.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(t);
+  return CSC_VARIETY_ORDER[((n % CSC_VARIETY_ORDER.length) + CSC_VARIETY_ORDER.length) % CSC_VARIETY_ORDER.length];
 }
 
 function dataInstruction(a: CscArchetype): string {
@@ -165,7 +252,7 @@ export async function synthesizeCscSpec(post: SpecPost): Promise<CscSynthResult>
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number);
   const instruction = [
     `You write copy for Cyber Safety Cop's Instagram. Cyber Safety Cop teaches parents how to keep kids and teens safe online. Voice: a calm, empowering, practical guide — helps parents feel CAPABLE, never scared. No fear-mongering, no predator panic, no shocked-mom cliché. Always end on "here's what you can do".`,
     `Visual brand: HEAVY bold sans headlines, mixed-case. Sunny yellow + electric blue. NO italic, NO serif, NO script.`,

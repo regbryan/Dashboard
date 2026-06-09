@@ -17,6 +17,7 @@ type SpecPost = {
   concept: string | null;
   content_pillar: string | null;
   post_type: string | null;
+  post_number?: number | null;
 };
 
 export type SynthSpecResult =
@@ -46,30 +47,29 @@ function hashStr(s: string): number {
   return h;
 }
 
-// Deterministic archetype choice by content — guarantees variety across a month
-// instead of the model defaulting to the photo layouts. Distributes across all 10
-// IEC layouts (A/B/C/D/E/F/G/H/I/QUAD).
-function pickArchetypeLetter(pillar: string | null, concept: string | null): string {
+// VARIETY ORDER for IEC — photo archetypes lead (Instagram/HVAC favors real
+// photos: A/B/C/I are the photo layouts) but every position is a DIFFERENT layout
+// so the feed never repeats the same look. Posts are DEALT across this by
+// post_number, instead of content keywords clustering onto A/C.
+const IEC_VARIETY_ORDER = ["A", "C", "B", "I", "QUAD", "E", "D", "H", "F", "G"];
+
+// Only a few layouts are genuinely content-LOCKED (myth split, emergency hero,
+// a real testimonial, a founder story). Everything else is spread by position so
+// the feed varies — the fix for "all the IEC designs look the same".
+function pickArchetypeLetter(
+  pillar: string | null,
+  concept: string | null,
+  postNumber?: number | null
+): string {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
-  // PHOTO-FORWARD (Instagram + HVAC research, 2026-06-09): Instagram favors real
-  // photos, and for HVAC the best-performing content is real on-site / before-
-  // after imagery — NOT text cards. So default to the PHOTO archetypes (A/B/C/I,
-  // the ones archetypeNeedsPhoto() is true for) and reserve the text-only cards
-  // (D/E/F/G/H/QUAD) ONLY for content that genuinely needs that format. ~70-80%
-  // of posts land on a real photo.
   if (has(/\bmyth\b|misconcept|truth about|debunk|don'?t believe/)) return "I"; // PHOTO — myth-vs-truth split
   if (has(/emergency|24\/7|broke down|no (heat|a\/?c|cooling)|heat ?wave|middle of (summer|the night)|stuck without/)) return "B"; // PHOTO — dramatic full-bleed
-  // Genuinely text-only content types (a real photo wouldn't fit):
   if (has(/\breview\b|testimon|\bspotlight\b|customer (love|story|win)|5[- ]star/)) return "D"; // testimonial (no fabricated customer photo)
-  if (has(/financ|\$\s?\d|\b\d+%\s*(off|financing|apr)|special offer|coupon|no money down|0 down/)) return "F"; // $ offer big-number
   if (has(/founder|family[- ]owned|about us|our story|since \d{4}|\b\d+\s+years (in|of)/)) return "H"; // founder/brand story
-  // A genuine multi-item list keeps a list format (mostly the QUAD/E text cards):
-  if (has(/\b\d+\s+(signs|reasons|things|ways|tips|mistakes|questions|steps|myths)\b/)) return hashStr(t) % 3 === 0 ? "QUAD" : "E";
-  // EVERYTHING ELSE — education, maintenance, seasonal, efficiency, savings,
-  // comfort, thermostat, air quality, awareness, community — gets a REAL PHOTO
-  // (A photo-split or C photo-top); alternate by concept hash for feed variety.
-  return hashStr(concept ?? t) % 2 === 0 ? "A" : "C";
+  // Everything else: deal a distinct layout by position so the feed varies.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(t);
+  return IEC_VARIETY_ORDER[((n % IEC_VARIETY_ORDER.length) + IEC_VARIETY_ORDER.length) % IEC_VARIETY_ORDER.length];
 }
 
 function dataInstruction(letter: string, market: string): string {
@@ -119,7 +119,7 @@ export async function synthesizeArchetypeSpec(
   const market = (brand.market as string) ?? "the local area";
   // Archetype is chosen deterministically (by content pillar) for guaranteed
   // variety — the model only writes the copy/data for that archetype.
-  const forcedLetter = pickArchetypeLetter(post.content_pillar, post.concept);
+  const forcedLetter = pickArchetypeLetter(post.content_pillar, post.concept, post.post_number);
   const forcedKey = resolveArchetypeKey(template, forcedLetter) ?? forcedLetter;
   const archDesc = template.ARCHETYPES?.[forcedKey]?.description ?? "";
 

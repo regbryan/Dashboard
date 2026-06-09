@@ -20,7 +20,7 @@ export type DougSpec = {
   photo: { include: boolean; description: string };
 };
 
-type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
+type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null; post_number?: number | null };
 export type DougSynthResult = { ok: true; spec: DougSpec } | { ok: false; error: string };
 
 // ============================================================================
@@ -58,30 +58,60 @@ function dougArchetypeLayout(spec: DougSpec): string {
   }
 }
 
+// JSON-CONTRACT generation (mirrors buildOmegaDesignPrompt): instead of a prose
+// paragraph (which lets the model re-interpret "teal" and drift the brand color
+// post-to-post — Doug's specific failure mode was almost every card collapsing to
+// the same solid-teal text look), we hand the model a STRICT JSON contract: exact
+// hexes, a FORBIDDEN-color list, hard rules, and a negative prompt — with this
+// post's copy + layout filled in. The model follows the contract instead of
+// guessing, so #1F5560 / #D8EBE5 are locked across the whole feed.
 export function buildDougDesignPrompt(spec: DougSpec): string {
-  const list = (spec.listItems ?? [])
-    .map((it, i) => `  ${i + 1}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
-    .join("\n");
-  return [
-    `Design a quiet, premium, LANDSCAPE LinkedIn title card (16:9, 1920x1080) for Doug Mitchell, Esq., a Partner at Scale LLP who writes on M&A for founders. Tone test: a McKinsey partner's LinkedIn — restrained, authoritative, never a hustle bro. Clean, spacious, serious.`,
-    ``,
-    `LAYOUT: ${dougArchetypeLayout(spec)}`,
-    ``,
-    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
-    spec.eyebrow ? `- Eyebrow label (small, ALL-CAPS): ${spec.eyebrow}` : ``,
-    spec.headline ? `- Headline (clean professional sans/serif): ${spec.headline}` : ``,
-    spec.subtitle ? `- Subtitle (one sharp line): ${spec.subtitle}` : ``,
-    list ? `- Points:\n${list}` : ``,
-    spec.bigStat ? `- Big figure: ${spec.bigStat}` : ``,
-    spec.quote ? `- Hook line: ${spec.quote}` : ``,
-    `- Small byline, bottom corner (plain text, exact): Doug Mitchell, Esq. · Scale LLP`,
-    ``,
-    `COLOR PALETTE — use ONLY: deep teal #1F5560, cream-mint #D8EBE5, white, and a muted gray for secondary text. NO accent color, NO bright colors, NO gradients-of-many-hues. Teal is dominant.`,
-    `TYPOGRAPHY: a clean, professional, high-legibility sans or restrained serif. NO script, NO emoji, NO decorative type. Authority through whitespace and hierarchy, not ornament.`,
-    `VOICE: expert but plain-spoken, advisory, specific, quiet authority. No bravado, no hustle, nothing political.`,
-    ``,
-    `STRICT RULES: Do NOT draw the SCALE LLP wordmark, logo, or firm mark — only the plain-text byline above is allowed. NO emoji, NO hustle language, NO stock-photo people. NO misspellings, no watermarks, no UI chrome. Keep it calm and uncluttered.`,
-  ].filter((l) => l !== "").join("\n");
+  const list_points = (spec.listItems ?? []).map((it) => ({
+    lead: it.lead || null,
+    text: it.text,
+  }));
+
+  const contract = {
+    INSTRUCTION:
+      "Create ONE LinkedIn post graphic, 16:9 LANDSCAPE (1920x1080), for Doug Mitchell, Esq., a Partner at Scale LLP who writes on M&A for founders. This JSON is a STRICT brand contract — obey every field exactly. Do NOT improvise or vary the colors; use the STRICT_COLOR_CONTRACT hex values precisely. Render every word EXACTLY as written under CONTENT, crisp and correctly spelled, no invented words. Tone test: a McKinsey partner's LinkedIn — restrained, authoritative, spacious, serious, never a hustle bro.",
+    STRICT_COLOR_CONTRACT: {
+      deep_teal: "#1F5560",
+      cream_mint: "#D8EBE5",
+      white: "#FFFFFF",
+      muted_gray: "#8A9A9C",
+      usage:
+        "Deep teal #1F5560 is dominant (fields, scrims, headlines on light cards). Cream-mint #D8EBE5 and white carry headlines/figures on teal. Muted gray is for secondary/eyebrow text ONLY.",
+      FORBIDDEN:
+        "NO accent color of any kind. NO bright or saturated colors. NO emoji. NO blue or green other than this exact teal. NO multi-hue gradients, NO neon, NO gold. Teal + cream-mint + white + muted gray are the ONLY colors permitted.",
+      _ENFORCE_EXACT: true,
+    },
+    TYPOGRAPHY: {
+      family:
+        "A clean, professional, high-legibility sans or a restrained serif. Authority through whitespace and hierarchy, not ornament.",
+      forbidden: "NO script, NO emoji, NO decorative or display type, NO outlined/3D text.",
+    },
+    LAYOUT: { archetype: spec.archetype, description: dougArchetypeLayout(spec) },
+    CONTENT: {
+      eyebrow: spec.eyebrow || null,
+      headline: spec.headline || null,
+      subtitle: spec.subtitle || null,
+      listItems: list_points.length ? list_points : null,
+      bigStat: spec.bigStat || null,
+      quote: spec.quote || null,
+      byline: "Doug Mitchell, Esq. · Scale LLP",
+    },
+    GLOBAL_HARD_RULES: [
+      "Do NOT draw the SCALE LLP wordmark, logo, or any firm mark — only the plain-text byline 'Doug Mitchell, Esq. · Scale LLP' is allowed.",
+      "NO emoji.",
+      "NO hustle language ('game-changer', '10x', 'level up', 'disrupt') anywhere in the image.",
+      "Quiet McKinsey-partner restraint: calm, uncluttered, generous negative space, authority through hierarchy not decoration.",
+      "Any photography is a corporate NO-PEOPLE scene (glass towers, skyline at dusk, empty boardroom, office architecture) under a deep teal scrim — ABSOLUTELY no people, faces, or hands.",
+      "Spell every word perfectly; no gibberish, no invented words, no watermarks, no UI chrome.",
+    ],
+    GLOBAL_NEGATIVE_PROMPT:
+      "SCALE LLP wordmark, logo, firm mark, emoji, hustle language, stock-photo people, faces, hands, accent colors, bright colors, neon, gold, multi-hue gradients, script type, decorative type, misspellings, gibberish text, watermarks, UI chrome, clutter",
+  };
+  return "Follow this JSON brand contract EXACTLY when generating the image:\n\n" + JSON.stringify(contract, null, 2);
 }
 
 function hashStr(s: string): number {
@@ -90,24 +120,38 @@ function hashStr(s: string): number {
   return n;
 }
 
-// Content router across Doug's 10 landscape LinkedIn layouts.
-//   WARSTORY  dark photo + hook       CONTRAST  belief vs reality
-//   FRAMEWORK numbered frame          STAT      big number
-//   LIST      advisory list           SPLIT     photo + teal panel
-//   MINT      light insight card      PANEL     photo + teal headline panel
-//   PHOTO     photo cover (default)    TITLE     text-only teal title
-export function pickArchetype(pillar: string | null, concept: string | null): DougArchetype {
+// VARIETY ORDER — the FULL Doug template set, interleaved so adjacent posts
+// contrast: photo covers and text cards alternate (the fix for Doug's "almost
+// every card is a solid-teal text block" sameness). Posts are DEALT across this
+// list by position (post_number) so a month cycles through every layout instead
+// of clustering on TITLE/STAT/CONTRAST. Variety is forced by distribution, not
+// left to content keywords.
+const DOUG_VARIETY_ORDER: DougArchetype[] = [
+  "PHOTO", "TITLE", "SPLIT", "LIST", "PANEL", "STAT", "WARSTORY", "FRAMEWORK", "MINT", "CONTRAST",
+];
+
+// Only a few layouts are genuinely content-LOCKED (a war story, a belief-vs
+// contrast, a hard $/N-deals stat, an explicit framework). Everything else is
+// spread by position so the feed varies.
+export function pickArchetype(
+  pillar: string | null,
+  concept: string | null,
+  postNumber?: number | null
+): DougArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
+
+  // Content-locked exceptions (rare, genuinely layout-specific):
   if (has(/war story|i advised|anonymi|the deal that|almost died|client i|mistake i see|11 ?pm|night before close/)) return "WARSTORY";
   if (has(/ vs\.?\b| versus |most (people|founders|owners) (think|believe)|why .* (is wrong|gets it wrong)|the myth|contrarian|everyone says/)) return "CONTRAST";
   if (has(/framework|the \d+-part|\d+ pillars|how to think about|a frame not|mental model/)) return "FRAMEWORK";
   if (has(/\$\s?\d|\b\d+\s+deals|\b\d+\+? years|\b\d+%|by the numbers|in \d+ deals/)) return "STAT";
-  if (has(/hidden cost|the cheapest|what (most )?founders miss|before you sign/)) return "SPLIT";
-  if (has(/\b\d+\s+(things|reasons|mistakes|steps|questions|ways|moves|clauses)\b|every (founder|buyer|seller)|checklist/)) return "LIST";
-  if (has(/practical advice|the one thing|a reminder|principle|rule of thumb|note to founders/)) return "MINT";
-  if (has(/flagship|cover|cityscape|skyline|feature graphic|milestone/)) return "PANEL";
-  return hashStr(concept ?? t) % 2 === 0 ? "PHOTO" : "TITLE";
+
+  // Everything else: DEAL a distinct layout by position so the feed varies. Use
+  // post_number when available (consecutive posts → consecutive, distinct
+  // layouts); fall back to a concept hash so it's still deterministic.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(concept ?? t);
+  return DOUG_VARIETY_ORDER[((n % DOUG_VARIETY_ORDER.length) + DOUG_VARIETY_ORDER.length) % DOUG_VARIETY_ORDER.length];
 }
 
 const CORP_PHOTO = "a quiet corporate/architectural scene — glass towers, a city skyline at dusk, an empty boardroom table, modern office architecture. ABSOLUTELY NO people, faces, or hands. It sits under a teal scrim. No text in the photo.";
@@ -143,7 +187,7 @@ export async function synthesizeDougSpec(post: SpecPost): Promise<DougSynthResul
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number);
   const instruction = [
     `You write LinkedIn thought-leadership title-card copy for Doug Mitchell, Esq., a Partner at Scale LLP writing on M&A. Audience: founders/CEOs 12-36 months from an exit, plus M&A peers. Voice: expert but plain-spoken (no Latin, define any legalese on first use), advisory framing (give a frame, not a to-do list), specific over general (anonymized real examples with numbers), QUIET authority (no bravado, no hustle, nothing political).`,
     `Visual brand: quiet teal + cream-mint title card, NO accent color, NO emoji. Tone test: a McKinsey partner's LinkedIn, never a hustle bro's.`,
@@ -151,7 +195,7 @@ export async function synthesizeDougSpec(post: SpecPost): Promise<DougSynthResul
     `POST: concept="${post.concept ?? ""}", pillar="${post.content_pillar ?? ""}", type="${post.post_type ?? ""}"`,
     `ARCHETYPE (fixed): ${archetype}. ${dataInstruction(archetype)}`,
     ``,
-    `HEADLINE GRAMMAR (use one): "The Hidden Cost of [X]" · "[X] vs [Y]: The Winning Formula for [outcome]" · "Embracing [counterintuitive concept] in M&A" · "Avoiding [bad outcome]: The Power of [Y]" · "Why [belief] is Wrong About [topic]" · "The [N] [things] Every [founder] Should [know] Before [milestone]".`,
+    `HEADLINE STRUCTURE — VARY IT. Doug's feed has been repeating "The Power of X" and "The Hidden Cost of Y" over and over; that is a defect. Rotate across DIFFERENT structures and do NOT reuse the same opening formula twice in a row: a direct question ("What is your earnout really worth?"), a single sharp declarative claim ("Reps and warranties are where deals quietly die"), a "Before you sign…" caution, an "X is not Y" reframe ("A letter of intent is not a contract"), a number-led insight ("Three diligence questions that change the price"), or a quiet contrarian statement ("The highest bid is rarely the best deal"). The "The Hidden Cost of…" / "The Power of…" / "[X] vs [Y]" / "Why [belief] is Wrong" molds are still ALLOWED but must be the exception, not the default — never lead two posts the same way. Keep the quiet advisory voice throughout; vary the shape, not the tone.`,
     ``,
     `RULES:`,
     `- headline: ONE advisory headline that LANDS an idea (not curiosity-gap clickbait). Mixed-case. No markdown/asterisks.`,

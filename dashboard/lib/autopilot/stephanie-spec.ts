@@ -1,5 +1,6 @@
 import "server-only";
 import type { StephanieArchetype, StephanieHeadlineLine } from "./render-stephanie";
+import { loadBrandTemplate } from "./archetype-prompt";
 
 // Synthesizes a Stephanie Perez design spec from a calendar post. TEXT-CARD
 // FIRST (she's a personal brand — her real photos can't be fabricated): the
@@ -60,33 +61,77 @@ function archetypeLayout(spec: StephanieSpec): string {
   }
 }
 
+// JSON-CONTRACT generation (mirrors buildOmegaDesignPrompt): instead of a prose
+// paragraph (which lets the model re-interpret "steel blue" and drift the brand
+// color post-to-post), we hand the model the brand's STRICT JSON contract from
+// brand-templates/stephanie.json — exact hexes, a forbidden-color list, hard
+// rules, and a negative prompt — with this post's copy + layout filled in. The
+// model follows the contract instead of guessing, so #3D5A80 stays locked across
+// the whole feed. STRICT_COLOR_CONTRACT carries Stephanie's exact hexes + a
+// FORBIDDEN list + an _ENFORCE_EXACT flag so the deep steel blue never drifts.
 export function buildStephanieDesignPrompt(spec: StephanieSpec): string {
+  const tpl = loadBrandTemplate("stephanie");
   const serif = spec.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ");
   const script = spec.headlineLines.find((l) => l.style === "script")?.text || "";
-  const list = (spec.listItems ?? []).map((it, i) => `  ${i + 1}. ${it.lead ? it.lead + " — " : ""}${it.text}`).join("\n");
-  return [
-    `Design a polished, professional, editorial vertical Instagram post (4:5, 1080x1350) for a warm, trustworthy female mortgage loan officer's PERSONAL brand (Stephanie Perez Home Loans). Soft, feminine, calming — NOT corporate, NOT fintech. Magazine quality; "a trusted guide with great taste."`,
-    ``,
-    `LAYOUT: ${archetypeLayout(spec)}`,
-    ``,
-    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish:`,
-    spec.eyebrow ? `- Small label / eyebrow: ${spec.eyebrow}` : ``,
-    serif ? `- Headline (elegant serif): ${serif}` : ``,
-    script ? `- Script accent (flowing handwritten): ${script}` : ``,
-    spec.body ? `- Body (lighter serif): ${spec.body}` : ``,
-    list ? `- List items:\n${list}` : ``,
-    spec.bigStat ? `- Big number: ${spec.bigStat}` : ``,
-    spec.quote ? `- Quote: ${spec.quote}` : ``,
-    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
-    spec.cta ? `- CTA: ${spec.cta}` : ``,
-    `- Footer (small, centered, on a white strip): stephanieperezhomeloans.com`,
-    ``,
-    `COLOR PALETTE — use ONLY: dusty steel blue #3D5A80, light sky blue #98C1D9, ice blue #E0FBFC, white, near-black text. NO tan, gold, brown, or any other accent color.`,
-    `TYPOGRAPHY: elegant high-contrast serif for headlines; a refined lighter serif for body; a flowing script ONLY for the accent word; a clean simple sans for small labels/footer.`,
-    `VOICE: first-person, warm, calm, values-forward.`,
-    ``,
-    `STRICT RULES: NO logo, wordmark, monogram, brand mark, or company-name graphic. NO "NMLS", "DRE", license numbers, phone numbers, or compliance/legal fine print. NO misspellings. No watermarks, no UI elements, no borders.`,
-  ].filter((l) => l !== "").join("\n");
+  const list_items = (spec.listItems ?? []).map((it, i) => ({
+    number: String(i + 1),
+    lead: it.lead || null,
+    text: it.text,
+  }));
+
+  const contract = {
+    INSTRUCTION:
+      "Create ONE Instagram post graphic, 4:5 portrait (1080x1350), for Stephanie Perez Home Loans — a warm, trustworthy female mortgage loan officer's PERSONAL brand. Soft, feminine, calming, editorial; NOT corporate, NOT fintech. This JSON is a STRICT brand contract — obey every field exactly. Do NOT improvise or vary the colors; use the STRICT_COLOR_CONTRACT hex values precisely. Render every word EXACTLY as written under CONTENT, crisp and correctly spelled, no invented words.",
+    STRICT_COLOR_CONTRACT: {
+      deep_steel_blue: "#3D5A80",
+      light_sky_blue: "#98C1D9",
+      ice_blue: "#E0FBFC",
+      white: "#FFFFFF",
+      near_black_text: "#000000",
+      ...(tpl?.STRICT_COLOR_CONTRACT ?? {}),
+      FORBIDDEN: [
+        "NO tan, gold, or brown anywhere",
+        "NO blue other than deep steel blue #3D5A80, light sky blue #98C1D9, ice blue #E0FBFC",
+        "no navy #005181 (that's Omega), no gold (that's Omega), no red, no neon",
+        ...((Array.isArray((tpl?.STRICT_COLOR_CONTRACT as { FORBIDDEN?: unknown })?.FORBIDDEN)
+          ? ((tpl?.STRICT_COLOR_CONTRACT as { FORBIDDEN?: string[] }).FORBIDDEN as string[])
+          : [])),
+      ],
+      _ENFORCE_EXACT:
+        "Use these exact hex values for every fill, band, and text color. Do not approximate, tint, or substitute. The deep steel blue MUST be #3D5A80 on every post.",
+    },
+    TYPOGRAPHY: tpl?.TYPOGRAPHY ?? {
+      display_serif: "Elegant high-contrast display serif (Playfair/Bodoni/Didot weight), mixed-case. Carries hero headlines.",
+      body_serif: "Refined lighter-weight serif, sentence case, for body copy.",
+      script: "Flowing personal script — the personal signature accent only (one short accent max).",
+      sans: "Clean simple sans for small labels/footer.",
+    },
+    LAYOUT: { archetype: spec.archetype, description: archetypeLayout(spec) },
+    CONTENT: {
+      eyebrow: spec.eyebrow || null,
+      headline_serif: serif || null,
+      headline_script_accent: script || null,
+      body: spec.body || null,
+      list_items: list_items.length ? list_items : null,
+      big_stat: spec.bigStat || null,
+      quote: spec.quote || null,
+      attribution: spec.attribution || null,
+      cta: spec.cta || null,
+      footer: "stephanieperezhomeloans.com — small, centered, on a clean white strip at the very bottom.",
+    },
+    GLOBAL_HARD_RULES: tpl?.GLOBAL_HARD_RULES ?? [
+      "Photos are warm lifestyle scenes with REAL people relevant to homeownership (NEVER a specific identifiable person); celebration scenes (keys, SOLD signs) are people-free.",
+      "NO logo, wordmark, monogram, brand mark, or company-name graphic.",
+      "NO 'NMLS', 'DRE', license numbers, phone numbers, or compliance/legal fine print — those are overlaid after delivery.",
+      "Render every word crisply and correctly spelled; no gibberish.",
+      "Serif carries the voice; a flowing script is the personal signature accent only (one short accent max). No bold-sans headline dominance.",
+      "First-person, warm, calm, values-forward voice.",
+    ],
+    GLOBAL_NEGATIVE_PROMPT:
+      tpl?.GLOBAL_NEGATIVE_PROMPT ??
+      "navy, gold, red, tan fill, brown, bright colors, neon, bold sans headline, logo, AHL, NMLS, DRE, license number, phone number, compliance footer, watermark, border, outer frame, rounded outer corners, misspelled or garbled text",
+  };
+  return "Follow this JSON brand contract EXACTLY when generating the image:\n\n" + JSON.stringify(contract, null, 2);
 }
 
 // Content router across Stephanie's 10 layouts — picks the one that fits each
@@ -106,30 +151,44 @@ function hashStr(s: string): number {
   return n;
 }
 
-// Content router across Stephanie's 10 distinct, reference-matched templates.
-// Each rule routes by content; the default rotates the two photo+band variants so
-// generic educational posts still vary in look.
-//   POLAROID closing celebration   G        client testimonial
-//   VS       comparison            ALTBARS  numbered myth/mistake list
-//   STEPS    process / path        CHECKLIST tips / what-to-know list
-//   BIGSTAT  a rate / % / number   SIGBOTTOM personal (band-bottom)
-//   STATEMENT inspirational hook   SIGNATURE default photo + band
-const STEPHANIE_DEFAULT_ROTATION: StephanieArchetype[] = ["SIGNATURE", "SIGBOTTOM"];
+// VARIETY ORDER — the full reference-matched template set, interleaved so adjacent
+// posts contrast (photo-hero / text / list / split / stat / celebration). Posts are
+// DEALT across this list by position (post_number) so a month cycles through every
+// layout instead of clustering on one. This is the fix for "all the designs look
+// the same": variety is forced by distribution, not left to content keywords (which
+// kept funneling everything onto SIGNATURE/SIGBOTTOM).
+//   SIGNATURE  photo + band (top)       SIGBOTTOM  photo + band (bottom)
+//   STATEMENT  bold hook over photo     CHECKLIST  numbered checklist over photo
+//   ALTBARS    myth/mistake bars        STEPS      numbered process path (no photo)
+//   VS         two-photo comparison     BIGSTAT    photo + big numeral
+//   G          text testimonial         POLAROID   client celebration (script + framed)
+const STEPHANIE_VARIETY_ORDER: StephanieArchetype[] = [
+  "SIGNATURE", "CHECKLIST", "STATEMENT", "STEPS", "SIGBOTTOM", "VS", "ALTBARS", "BIGSTAT", "G", "POLAROID",
+];
 
-export function pickArchetype(pillar: string | null, concept: string | null): StephanieArchetype {
+// Only a few layouts are genuinely content-LOCKED (a closing celebration, an actual
+// testimonial, a real comparison, a myth/mistake list, a step-by-step process).
+// Everything else is spread by position so the feed varies.
+export function pickArchetype(
+  pillar: string | null,
+  concept: string | null,
+  postNumber?: number | null
+): StephanieArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
+  // Content-locked exceptions (rare, genuinely layout-specific):
   if (has(/just closed|in contract|closing day|welcome home|keys to|client win|new homeowner|congrat/)) return "POLAROID";
   if (has(/testimonial|review|what (my )?clients say|client said|hear from|client (story|spotlight)|success story/)) return "G";
   if (has(/ vs\.?\b| versus |rent vs|pre-?qual.* (vs|or) |fixed (vs|or)|fha (vs|or)|which is (right|better)|\b\w+ or \w+\?/)) return "VS";
   if (has(/\b\d+\s+(myths|mistakes|things not|don'?ts)\b|myths? (exposed|busted)|things not to do|\bmistakes to avoid/)) return "ALTBARS";
   if (has(/the process|your path|step-by-step|step by step|road ?map|timeline|what happens (after|next)|from .* to the keys|how (it works|to buy)/)) return "STEPS";
-  if (has(/\b\d+\s+(things|steps|tips|ways|reasons|signs|questions|items|documents|hacks)\b|check ?list|first steps|before you (shop|buy|sign|tour)|what (lenders|to look for|you need)|improv(e|ing)|boost your|demystif|lingo|terms|glossary|things to (do|gather|know)/)) return "CHECKLIST";
-  if (has(/\b\d+ ?- ?\d+%|\b\d+%|\b\d+\.\d|\brate(s)?\b|down payment|0% down|zero down|by the numbers|\$\d/)) return "BIGSTAT";
-  if (has(/why i|my story|about me|behind the|law enforcement|i became|meet your|treat every client|like family|you can trust|relationship/)) return "SIGBOTTOM";
-  if (has(/dream|believe|\bfear\b|closer than|you deserve|mindset|don'?t let|imagine|peace of mind|empower/)) return "STATEMENT";
-  return STEPHANIE_DEFAULT_ROTATION[hashStr(`${pillar ?? ""}|${concept ?? ""}`) % STEPHANIE_DEFAULT_ROTATION.length];
+
+  // Everything else: DEAL a distinct layout by position so the feed varies. Use
+  // post_number when available (consecutive posts → consecutive, distinct layouts);
+  // fall back to a concept hash so it's still deterministic without a number.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(`${pillar ?? ""}|${concept ?? ""}`);
+  return STEPHANIE_VARIETY_ORDER[((n % STEPHANIE_VARIETY_ORDER.length) + STEPHANIE_VARIETY_ORDER.length) % STEPHANIE_VARIETY_ORDER.length];
 }
 
 const PEOPLE_FREE = "a warm, inviting, photorealistic LIFESTYLE scene with ABSOLUTELY NO people/faces/hands — a cozy sunlit living room, a welcoming front porch, house keys on a counter, a quiet tree-lined neighborhood, a kitchen with morning light. Soft natural light, magazine quality. No text in the photo.";
@@ -190,7 +249,7 @@ export async function synthesizeStephanieSpec(post: SpecPost): Promise<Stephanie
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number);
   const instruction = [
     `You write copy for Stephanie Perez's Instagram (@stephanieperezhomeloans) — a personal-brand mortgage loan consultant in El Dorado Hills / Sacramento Valley. Voice: FIRST-PERSON singular ("I/me/my", NEVER "we/our team"), values-forward (honesty, integrity, calm), unhurried, relational. A trusted friend who happens to be your loan officer; 15 years in law enforcement before mortgage.`,
     `Visual brand: elegant SERIF carries the voice; a flowing SCRIPT is the personal signature accent (one short accent max). Calm and editorial.`,

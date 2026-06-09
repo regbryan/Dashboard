@@ -1,5 +1,6 @@
 import "server-only";
 import type { RiversideArchetype } from "./render-riverside";
+import { loadBrandTemplate } from "./archetype-prompt";
 
 // Synthesizes a Riverside Hat Co design spec from a calendar post. Product-
 // FORWARD (hats in context, never people): the product-hero (A) is the default;
@@ -21,7 +22,12 @@ export type RiversideSpec = {
   photo: { include: boolean; description: string };
 };
 
-type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
+type SpecPost = {
+  concept: string | null;
+  content_pillar: string | null;
+  post_type: string | null;
+  post_number?: number | null;
+};
 export type RiversideSynthResult = { ok: true; spec: RiversideSpec } | { ok: false; error: string };
 
 // ============================================================================
@@ -46,36 +52,95 @@ function riversideArchetypeLayout(spec: RiversideSpec): string {
   }
 }
 
+// JSON-CONTRACT generation: instead of a prose paragraph (which lets the model
+// re-interpret the palette and drift the brand colors post-to-post), we hand the
+// model the brand's STRICT JSON contract from brand-templates/riverside.json —
+// exact hexes, a forbidden-color list, hard rules, and a negative prompt — with
+// this post's copy + layout filled in. The model follows the contract instead of
+// guessing, so the warm earthy palette is locked across the whole feed. Mirrors
+// buildOmegaDesignPrompt.
 export function buildRiversideDesignPrompt(spec: RiversideSpec): string {
-  const list = (spec.listItems ?? []).map((it, i) => `  ${i + 1}. ${it.text}`).join("\n");
-  return [
-    `Design a warm, crafted, modern-Western vertical Instagram post (4:5, 1080x1350) for Riverside Hat Co — a small-batch custom Western hat shop. Tactile, editorial, lived-in (Yellowstone / Stagecoach mood), NEVER costume-cowboy, rhinestone, or "yeehaw" kitsch.`,
-    ``,
-    `LAYOUT: ${riversideArchetypeLayout(spec)}`,
-    ``,
-    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
-    spec.eyebrow ? `- Label (tall condensed, rust): ${spec.eyebrow}` : ``,
-    spec.headline ? `- Headline (warm crafted slab serif): ${spec.headline}` : ``,
-    spec.body ? `- Body (one short detail line): ${spec.body}` : ``,
-    list ? `- Steps:\n${list}` : ``,
-    spec.quote ? `- Quote: ${spec.quote}` : ``,
-    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
-    spec.cta ? `- CTA (short, direct): ${spec.cta}` : ``,
-    ``,
-    `COLOR PALETTE — use ONLY: warm tan #B89A6D, dark saddle brown #3A2E1F, rust #C9572C (accent — labels/CTAs), cream #F2E6D5. Earthy, warm, no bright/neon colors, no pure white blocks.`,
-    `TYPOGRAPHY: a warm crafted SLAB SERIF for headlines; a TALL CONDENSED sans (rust) for eyebrow labels; a clean sans for detail lines. Confident, understated.`,
-    `VOICE: confidently casual, craft-forward, locally proud (Riverside / the IE). Avoid "yeehaw", "howdy", "partner", "vibes", "statement piece", em dashes.`,
-    ``,
-    `STRICT RULES: NO "EST. 2021" logo, brand mark, monogram, or phone number anywhere (added separately). Product photos are HATS in context with ABSOLUTELY NO people, faces, or hands, and never a floating product on white. NO misspellings, no watermarks, no UI elements.`,
-  ].filter((l) => l !== "").join("\n");
+  const tpl = loadBrandTemplate("riverside");
+  const baseColors = (tpl?.STRICT_COLOR_CONTRACT ?? {}) as Record<string, unknown>;
+  const list_items = (spec.listItems ?? []).map((it) => ({ text: it.text }));
+
+  const contract = {
+    INSTRUCTION:
+      "Create ONE Instagram post graphic, 4:5 portrait (1080x1350), for Riverside Hat Co — a small-batch custom Western hat shop. This JSON is a STRICT brand contract — obey every field exactly. Do NOT improvise or vary the colors; use the STRICT_COLOR_CONTRACT hex values precisely. Tactile, editorial, lived-in (Yellowstone / Stagecoach mood), NEVER costume-cowboy, rhinestone, or \"yeehaw\" kitsch. Render every word EXACTLY as written under CONTENT, crisp and correctly spelled, no invented words.",
+    STRICT_COLOR_CONTRACT: {
+      tan: "#B89A6D",
+      brown: "#3A2E1F",
+      rust: "#C9572C",
+      cream: "#F2E6D5",
+      ...baseColors,
+      FORBIDDEN:
+        (baseColors.FORBIDDEN as unknown) ??
+        ["bright blue", "neon", "pastels", "jewel tones", "rhinestone / costume-cowboy color", "any cool/clinical color", "navy", "pure-white blocks"],
+      _ENFORCE_EXACT:
+        "Use these hexes precisely: warm tan #B89A6D, dark saddle brown #3A2E1F, rust #C9572C (THE accent — labels/CTAs), cream #F2E6D5. No bright/neon colors, no pure-white blocks, no blue. Do NOT drift the palette.",
+    },
+    TYPOGRAPHY: tpl?.TYPOGRAPHY ?? {
+      display: "Warm crafted SLAB SERIF for headlines (mixed-case, sturdy, lived-in).",
+      label: "Tall CONDENSED sans, ALL-CAPS, letter-spaced, in rust — the western-poster eyebrow / category label.",
+      body: "Clean readable sans for detail lines. Confident, understated.",
+    },
+    LAYOUT: { archetype: spec.archetype, description: riversideArchetypeLayout(spec) },
+    CONTENT: {
+      eyebrow: spec.eyebrow || null,
+      headline: spec.headline || null,
+      body: spec.body || null,
+      list_items: list_items.length ? list_items : null,
+      quote: spec.quote || null,
+      attribution: spec.attribution || null,
+      cta: spec.cta || null,
+      logo_zone: "NONE — leave a calm corner; the EST. 2021 oval logo / phone are overlaid after delivery.",
+    },
+    GLOBAL_HARD_RULES: tpl?.GLOBAL_HARD_RULES ?? [
+      "HATS-in-context photos only — NO people, faces, or hands; never a floating product on a white background.",
+      "DO NOT bake the EST. 2021 logo, brand mark, monogram, or phone number into the image — added separately.",
+      "Warm crafted SLAB serif headline + tall condensed rust label.",
+      "Warm earthy palette only — tan + dark saddle brown + rust + cream. NO blue, NO neon, NO pastels.",
+      "Confidently casual, craft-forward voice. Avoid yeehaw / howdy / partner / costume-cowboy kitsch.",
+    ],
+    GLOBAL_NEGATIVE_PROMPT:
+      tpl?.GLOBAL_NEGATIVE_PROMPT ??
+      "people, faces, person, hands, model, floating product on white, studio seamless white, blue, neon, pastel, jewel tones, rhinestone, costume cowboy, yeehaw, howdy, EST. 2021 logo, brand mark, monogram, phone number, watermark, border, outer frame, misspelled or garbled text",
+  };
+  return "Follow this JSON brand contract EXACTLY when generating the image:\n\n" + JSON.stringify(contract, null, 2);
 }
 
-function pickArchetype(pillar: string | null, concept: string | null): RiversideArchetype {
+// VARIETY ORDER — Riverside's four archetypes, interleaved so adjacent posts
+// contrast (product photo / care card / drop card / customer feature). Posts are
+// DEALT across this list by position (post_number) so a run cycles A->C->D->G->A
+// instead of clustering on A or D. This is the fix for "the designs all look the
+// same": variety is forced by distribution, not left to content keywords.
+const RIVERSIDE_VARIETY_ORDER: RiversideArchetype[] = ["A", "C", "D", "G"];
+
+function hashStr(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return n;
+}
+
+// Only content-LOCKED rules remain (a genuine customer feature, an actual how-to,
+// a real event/drop). Everything else is spread by position so the feed varies.
+function pickArchetype(
+  pillar: string | null,
+  concept: string | null,
+  postNumber?: number | null
+): RiversideArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
+
+  // Content-locked exceptions (rare, genuinely layout-specific):
   if (/customer|feature|review|testimon|came in|wore|client/.test(t)) return "G";
   if (/process|how to|care|clean|shape|re-?crease|re-?band|steps|maintain|how a hat/.test(t)) return "C";
   if (/event|hat bar|trailer|promo|sale|gift|book|wedding|father|drop event|pop-?up/.test(t)) return "D";
-  return "A"; // product hero (new arrivals / drops) default
+
+  // Everything else: DEAL a distinct layout by position so the feed varies. Use
+  // post_number when available (consecutive posts → consecutive, distinct
+  // layouts); fall back to a concept hash so it's still deterministic without one.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(t);
+  return RIVERSIDE_VARIETY_ORDER[((n % RIVERSIDE_VARIETY_ORDER.length) + RIVERSIDE_VARIETY_ORDER.length) % RIVERSIDE_VARIETY_ORDER.length];
 }
 
 function dataInstruction(a: RiversideArchetype): string {
@@ -97,7 +162,7 @@ export async function synthesizeRiversideSpec(post: SpecPost): Promise<Riverside
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number);
   const instruction = [
     `You write copy for Riverside Hat Co's Instagram (@riversidehatco) — a small-batch custom Western hat shop in Riverside, CA (EST. 2021), known for custom hat shaping and the Hat Bar Trailer. Voice: confidently casual, Western-but-NOT-costume (modern, lived-in, Yellowstone/Stagecoach — NEVER 'yeehaw / howdy / partner' or rhinestone kitsch), craft-forward (name what's done — 're-creased the crown', 'swapped the band'), locally proud (Riverside / the IE).`,
     `Visual brand: warm crafted SLAB serif headline + tall condensed rust label. Earthy palette (tan, saddle brown, rust, cream).`,

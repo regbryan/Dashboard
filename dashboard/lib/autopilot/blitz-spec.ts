@@ -1,5 +1,6 @@
 import "server-only";
 import type { BlitzArchetype, BlitzHeadlineLine } from "./render-blitz";
+import { loadBrandTemplate } from "./archetype-prompt";
 
 // Synthesizes a Blitz Organization design spec from a calendar post. Photo-FIRST
 // (organized SPACES, never people): the photo-hero (A) is the default; soft
@@ -24,7 +25,7 @@ export type BlitzSpec = {
   photo: { include: boolean; description: string };
 };
 
-type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null };
+type SpecPost = { concept: string | null; content_pillar: string | null; post_type: string | null; post_number?: number | null };
 export type BlitzSynthResult = { ok: true; spec: BlitzSpec } | { ok: false; error: string };
 
 // ============================================================================
@@ -63,40 +64,95 @@ function blitzArchetypeLayout(spec: BlitzSpec): string {
   }
 }
 
+// JSON-CONTRACT generation (mirrors buildOmegaDesignPrompt): instead of a prose
+// paragraph (which lets the model re-interpret "dusty rose" and drift the palette
+// post-to-post), we hand the model a STRICT JSON contract — exact hexes, a
+// forbidden-color list, hard rules, and a negative prompt — with this post's copy
+// + layout filled in. The model follows the contract instead of guessing, so the
+// exact Blitz palette (#ECB7B9 / #9CAF9C / #DAD6CF) is locked across the feed.
+// STRICT_COLOR_CONTRACT is built inline from the prose version's exact hexes so it
+// holds even without the bundled blitz.json template.
 export function buildBlitzDesignPrompt(spec: BlitzSpec): string {
+  const tpl = loadBrandTemplate("blitz");
   const script = spec.headlineLines.find((l) => l.style === "script")?.text || "";
   const sans = spec.headlineLines.filter((l) => l.style !== "script").map((l) => l.text).join(" ");
-  const list = (spec.listItems ?? [])
-    .map((it, i) => `  ${it.number || String(i + 1).padStart(2, "0")}. ${it.lead ? it.lead + " — " : ""}${it.text}`)
-    .join("\n");
-  const quad = (spec.quadItems ?? []).map((q) => `  • ${q.heading}: ${q.text}`).join("\n");
-  const cmp = spec.compare
-    ? `  ${spec.compare.keepLabel || "Keep"}: ${(spec.compare.keep ?? []).join("; ")}\n  ${spec.compare.tossLabel || "Toss"}: ${(spec.compare.toss ?? []).join("; ")}`
-    : "";
-  return [
-    `Design a soft, airy, warm vertical Instagram post (4:5, 1080x1350) for Blitz Organization — a professional home-organizing service. Calm, encouraging, beautifully tidy; like a Pinterest home-organization aesthetic. NOT corporate, NOT busy, never cluttered or harsh.`,
-    ``,
-    `LAYOUT: ${blitzArchetypeLayout(spec)}`,
-    ``,
-    `EXACT TEXT — spell every word perfectly, crisp and legible, no gibberish, no invented words:`,
-    spec.eyebrow ? `- Small label: ${spec.eyebrow}` : ``,
-    script ? `- Script hook (casual handwritten, the emotional line): ${script}` : ``,
-    sans ? `- Supporting line (light clean sans): ${sans}` : ``,
-    spec.body ? `- Body (light sans): ${spec.body}` : ``,
-    list ? `- List:\n${list}` : ``,
-    quad ? `- Four cards:\n${quad}` : ``,
-    cmp ? `- Keep / Toss:\n${cmp}` : ``,
-    spec.bigStat ? `- Big number: ${spec.bigStat}` : ``,
-    spec.quote ? `- Quote: ${spec.quote}` : ``,
-    spec.attribution ? `- Attribution: ${spec.attribution}` : ``,
-    spec.cta ? `- Soft CTA (gentle invite): ${spec.cta}` : ``,
-    ``,
-    `COLOR PALETTE — use ONLY: dusty rose #ECB7B9, soft sage green #9CAF9C, warm beige #DAD6CF, cream/off-white, and a soft warm charcoal for text. Muted, soft, pastel — NO bright/saturated colors, no black blocks.`,
-    `TYPOGRAPHY: a CASUAL handwritten SCRIPT for the hook/emotional line; a LIGHT, clean, airy sans for everything else. No heavy bold blocks, no serif, no all-caps shouting.`,
-    `VOICE: a warm, encouraging friend who's great at organizing — calm, practical, never shaming. NEVER the words "messy", "dirty", "disaster", "hoarder". Soft CTAs only (never "BOOK NOW").`,
-    ``,
-    `STRICT RULES: NO logo, wordmark, or brand mark anywhere (added separately). Photos are organized SPACES with ABSOLUTELY NO people, hands, or faces. NO misspellings, no watermarks, no UI elements, no harsh borders. Keep it soft, airy, and uncluttered.`,
-  ].filter((l) => l !== "").join("\n");
+  const numbered_list = (spec.listItems ?? []).map((it, i) => ({
+    soft_number_chip: it.number || String(i + 1).padStart(2, "0"),
+    lead: it.lead || null,
+    text: it.text,
+  }));
+  const four_cards = (spec.quadItems ?? []).map((q) => ({ heading: q.heading, text: q.text }));
+  const keep_toss = spec.compare
+    ? {
+        keep_label: spec.compare.keepLabel || "Keep",
+        keep: spec.compare.keep ?? [],
+        toss_label: spec.compare.tossLabel || "Toss",
+        toss: spec.compare.toss ?? [],
+      }
+    : null;
+
+  // Exact Blitz palette from the prose version (also matches brand-templates/blitz.json).
+  const STRICT_COLOR_CONTRACT = tpl?.STRICT_COLOR_CONTRACT ?? {
+    rose: "#ECB7B9",
+    sage: "#9CAF9C",
+    beige: "#DAD6CF",
+    cream: "#FBF8F4",
+    white: "#FFFFFF",
+    charcoal: "#595959",
+    color_roles: {
+      "#ECB7B9": "Dusty rose — the signature Blitz accent. Pills, banners, soft CTA buttons, list markers, quote backgrounds. Always present somewhere.",
+      "#9CAF9C": "Soft sage green — organic secondary. Alternate markers, dividers, soft panels that pair with the rose.",
+      "#DAD6CF": "Warm beige — soft neutral background panel, card fill, photo overlay band.",
+      "#FBF8F4": "Warm cream / off-white — primary airy background for text cards (softer than pure white).",
+      "#FFFFFF": "White — clean background, breathing room.",
+      "#595959": "Soft warm charcoal — all headline + body text. Never pure black.",
+    },
+    FORBIDDEN: [
+      "no bright or saturated colors",
+      "no black blocks (text is soft warm charcoal, never pure black)",
+      "no blue",
+      "no neon",
+    ],
+    _ENFORCE_EXACT: "Use these hex values precisely. Do NOT improvise, shift, or saturate the palette — soft, muted, pastel only.",
+  };
+
+  const contract = {
+    INSTRUCTION:
+      "Create ONE Instagram post graphic, 4:5 portrait (1080x1350), for Blitz Organization — a professional home-organizing service. This JSON is a STRICT brand contract — obey every field exactly. Do NOT improvise or vary the colors; use the STRICT_COLOR_CONTRACT hex values precisely. Render every word EXACTLY as written under CONTENT, crisp and correctly spelled, no invented words. Soft, airy, warm, calming — like a Pinterest home-organization aesthetic; never corporate, busy, cluttered, or harsh.",
+    STRICT_COLOR_CONTRACT,
+    TYPOGRAPHY: tpl?.TYPOGRAPHY ?? {
+      script: "CASUAL handwritten script (a friendly handwritten note, NOT formal calligraphy) — carries the emotional hook line ONLY.",
+      sans: "LIGHT, clean, airy sans for everything else (subheads, body, list, CTA). No heavy bold blocks, no serif, no all-caps shouting.",
+      rule: "Casual script for the emotion; light sans for the info. Exactly ONE short script hook per design.",
+    },
+    LAYOUT: { archetype: spec.archetype, description: blitzArchetypeLayout(spec) },
+    CONTENT: {
+      eyebrow_label: spec.eyebrow || null,
+      headline_script_hook: script || null,
+      headline_sans_line: sans || null,
+      body: spec.body || null,
+      numbered_list: numbered_list.length ? numbered_list : null,
+      four_cards: four_cards.length ? four_cards : null,
+      keep_toss,
+      big_stat: spec.bigStat || null,
+      quote: spec.quote || null,
+      attribution: spec.attribution || null,
+      cta: spec.cta || null,
+    },
+    GLOBAL_HARD_RULES: tpl?.GLOBAL_HARD_RULES ?? [
+      "No people in photos — organized SPACES only (pantry, closet, drawer, shelves with clear bins, labeled jars, matching baskets). Absolutely no people, hands, or faces.",
+      "Typography: a CASUAL handwritten script hook (the emotional line) paired with a LIGHT clean sans for everything else. No serif, no heavy bold all-caps dominance.",
+      "Voice: warm, encouraging, calm — never shaming. NEVER the words 'messy', 'dirty', 'disaster', 'hoarder'. Soft CTAs only (never 'BOOK NOW').",
+      "Soft and airy: generous white space, layouts breathe, text is never crammed.",
+      "Palette is dusty rose + sage + warm beige + cream/white + soft charcoal. No bright/saturated colors, no black blocks, no blue.",
+      "Do NOT bake the logo or wordmark into the image — it is composited on top afterward. Keep a calm, uncluttered corner with breathing room for it.",
+      "Render every word crisply and correctly spelled.",
+    ],
+    GLOBAL_NEGATIVE_PROMPT:
+      tpl?.GLOBAL_NEGATIVE_PROMPT ??
+      "people, faces, person, hands, fake named staff, bright colors, saturated colors, neon, blue, navy, red, black blocks, bold all-caps headline, formal calligraphy, serif font, dark moody background, cluttered busy layout, text cramming, shaming language, logo, wordmark, watermark, border, outer frame, misspelled or garbled text",
+  };
+  return "Follow this JSON brand contract EXACTLY when generating the image:\n\n" + JSON.stringify(contract, null, 2);
 }
 
 // Content router across Blitz's 10 layouts.
@@ -111,28 +167,36 @@ function hashStr(s: string): number {
   return n;
 }
 
-// When no keyword rule fires, rotate generic concepts ("Garage Glow-Up",
-// "Pantry Chaos to Calm") across a varied mix instead of collapsing onto one
-// default — otherwise the feed shows the same layout over and over. Two photo
-// layouts keep it rich without forcing a Gemini photo on every fallback.
-const BLITZ_DEFAULT_ROTATION: BlitzArchetype[] = ["A", "C", "STATEMENT", "QUAD", "PHOTOPANEL", "D", "CHECK"];
+// VARIETY ORDER — the FULL Blitz template set, interleaved so adjacent posts
+// contrast (photo / list / grid / checklist / statement / testimonial). Posts are
+// DEALT across this list by position (post_number) so a month cycles through every
+// layout instead of clustering on one. Mirrors OMEGA_VARIETY_ORDER: variety is
+// forced by distribution, not left to content keywords (which kept funneling onto
+// C / D / STATEMENT).
+const BLITZ_VARIETY_ORDER: BlitzArchetype[] = [
+  "A", "C", "QUAD", "CHECK", "COMPARE", "STAT", "PHOTOPANEL", "STATEMENT", "D", "G",
+];
 
-export function pickArchetype(pillar: string | null, concept: string | null): BlitzArchetype {
+// Only a few layouts are genuinely content-LOCKED (a real testimonial, an actual
+// keep/toss, a named number-rule trick). Everything else is spread by position.
+export function pickArchetype(
+  pillar: string | null,
+  concept: string | null,
+  postNumber?: number | null
+): BlitzArchetype {
   const t = `${pillar ?? ""} ${concept ?? ""}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
 
-  if (has(/review|testimon|client (love|story|joy|win)|loved|social proof|spotlight/)) return "G";
-  if (has(/keep or toss|keep vs|what to keep|what to toss|toss or keep|this or that/)) return "COMPARE";
-  if (has(/\b\d+[- ]?bin\b|\d+-?bin rule|the \d+ rule|our favorite trick|golden rule/)) return "STAT";
-  if (has(/check ?list|sunday reset|weekly reset|reset routine|\b\d+[- ]?minute/)) return "CHECK";
-  if (has(/\b\d+\s+(zones|areas|rooms|spaces|drawers|categories)\b/)) return "QUAD";
-  if (has(/\b\d+\s+(ways|tips|steps|reasons|things|rules|habits|ideas|items|mistakes)\b/)) return "C";
-  if (has(/maintain|best way to|how to keep|keep it (this way|organized)|stay organized|long.?term/)) return "PHOTOPANEL";
-  if (has(/clutter isn'?t|you'?re not|gentle reminder|no judgment|grace|permission to|not about being/)) return "STATEMENT";
-  if (has(/\?|question|how does|how can|what is|why |dear busy mom|empath|mental health|overwhelm|did you know/)) return "D";
-  if (has(/mindset|sanctuary|peace of mind|\bcalm\b|mental load|grace/)) return "STATEMENT";
-  if (has(/process|method|system|our approach|how we work|step ?\d/)) return "C";
-  return BLITZ_DEFAULT_ROTATION[hashStr(`${pillar ?? ""}|${concept ?? ""}`) % BLITZ_DEFAULT_ROTATION.length];
+  // Content-locked exceptions (rare, genuinely layout-specific):
+  if (has(/review|testimon|client (love|story|joy|win)|loved|social proof|spotlight/)) return "G"; // testimonial / client
+  if (has(/keep or toss|keep vs|what to keep|what to toss|toss or keep|this or that/)) return "COMPARE"; // keep-or-toss / this-or-that
+  if (has(/\b\d+[- ]?bin\b|\d+-?bin rule|the \d+ rule|our favorite trick|golden rule/)) return "STAT"; // n-bin / golden-rule trick
+
+  // Everything else: DEAL a distinct layout by position so the feed varies. Use
+  // post_number when available (consecutive posts → consecutive, distinct layouts);
+  // fall back to a concept hash so it's still deterministic without a number.
+  const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(`${pillar ?? ""}|${concept ?? ""}`);
+  return BLITZ_VARIETY_ORDER[((n % BLITZ_VARIETY_ORDER.length) + BLITZ_VARIETY_ORDER.length) % BLITZ_VARIETY_ORDER.length];
 }
 
 const ORGANIZED_SPACE = "a bright, airy, photorealistic ORGANIZED SPACE — a pantry, closet, drawer, or shelves with clear bins, labeled jars, matching baskets, everything in its place. Warm natural light, soft pastel/neutral tones, breathing room. ABSOLUTELY NO people, hands, or faces. No text in the photo.";
@@ -168,7 +232,7 @@ export async function synthesizeBlitzSpec(post: SpecPost): Promise<BlitzSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.content_pillar, post.concept);
+  const archetype = pickArchetype(post.content_pillar, post.concept, post.post_number);
   const instruction = [
     `You write copy for Blitz Organization's Instagram (@blitzyourspace) — a professional home organizing service in El Dorado Hills / Sacramento. Voice: a warm, encouraging friend who's great at organizing — question-driven, practical, calm. NEVER shaming about mess (no "messy/dirty/disaster/hoarder"), NEVER hard-sell ("BOOK NOW"). Soft, inviting CTAs only.`,
     `Visual brand: a CASUAL handwritten SCRIPT hook carries the emotion; LIGHT clean sans carries the info. Dusty rose + sage + warm beige, airy and soft.`,
