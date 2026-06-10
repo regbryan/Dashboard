@@ -112,6 +112,29 @@ export default function LogoOverlayPanel({
     };
   }, [brandId]);
 
+  // Measure the logo's TRUE aspect ratio whenever the selected logo changes.
+  // The preview <img>'s onLoad can silently miss CACHED images (the load event
+  // fires before React attaches the handler), which left logoNaturalAspect at
+  // its default of 1 — and a wrong aspect makes the center→top-left conversion
+  // off, so the applied logo lands ~2% too high. Loading it programmatically
+  // (and handling the already-complete case) measures it reliably.
+  useEffect(() => {
+    if (!logoUrl || typeof window === "undefined") return;
+    let cancelled = false;
+    const img = new window.Image();
+    const apply = () => {
+      if (!cancelled && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        setLogoNaturalAspect(img.naturalWidth / img.naturalHeight);
+      }
+    };
+    img.onload = apply;
+    img.src = logoUrl;
+    if (img.complete) apply();
+    return () => {
+      cancelled = true;
+    };
+  }, [logoUrl]);
+
   function clamp01(n: number): number {
     if (Number.isNaN(n)) return 0;
     return Math.max(0, Math.min(1, n));
