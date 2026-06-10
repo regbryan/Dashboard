@@ -1,6 +1,9 @@
 import "server-only";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import satori from "satori";
+import { Resvg } from "@resvg/resvg-js";
 import { supabaseAdmin } from "./supabase-admin";
 
 // Text-rendered footer overlay. Reads brands.compliance, lays it out via
@@ -11,13 +14,14 @@ import { supabaseAdmin } from "./supabase-admin";
 
 const BUCKET = "post-images";
 
-// Explicit font for sharp/Pango text rendering. The Vercel serverless runtime
-// has NO system fonts and a broken fontconfig ("Cannot load default config
-// file"), so without a fontfile Pango miscomputes the text layout and blows the
-// surface up to multi-GB → "vips_tracked: out of memory". Pointing at a bundled
-// font (loaded directly via FreeType) makes rendering deterministic and avoids
-// fontconfig discovery entirely. Same fonts the Satori path bundles; the
-// run-script route includes them via next.config.ts outputFileTracingIncludes.
+// Footer text is rendered with Satori → resvg (font buffers loaded directly),
+// NOT sharp's vips_text. The Vercel serverless runtime has no system fonts and a
+// broken fontconfig ("Cannot load default config file"), which makes Pango
+// (vips_text) miscompute the layout and balloon the surface to multi-GB →
+// "vips_tracked: out of memory". Satori+resvg take the font as a buffer and need
+// no fontconfig, so it renders deterministically in production — the exact path
+// the brand-design renderer already uses. Font is bundled and traced into the
+// /api/run-script lambda via next.config.ts outputFileTracingIncludes.
 const FOOTER_FONT_FAMILY = "Montserrat";
 const FOOTER_FONT_FILE = path.join(
   process.cwd(),
@@ -26,6 +30,65 @@ const FOOTER_FONT_FILE = path.join(
   "fonts",
   "montserrat-400.woff"
 );
+let footerFontCache: Buffer | null = null;
+function footerFontData(): Buffer {
+  if (!footerFontCache) footerFontCache = readFileSync(FOOTER_FONT_FILE);
+  return footerFontCache;
+}
+
+// Render a wrapped, colored text block to a transparent PNG via Satori (layout +
+// word-wrap) → resvg (raster). Satori needs an explicit canvas height, so we give
+// it a generous one (the post height) and trim the transparent remainder, which
+// also guarantees the result never exceeds blockWidth × maxHeight — no oversized
+// composite, no OOM.
+async function renderFooterTextPng(
+  textStr: string,
+  colorHex: string,
+  sizePx: number,
+  blockWidth: number,
+  align: "left" | "center" | "right",
+  maxHeight: number
+): Promise<{ data: Buffer; width: number; height: number }> {
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(colorHex) ? colorHex : "#FFFFFF";
+  const justify =
+    align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
+  const tree = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        width: `${blockWidth}px`,
+        fontFamily: FOOTER_FONT_FAMILY,
+        fontSize: `${Math.max(4, Math.round(sizePx))}px`,
+        lineHeight: 1.35,
+        color: safeColor,
+        textAlign: align,
+        justifyContent: justify,
+        whiteSpace: "normal",
+      },
+      children: textStr,
+    },
+  };
+  const svg = await satori(tree as unknown as Parameters<typeof satori>[0], {
+    width: blockWidth,
+    height: Math.max(8, Math.round(maxHeight)),
+    fonts: [
+      { name: FOOTER_FONT_FAMILY, data: footerFontData(), weight: 400, style: "normal" },
+    ],
+  });
+  const png = new Resvg(svg, {
+    fitTo: { mode: "width", value: blockWidth },
+    background: "rgba(0,0,0,0)",
+  })
+    .render()
+    .asPng();
+  // Trim the transparent margin Satori's fixed-height canvas leaves below the
+  // text, so the band hugs the actual text height.
+  const trimmed = await sharp(Buffer.from(png))
+    .trim({ threshold: 0 })
+    .toBuffer({ resolveWithObject: true });
+  return { data: trimmed.data, width: trimmed.info.width, height: trimmed.info.height };
+}
 
 export type FooterPosition =
   | "bottom-center"
@@ -148,17 +211,6 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
-function escapePangoText(s: string): string {
-  // Pango markup escapes — &, <, > are special. Apostrophes/quotes are safe.
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function buildPangoMarkup(text: string, color: string, sizePt: number): string {
-  const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#FFFFFF";
-  return `<span foreground="${safeColor}" size="${Math.round(sizePt * 1024)}">${escapePangoText(text)}</span>`;
-  // size in pango is in 1024ths of a point.
-}
-
 function bgBarSvg(width: number, height: number, hex: string, opacity: number): Buffer {
   const safe = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#000000";
   const op = clamp(opacity, 0, 1);
@@ -259,35 +311,24 @@ export async function applyOverlayFooter(
       sizePt = Math.max(5, Math.round(postW * fontSizePct));
     }
 
-    // Always wrap at the block width so ALL text is shown — short text lands on
-    // a single full-width line; long text wraps to multiple readable lines.
-    const textImg = await sharp({
-      text: {
-        text: buildPangoMarkup(text, color, sizePt),
-        rgba: true,
-        width: blockWidth,
-        align,
-        // Use the bundled font explicitly + a fixed DPI so rendering doesn't
-        // depend on (missing) serverless system fonts. See FOOTER_FONT_FILE.
-        font: FOOTER_FONT_FAMILY,
-        fontfile: FOOTER_FONT_FILE,
-        dpi: 72,
-      },
-    })
-      .png()
-      .toBuffer({ resolveWithObject: true });
-    // Guard: a large font (or a narrow width) can render the text layer WIDER or
-    // TALLER than the post — Pango overflows the wrap width on unbreakable tokens
-    // (e.g. a long URL), and many wrapped lines can exceed the post height. sharp
-    // refuses to composite a layer bigger than the base ("Image to composite must
-    // have same dimensions or smaller"), so shrink an oversized text layer to fit
-    // inside the post before compositing. The common fit-to-width path already
-    // fits, so this is a no-op there.
-    let textData = textImg.data;
-    let textW = textImg.info.width;
-    let textH = textImg.info.height;
+    // Render the wrapped compliance text to a transparent PNG via Satori+resvg
+    // (font buffers, no fontconfig). Bounded to blockWidth × postH so the layer
+    // can never exceed the post — short text lands on one line; long text wraps.
+    const rendered = await renderFooterTextPng(
+      text,
+      color,
+      sizePt,
+      blockWidth,
+      align,
+      postH
+    );
+    let textData = rendered.data;
+    let textW = rendered.width;
+    let textH = rendered.height;
+    // Safety net: if the trimmed block is still larger than the post in any
+    // dimension, shrink to fit so sharp's composite never rejects it.
     if (textW > postW || textH > postH) {
-      const fitted = await sharp(textImg.data)
+      const fitted = await sharp(textData)
         .resize({
           width: Math.min(textW, postW),
           height: Math.min(textH, postH),
