@@ -175,6 +175,68 @@ export async function runFeedbackDigest(
   };
 }
 
+// Real-time, single-approval notification. Called from /api/approve the moment
+// a client approves or requests changes, so the owner hears about it within
+// seconds instead of waiting for the daily digest cron. On success it stamps
+// notified_at, so the digest treats this row as already handled and won't send
+// a duplicate. Safe to call fire-and-forget — never throws.
+export async function notifyApprovalNow(
+  approvalId: string
+): Promise<{ ok: boolean; sent: boolean; error?: string }> {
+  try {
+    const sb = supabaseAdmin();
+    const { data, error } = await sb
+      .from("approvals")
+      .select(
+        "id, post_id, status, comment, created_at, notified_at, posts:post_id (id, post_number, concept, post_type, date, caption, hashtags, cta, visual_direction, file_path, updated_at, brand_id, brands:brand_id (id, name))"
+      )
+      .eq("id", approvalId)
+      .maybeSingle();
+    if (error) return { ok: false, sent: false, error: error.message };
+
+    const appr = data as unknown as
+      | (PendingApproval & { notified_at: string | null })
+      | null;
+    if (!appr) return { ok: false, sent: false, error: "approval not found" };
+    // Already notified (e.g. the digest cron beat us to it) — don't double-send.
+    if (appr.notified_at) return { ok: true, sent: false };
+
+    const brand = appr.posts?.brands;
+    if (!brand?.id) return { ok: false, sent: false, error: "post has no brand" };
+
+    const notifyTo = (process.env.NOTIFY_EMAIL || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!notifyTo.length) return { ok: false, sent: false, error: "NOTIFY_EMAIL not set" };
+
+    const dashboardBase = (process.env.DASHBOARD_URL || "").replace(/\/$/, "");
+    const brandName = brand.name ?? brand.id;
+    const group = [appr];
+    const approvedCount = appr.status === "approved" ? 1 : 0;
+    const changesCount = 1 - approvedCount;
+
+    const html = renderHtml({ brandId: brand.id, brandName, group, dashboardBase });
+    const text = renderText({ brandId: brand.id, brandName, group, dashboardBase });
+    const subject = renderSubject({ brandName, approvedCount, changesCount });
+
+    const send = await sendEmail({ to: notifyTo, subject, html, text });
+    if (!send.ok) return { ok: false, sent: false, error: send.error };
+
+    const { error: flushErr } = await sb
+      .from("approvals")
+      .update({ notified_at: new Date().toISOString() })
+      .eq("id", appr.id);
+    if (flushErr) {
+      logger.error("approval-notify", "flush failed", { err: flushErr });
+    }
+    return { ok: true, sent: true };
+  } catch (e) {
+    logger.error("approval-notify", "notifyApprovalNow crashed", { err: e });
+    return { ok: false, sent: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 function renderSubject(args: {
   brandName: string;
   approvedCount: number;

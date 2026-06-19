@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { requirePostAccess, handleAuthError, type AuthedClient } from "@/lib/api-auth";
 import { sendEmail } from "@/lib/send-email";
+import { notifyApprovalNow } from "@/lib/digest";
 import { autoQueueApprovedPost } from "@/lib/socialpilot-queue";
 import { logger } from "@/lib/logger";
 import { withRequestContext } from "@/lib/request-context";
@@ -63,6 +64,18 @@ async function handlePOST(request: NextRequest) {
       reviewerEmail: ctx.user.email ?? null,
     }).catch((e) => {
       logger.error("approve", "reviewer confirmation failed", { err: e });
+    });
+
+    // Real-time owner notification: email NOTIFY_EMAIL within seconds of the
+    // client's decision instead of waiting for the once-a-day digest cron.
+    // Runs in after() so it never delays the client's response, and stamps
+    // notified_at so the daily digest won't send a duplicate for this row.
+    after(async () => {
+      try {
+        await notifyApprovalNow(String(approval.id));
+      } catch (e) {
+        logger.error("approve", "real-time owner notify failed", { err: e });
+      }
     });
 
     // Auto-queue to SocialPilot when an approval lands. Gated on Growth
