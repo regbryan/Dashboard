@@ -47,6 +47,42 @@ function hashStr(s: string): number {
   return h;
 }
 
+// The brand never labels its own artwork with its name or abbreviation (client
+// rule: "they don't refer to themselves as IEC"). Normalize for comparison.
+function normalizeLabel(s: string): string {
+  return s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+// True if `text` IS the brand's name/short (whole-word for the short acronym, so
+// "IEC" and "IEC TIP" are rejected but "EFFICIENCY"/"SERVICE" are not), or empty.
+function isBrandSelfLabel(text: string, brandName: string, brandShort: string): boolean {
+  const n = normalizeLabel(text);
+  if (!n) return true;
+  if (brandName && n === normalizeLabel(brandName)) return true;
+  if (brandShort) {
+    const s = normalizeLabel(brandShort);
+    if (s && n === s) return true;
+    if (s && new RegExp(`\\b${s}\\b`, "i").test(text.replace(/[^A-Za-z0-9 ]/g, " "))) return true;
+  }
+  return false;
+}
+// Resolve a safe eyebrow CATEGORY label: prefer the model's, but if it's the
+// brand name/short (or empty) fall back to the content pillar, then a per-
+// archetype default — NEVER the brand's own name. Empty result = no pill.
+function safeEyebrowText(
+  modelText: string,
+  pillar: string | null,
+  forcedLetter: string,
+  brandName: string,
+  brandShort: string
+): string {
+  const archetypeDefault = forcedLetter === "D" ? "5-STAR REVIEW" : "";
+  const model = modelText.toUpperCase().slice(0, 32);
+  if (model && !isBrandSelfLabel(model, brandName, brandShort)) return model;
+  const pillarLabel = (pillar ?? "").trim().toUpperCase().slice(0, 32);
+  if (pillarLabel && !isBrandSelfLabel(pillarLabel, brandName, brandShort)) return pillarLabel;
+  return archetypeDefault;
+}
+
 // VARIETY ORDER for IEC — photo archetypes lead (Instagram/HVAC favors real
 // photos: A/B/C/I are the photo layouts) but every position is a DIFFERENT layout
 // so the feed never repeats the same look. Posts are DEALT across this by
@@ -111,6 +147,8 @@ export async function synthesizeArchetypeSpec(
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
   const brand = template.BRAND ?? {};
+  const brandName = (brand.name as string) ?? "";
+  const brandShort = (brand.short as string) ?? "";
   const voice = (brand.voice as string) ?? "warm, straight-talking, no hype";
   const trustMarks = Array.isArray(brand.trust_marks)
     ? (brand.trust_marks as string[]).join("; ")
@@ -137,6 +175,7 @@ export async function synthesizeArchetypeSpec(
     ``,
     `RULES:`,
     `- The headline mixes BOLD SANS lines with exactly 1-2 ITALIC-SERIF emphasis words/phrase (a short emotional or temporal phrase). 2-3 short lines. The italic styling is applied automatically by the "style" field — do NOT wrap any words in asterisks, underscores, or markdown.`,
+    `- The eyebrow is a short CATEGORY label for the post (e.g. "AC MAINTENANCE TIP", "HOME EFFICIENCY", "5-STAR REVIEW", "ENERGY SAVINGS"). It must NEVER be the company name or an abbreviation of it — do NOT use "${brandName}"${brandShort ? ` or "${brandShort}"` : ""}.`,
     `- Body copy: 1-3 short sentences in the brand voice. No hype, no pressure.`,
     `- CTA text is overridden in code with the phone; just return "CALL ${IMAGE_PHONE}".`,
     `- Trust element (optional): pick from — ${trustMarks || "a 5-star review line"}.`,
@@ -144,7 +183,7 @@ export async function synthesizeArchetypeSpec(
     ``,
     `Return ONLY a JSON object with this exact shape (fill only the field(s) the archetype needs):`,
     `{`,
-    `  "eyebrow": { "color": "red" | "navy" | "light-blue", "text": "<ALL CAPS short label>" },`,
+    `  "eyebrow": { "color": "red" | "navy" | "light-blue", "text": "<ALL CAPS short CATEGORY label — never the brand name>" },`,
     `  "headline_lines": [ { "text": "<line>", "style": "sans" | "italic-serif" } ],`,
     `  "body_copy": "<1-3 sentences>",`,
     `  "photo": { "include": true | false, "description": "<scene, or empty>" },`,
@@ -233,7 +272,7 @@ export async function synthesizeArchetypeSpec(
         parsed.eyebrow?.color === "navy" || parsed.eyebrow?.color === "light-blue"
           ? parsed.eyebrow.color
           : "red",
-      text: clean(parsed.eyebrow?.text).toUpperCase().slice(0, 32) || "IEC",
+      text: safeEyebrowText(clean(parsed.eyebrow?.text), post.content_pillar, forcedLetter, brandName, brandShort),
     },
     headline_lines: lines,
     body_copy: clean(parsed.body_copy),
