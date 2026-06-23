@@ -28,7 +28,21 @@ type SpecPost = {
   content_pillar: string | null;
   post_type: string | null;
   post_number?: number | null;
+  // Operator override: pin this post to a specific layout instead of the
+  // position-dealt one (set via image_brief.design.forceArchetype). Lets an
+  // operator say "make this one the full-bleed photo (B)" without renumbering.
+  forceArchetype?: string | null;
 };
+
+// The full Omega layout taxonomy — used to validate a forceArchetype override.
+const OMEGA_ARCHETYPES: OmegaArchetype[] = [
+  "A", "B", "BHEADER", "C", "D", "E", "F", "G", "QUAD", "COLLAGE", "COLLAGE6",
+];
+function resolveForcedArchetype(v: string | null | undefined): OmegaArchetype | null {
+  if (typeof v !== "string") return null;
+  const up = v.trim().toUpperCase();
+  return (OMEGA_ARCHETYPES as string[]).includes(up) ? (up as OmegaArchetype) : null;
+}
 export type OmegaSynthResult = { ok: true; spec: OmegaSpec } | { ok: false; error: string };
 
 // ============================================================================
@@ -199,7 +213,9 @@ export async function synthesizeOmegaSpec(post: SpecPost): Promise<OmegaSynthRes
   const model = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
   const url = `${TEXT_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
-  const archetype = pickArchetype(post.concept, post.content_pillar, post.post_number);
+  const archetype =
+    resolveForcedArchetype(post.forceArchetype) ??
+    pickArchetype(post.concept, post.content_pillar, post.post_number);
   const isClosure = /closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/i.test(post.concept ?? "");
   const instruction = [
     `You write copy for Omega Mortgage Group's Instagram. Voice: a warm, patient senior loan officer guiding a first-time homebuyer — educational, reassuring, partnering. Never pushy, never hard-sell, never "APPLY NOW".`,

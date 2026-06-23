@@ -302,6 +302,9 @@ export async function generateBrandPost(
         content_pillar: post.content_pillar,
         post_type: post.post_type,
         post_number: post.post_number,
+        // Operator layout-override (image_brief.design.forceArchetype), e.g. pin
+        // a post to the full-bleed photo (B) instead of its position-dealt layout.
+        forceArchetype: (design as { forceArchetype?: string | null }).forceArchetype ?? null,
       });
       if (!s.ok) {
         await revert();
