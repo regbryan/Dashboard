@@ -161,12 +161,34 @@ export default async function BrandDetailPage({
         )}
 
         {isAdmin && (
-          <GenerateCalendarButton
-            brandId={brand.id}
-            defaultYear={defaultYear}
-            defaultMonth={defaultMonth}
-            todayIso={todayIso}
-          />
+          <div className="flex flex-wrap items-center" style={{ gap: "12px" }}>
+            <GenerateCalendarButton
+              brandId={brand.id}
+              defaultYear={defaultYear}
+              defaultMonth={defaultMonth}
+              todayIso={todayIso}
+            />
+            {(statusCounts["approved"] ?? 0) > 0 && (
+              <a
+                href={`/api/brands/${brand.id}/export`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 16px",
+                  borderRadius: "999px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#e9e9f0",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                }}
+              >
+                ↓ Export {statusCounts["approved"]} approved (.zip)
+              </a>
+            )}
+          </div>
         )}
 
         <div style={{ marginBottom: "28px" }}>
