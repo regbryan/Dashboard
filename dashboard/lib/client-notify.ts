@@ -274,6 +274,74 @@ export async function runClientReadyDigest(): Promise<DigestRunResult> {
   };
 }
 
+export type NotifyBrandResult = {
+  ok: boolean;
+  sent: boolean;
+  recipients: number;
+  posts: number;
+  skipped?: "no_posts" | "no_recipients";
+  error?: string;
+};
+
+/**
+ * On-demand, per-brand notify: email this brand's client allowlist ONE
+ * consolidated "designs ready for review" digest covering every in_review
+ * post that hasn't been notified yet, and stamp client_notified_at on them.
+ * Powers the "Notify client" button on the brand page — same email template
+ * and dedupe rule as the cron digest, just scoped to one brand and triggered
+ * by the operator instead of the schedule.
+ */
+export async function notifyBrandReady(
+  brandId: string
+): Promise<NotifyBrandResult> {
+  const sb = supabaseAdmin();
+
+  const { data: rows, error } = await sb
+    .from("posts")
+    .select(POST_SELECT)
+    .eq("brand_id", brandId)
+    .eq("status", "in_review")
+    .is("client_notified_at", null)
+    .order("post_number", { ascending: true });
+  if (error) {
+    return { ok: false, sent: false, recipients: 0, posts: 0, error: error.message };
+  }
+  const pending = (rows ?? []) as unknown as ReadyPostRow[];
+  if (!pending.length) {
+    return { ok: true, sent: false, recipients: 0, posts: 0, skipped: "no_posts" };
+  }
+
+  const recipients = await getBrandClientEmails(brandId);
+  if (!recipients.length) {
+    return { ok: true, sent: false, recipients: 0, posts: pending.length, skipped: "no_recipients" };
+  }
+
+  const brandName = pending[0].brands?.name ?? brandId;
+  const html = renderBrandDigestHtml({ brandId, brandName, posts: pending });
+  const text = renderBrandDigestText({ brandId, brandName, posts: pending });
+
+  const send = await sendEmail({
+    to: recipients,
+    subject:
+      pending.length === 1
+        ? `${brandName}: Post #${pending[0].post_number ?? "?"} ready for review`
+        : `${brandName}: ${pending.length} posts ready for review`,
+    html,
+    text,
+  });
+  if (!send.ok) {
+    return { ok: false, sent: false, recipients: recipients.length, posts: pending.length, error: send.error };
+  }
+
+  const ids = pending.map((p) => p.id);
+  await sb
+    .from("posts")
+    .update({ client_notified_at: new Date().toISOString() })
+    .in("id", ids);
+
+  return { ok: true, sent: true, recipients: recipients.length, posts: pending.length };
+}
+
 function renderBrandDigestHtml(args: {
   brandId: string;
   brandName: string;

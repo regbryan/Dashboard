@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ClientReviewLink from "@/components/ClientReviewLink";
+import NotifyClientButton from "@/components/NotifyClientButton";
 import SelectableDesignsGrid from "@/components/SelectableDesignsGrid";
 import GenerateCalendarButton from "@/components/GenerateCalendarButton";
 import { getBrandClientEmails } from "@/lib/brand-clients";
@@ -191,7 +192,7 @@ export default async function BrandDetailPage({
           </div>
         )}
 
-        <div style={{ marginBottom: "28px" }}>
+        <div className="flex flex-col" style={{ marginBottom: "28px", gap: "14px" }}>
           <ClientReviewLink
             path={`/client/${slug}`}
             label={`Share with ${brand.name}`}
@@ -200,6 +201,9 @@ export default async function BrandDetailPage({
             to={clientEmails}
             brandId={brand.id}
           />
+          {isAdmin && clientEmails.length > 0 && (statusCounts["in_review"] ?? 0) > 0 && (
+            <NotifyClientButton brandId={brand.id} recipientLabel={clientEmails[0]} />
+          )}
         </div>
 
         {/* Filters */}
