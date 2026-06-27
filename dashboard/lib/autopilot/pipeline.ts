@@ -24,6 +24,7 @@ import { synthesizeBlitzSpec, buildBlitzDesignPrompt } from "./blitz-spec";
 import { synthesizeStephanieSpec, buildStephanieDesignPrompt } from "./stephanie-spec";
 import { synthesizeRiversideSpec, buildRiversideDesignPrompt } from "./riverside-spec";
 import { synthesizeDougSpec, buildDougDesignPrompt } from "./doug-spec";
+import { buildScboardwalkSpec, buildScboardwalkPhotoPrompt, renderScboardwalkDesign } from "./render-scboardwalk";
 
 const SATORI_ARCHETYPES = new Set(["A", "B", "C", "D", "E", "F", "G", "H", "I", "QUAD"]);
 
@@ -454,6 +455,25 @@ export async function generateBrandPost(
       bytes = dgGen.bytes;
       mimeType = dgGen.mimeType;
       model = `${dgGen.model}+doug-json-${dgspec.archetype}`;
+    } else if (template?._engine === "scboardwalk") {
+      // SC BOARDWALK PATH (HYBRID): code paints the client's blue-band hiring
+      // template (header band + apply footer with the EXACT url/handle) and
+      // composites a NO-PEOPLE AI photo in the middle — so it always matches the
+      // client's layout and can never fabricate a uniform we've never seen.
+      const sbSpec = buildScboardwalkSpec(post.concept);
+      const sbGen = await genImage(buildScboardwalkPhotoPrompt(sbSpec), "1:1");
+      if (!sbGen.ok) {
+        await revert();
+        return { ok: false, postId: post.id, error: sbGen.error };
+      }
+      bytes = await renderScboardwalkDesign({
+        eyebrow: sbSpec.eyebrow,
+        headline: sbSpec.headline,
+        detailLine: sbSpec.detailLine,
+        photo: sbGen.bytes,
+      });
+      mimeType = "image/png";
+      model = `${sbGen.model}+scboardwalk`;
     } else if (template) {
       // ARCHETYPE PATH (IEC): build the prompt from the locked brand contract.
       let spec = (design.archetypeSpec ?? null) as ArchetypeSpec | null;

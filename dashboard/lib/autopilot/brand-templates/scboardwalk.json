@@ -1,0 +1,19 @@
+{
+  "_engine": "scboardwalk",
+  "_meta": {
+    "name": "SC Boardwalk Crew — hiring template",
+    "note": "Blue-band hiring card matching the client's own v1 designs: a solid-blue HEADER band (NOW HIRING + role), a NO-PEOPLE photo in the middle, and a solid-blue FOOTER band with the apply URL + handle. Only the middle photo is AI-generated; all text + bands are drawn in code so the apply URL/handle are always exact and the photo can never invent a fake uniform."
+  },
+  "BRAND": {
+    "name": "SC Boardwalk Crew",
+    "blue": "#1070B0",
+    "apply_url": "beachboardwalk.com/jobs",
+    "handle": "@beachboardwalkjobs"
+  },
+  "PHOTO_RULES": [
+    "NO people, faces, hands, or posed crew.",
+    "NO uniforms, badges, lanyards, or branded clothing (we don't know the real uniforms).",
+    "Show the WORK / SCENE / EQUIPMENT for the role, or a boardwalk / coastal scene.",
+    "NO text, words, numbers, logos, or watermarks inside the photo."
+  ]
+}
