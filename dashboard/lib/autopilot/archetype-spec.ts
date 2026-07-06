@@ -83,11 +83,13 @@ function safeEyebrowText(
   return archetypeDefault;
 }
 
-// VARIETY ORDER for IEC — photo archetypes lead (Instagram/HVAC favors real
-// photos: A/B/C/I are the photo layouts) but every position is a DIFFERENT layout
-// so the feed never repeats the same look. Posts are DEALT across this by
-// post_number, instead of content keywords clustering onto A/C.
-const IEC_VARIETY_ORDER = ["A", "C", "B", "I", "QUAD", "E", "D", "H", "F", "G"];
+// VARIETY ORDER for IEC — PHOTO layouts ONLY (client rule: Instagram designs
+// need photos; text-only cards kept slipping back in via this rotation). A/C/B
+// all carry a real photo, just composed differently. Text-card archetypes are
+// reachable ONLY via the content locks below (D for a genuine testimonial — a
+// photo there would mean fabricating a customer face; I is the myth split,
+// which carries its own photo). E/QUAD/F/G/H are no longer dealt.
+const IEC_VARIETY_ORDER = ["A", "C", "B"];
 
 // Only a few layouts are genuinely content-LOCKED (myth split, emergency hero,
 // a real testimonial, a founder story). Everything else is spread by position so
@@ -102,7 +104,7 @@ function pickArchetypeLetter(
   if (has(/\bmyth\b|misconcept|truth about|debunk|don'?t believe/)) return "I"; // PHOTO — myth-vs-truth split
   if (has(/emergency|24\/7|broke down|no (heat|a\/?c|cooling)|heat ?wave|middle of (summer|the night)|stuck without/)) return "B"; // PHOTO — dramatic full-bleed
   if (has(/\breview\b|testimon|\bspotlight\b|customer (love|story|win)|5[- ]star/)) return "D"; // testimonial (no fabricated customer photo)
-  if (has(/founder|family[- ]owned|about us|our story|since \d{4}|\b\d+\s+years (in|of)/)) return "H"; // founder/brand story
+  if (has(/founder|family[- ]owned|about us|our story|since \d{4}|\b\d+\s+years (in|of)/)) return "A"; // founder/brand story — PHOTO layout (client: IG needs photos)
   // Everything else: deal a distinct layout by position so the feed varies.
   const n = Number.isFinite(postNumber) ? Number(postNumber) : hashStr(t);
   return IEC_VARIETY_ORDER[((n % IEC_VARIETY_ORDER.length) + IEC_VARIETY_ORDER.length) % IEC_VARIETY_ORDER.length];

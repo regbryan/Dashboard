@@ -215,6 +215,11 @@ export function makeTypePicker(platform: string): (idx: number) => string {
   if (platform === "linkedin" || platform === "facebook") {
     weights.Reel = 0;
     weights["Text Post"] = 3;
+  } else {
+    // Instagram (and default): IMAGE ONLY. Client rules — no video content for
+    // now, and IG designs must carry real photography (no text-only posts).
+    weights.Reel = 0;
+    weights["Text Post"] = 0;
   }
   const entries = Object.entries(weights).filter(([, w]) => w > 0) as Array<
     [keyof typeof POST_TYPE_WEIGHTS, number]
