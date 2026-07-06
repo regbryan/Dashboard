@@ -103,6 +103,7 @@ export function buildPhotoPrompt(template: BrandTemplate, spec: ArchetypeSpec): 
   return [
     `A single photorealistic PHOTOGRAPH only. ABSOLUTELY NO text, letters, numbers, words, captions, logos, watermarks, badges, signs, or graphic overlays of any kind anywhere in the image — a clean photo, nothing else. Fill the entire frame edge-to-edge; no border, frame, or margin.`,
     `Scene: ${scene}`,
+    `COMPOSITION: the scene's core subject must be the HERO of the shot, clearly visible and composed in the CENTER BAND of the frame so it survives cropping. If a person appears, show them FULLY within frame — never cropped at the head, face, or torso.`,
     `Do NOT add any workers, technicians, or people unless the scene above explicitly describes them. Prefer a beautiful, magazine-quality scene.`,
     mentionsTech && uniform ? uniform : "",
     `Natural light, professional, photorealistic. Not a stock-photo cliché. No one posing for the camera.`,

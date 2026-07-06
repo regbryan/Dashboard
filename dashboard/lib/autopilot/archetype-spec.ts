@@ -129,6 +129,7 @@ function dataInstruction(letter: string, market: string): string {
     default:
       return [
         `This uses a PHOTO. Set photo.include = true and write a "photo.description" of a BEAUTIFUL, photorealistic, magazine-quality scene that fits the concept. Leave quote/list_items/big_stat empty.`,
+        `THE CONCEPT'S CORE SUBJECT MUST BE THE HERO OF THE PHOTO. If the concept is about a specific object or action (a ceiling fan, a thermostat, a filter change, a condenser), that exact thing must be clearly VISIBLE and central in the scene — never a generic lifestyle shot that could belong to any post.`,
         `PHOTO SUBJECT — match it to the concept:`,
         `  • Comfort / gift / Father's or Mother's Day / "quiet home" / family / people → SHOW a happy, relaxed PERSON or FAMILY enjoying a comfortable home (e.g. a content dad relaxing on the sofa for Father's Day; a mom for Mother's Day; a family together in a cozy living room). The person is the point — include them. A real homeowner/family, NOT a technician.`,
         `  • AC / seasonal / efficiency / equipment → a clean outdoor AC condenser beside a tidy ${market} home, or a bright modern interior. No people needed.`,

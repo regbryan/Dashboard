@@ -143,12 +143,12 @@ function headlineEls(
   );
 }
 
-function ctaPill(text: string, onLight: boolean, opts: { centered?: boolean; arrow?: boolean } = {}): El {
-  const { centered = false, arrow = true } = opts;
+function ctaPill(text: string, onLight: boolean, opts: { centered?: boolean; arrow?: boolean; size?: number } = {}): El {
+  const { centered = false, arrow = true, size = 30 } = opts;
   const pillBg = onLight ? NAVY : WHITE;
   const txt = onLight ? WHITE : NAVY;
-  const pad = arrow ? "16px 18px 16px 28px" : "18px 36px";
-  const kids: El[] = [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: "30px", color: txt }, text)];
+  const pad = arrow ? "16px 18px 16px 28px" : `${Math.round(size * 0.55)}px ${Math.round(size * 1.1)}px`;
+  const kids: El[] = [h("div", { display: "flex", fontFamily: "Poppins", fontWeight: 800, fontSize: `${size}px`, color: txt }, text)];
   if (arrow) {
     kids.push(h("div", { display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", borderRadius: "999px", background: RED, color: WHITE, fontFamily: "Poppins", fontWeight: 800, fontSize: "28px" }, "›"));
   }
@@ -159,20 +159,32 @@ function ctaPill(text: string, onLight: boolean, opts: { centered?: boolean; arr
   );
 }
 
-function bodyEl(body: string | undefined | null, color: string, centered = false): El[] {
+function bodyEl(body: string | undefined | null, color: string, centered = false, size = 30): El[] {
   if (!body?.trim()) return [];
   return [h("div", {
-    display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "30px", lineHeight: 1.34, color,
+    display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: `${size}px`, lineHeight: 1.34, color,
     width: centered ? "90%" : "92%",
     ...(centered ? { alignSelf: "center", textAlign: "center", justifyContent: "center" } : {}),
   }, body.trim())];
 }
-function trustEl(trust: string | undefined | null, color: string, centered = false): El[] {
+function trustEl(trust: string | undefined | null, color: string, centered = false, size = 26): El[] {
   if (!trust?.trim()) return [];
   return [h("div", {
-    display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: "26px", color,
+    display: "flex", fontFamily: "Poppins", fontWeight: 700, fontSize: `${size}px`, color,
     ...(centered ? { alignSelf: "center" } : {}),
   }, trust.trim())];
+}
+
+// Cap panel body copy so the A/C panel can never outgrow its band and squeeze
+// the photo. Cuts at a sentence end where possible, else at a word boundary.
+function capBody(body: string | undefined | null, max = 210): string | null {
+  const t = (body ?? "").trim();
+  if (t.length <= max) return t || null;
+  const slice = t.slice(0, max);
+  const sentence = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "));
+  if (sentence > max * 0.5) return slice.slice(0, sentence + 1);
+  const word = slice.lastIndexOf(" ");
+  return `${slice.slice(0, word > 0 ? word : max).trimEnd()}…`;
 }
 
 // A thin red rule with a centered red star — the IEC seam accent.
@@ -191,28 +203,31 @@ async function seamStar(bg: string, width: number): Promise<El> {
 }
 
 // --- A / C: photo + centered serif panel (matches the v6 promo look) --------
+// COMPACT by design: the photo owns ≥50% of the card (client rule — IG designs
+// carry real photography), so the panel uses tighter type and capped body copy
+// instead of growing to fit whatever the model wrote.
 function panel(input: ArchetypeRenderInput, surface: "navy" | "light-blue", width: number): El {
   const onNavy = surface === "navy";
-  const pad = Math.round(width * 0.066);
+  const pad = Math.round(width * 0.045);
   const main = onNavy ? WHITE : NAVY;
   // CALL pill + trust line stay tight together, then participate in the panel rhythm.
   const ctaGroup = h(
     "div",
-    { display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" },
+    { display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" },
     [
-      ctaPill(input.cta, !onNavy, { centered: true, arrow: false }),
-      ...trustEl(input.trust, onNavy ? "#C7D6EC" : "#1C3A63", true),
+      ctaPill(input.cta, !onNavy, { centered: true, arrow: false, size: 26 }),
+      ...trustEl(input.trust, onNavy ? "#C7D6EC" : "#1C3A63", true, 22),
     ]
   );
   const kids: El[] = [
     ...eyebrowPill(input.eyebrow, true),
-    headlineEls(input.headlineLines, main, onNavy ? EMPHASIS_ON_NAVY : NAVY, 78, { serif: true, centered: true }),
-    ...bodyEl(input.body, onNavy ? "#DCE8F6" : NEAR_BLACK, true),
+    headlineEls(input.headlineLines, main, onNavy ? EMPHASIS_ON_NAVY : NAVY, 52, { serif: true, centered: true }),
+    ...bodyEl(capBody(input.body), onNavy ? "#DCE8F6" : NEAR_BLACK, true, 25),
     ctaGroup,
   ];
   return h(
     "div",
-    { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: GAP, background: onNavy ? NAVY : LIGHT_BLUE, padding: `${pad}px`, width: "100%" },
+    { display: "flex", flexDirection: "column", flexGrow: 1, justifyContent: "center", alignItems: "center", gap: "20px", background: onNavy ? NAVY : LIGHT_BLUE, padding: `${pad}px`, width: "100%" },
     kids
   );
 }
@@ -388,7 +403,8 @@ export async function renderArchetypeDesign(input: ArchetypeRenderInput): Promis
     } else {
       const surface: "navy" | "light-blue" = input.archetype === "A" ? "navy" : "light-blue";
       const panelEl = panel(input, surface, width);
-      const photoBlock = h("div", { display: "flex", flexGrow: 1, width: "100%" }, [
+      // The photo owns HALF the card, guaranteed — the panel flexes into the rest.
+      const photoBlock = h("div", { display: "flex", width: "100%", height: "50%", flexShrink: 0 }, [
         img(dataUri, { width: "100%", height: "100%", objectFit: "cover" }),
       ]);
       const seam = await seamStar(surface === "navy" ? NAVY : LIGHT_BLUE, width);

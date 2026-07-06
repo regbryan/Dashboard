@@ -507,7 +507,12 @@ export async function generateBrandPost(
         let photo: Buffer | null = null;
         let modelTag = "satori";
         if (archetypeNeedsPhoto(satoriArch)) {
-          const gen = await genImage(buildPhotoPrompt(template, spec));
+          // A/C composite the photo into a WIDE band — generate landscape so the
+          // cover-crop matches the container (a 4:5 portrait cropped into a wide
+          // strip is what was beheading subjects). B is full-bleed portrait and
+          // I's photo column is tall, so those keep the post aspect.
+          const photoAspect = satoriArch === "A" || satoriArch === "C" ? ("16:9" as const) : undefined;
+          const gen = await genImage(buildPhotoPrompt(template, spec), photoAspect);
           if (!gen.ok) {
             await revert();
             return { ok: false, postId: post.id, error: gen.error };
