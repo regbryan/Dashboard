@@ -181,8 +181,10 @@ function capBody(body: string | undefined | null, max = 210): string | null {
   const t = (body ?? "").trim();
   if (t.length <= max) return t || null;
   const slice = t.slice(0, max);
+  // Strongly prefer a clean sentence end — a short panel beats a dangling
+  // "…keeping your comfort high without…" mid-thought cut.
   const sentence = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "));
-  if (sentence > max * 0.5) return slice.slice(0, sentence + 1);
+  if (sentence > max * 0.35) return slice.slice(0, sentence + 1);
   const word = slice.lastIndexOf(" ");
   return `${slice.slice(0, word > 0 ? word : max).trimEnd()}…`;
 }
