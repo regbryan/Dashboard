@@ -143,13 +143,14 @@ function hashStr(s: string): number {
   return n;
 }
 
-// VARIETY ORDER — the full template set, interleaved so adjacent posts contrast
-// (photo / text / grid / collage). Posts are DEALT across this list by position
-// (post_number) so a month cycles through every layout instead of clustering on
-// one. This is the fix for "all the designs look the same": variety is forced by
-// distribution, not left to content keywords (which kept funneling onto E/D/C).
+// VARIETY ORDER — PHOTO layouts ONLY (client rule: Omega is image-heavy and
+// Instagram designs need photos; the no-photo cards C/QUAD/D/G kept being dealt
+// by position). Every entry below carries real photography — variety comes from
+// composition (list-over-photo / full-bleed / statement / split / collages).
+// No-photo cards remain reachable ONLY via content locks (D closure card, G
+// genuine testimonial — where a photo would mean fabricating a client's face).
 const OMEGA_VARIETY_ORDER: OmegaArchetype[] = [
-  "A", "C", "E", "QUAD", "B", "COLLAGE", "F", "D", "BHEADER", "G", "COLLAGE6",
+  "A", "E", "B", "COLLAGE", "F", "BHEADER", "COLLAGE6",
 ];
 
 // Only a few layouts are genuinely content-LOCKED (a closure card, the seasonal
@@ -165,6 +166,7 @@ export function pickArchetype(
 
   // Content-locked exceptions (rare, genuinely layout-specific):
   if (has(/closed today|closed for|office (is |will be )?closed|in observance of|closed in observance/)) return "D"; // dignified closure card
+  if (has(/\breview\b|testimon|5[- ]star|client (quote|words)/)) return "G"; // genuine testimonial → quote card (never fabricate a client photo)
   if (has(/father|\bdad\b|\bdads\b/) || p.includes("father")) return "B"; // Father's Day → warm full-bleed photo
   if (has(/mother'?s day|\bmoms?\b|mothers/) || p.includes("mother")) return "F"; // Mother's Day → photo + panel
   if (has(/recap|mid-?year|year in review|round-?up|by the numbers|state of the market/) || p.includes("market")) return "COLLAGE6"; // market roundup → 6-photo collage
