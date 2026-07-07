@@ -162,8 +162,12 @@ function hashStr(s: string): number {
 //   ALTBARS    myth/mistake bars        STEPS      numbered process path (no photo)
 //   VS         two-photo comparison     BIGSTAT    photo + big numeral
 //   G          text testimonial         POLAROID   client celebration (script + framed)
+// PHOTO layouts ONLY in the rotation (client rule: Instagram designs need
+// photos). STEPS (no-photo path card) and G (text testimonial) are no longer
+// dealt — G remains reachable via the testimonial lock, where a photo would
+// mean fabricating a client's face.
 const STEPHANIE_VARIETY_ORDER: StephanieArchetype[] = [
-  "SIGNATURE", "CHECKLIST", "STATEMENT", "STEPS", "SIGBOTTOM", "VS", "ALTBARS", "BIGSTAT", "G", "POLAROID",
+  "SIGNATURE", "CHECKLIST", "STATEMENT", "SIGBOTTOM", "VS", "ALTBARS", "BIGSTAT", "POLAROID",
 ];
 
 // Only a few layouts are genuinely content-LOCKED (a closing celebration, an actual
@@ -184,7 +188,7 @@ export function pickArchetype(
   // all to VS clustered the feed onto the two-column layout. VS still appears via
   // the variety order below — comparisons just spread across other layouts too.
   if (has(/\b\d+\s+(myths|mistakes|things not|don'?ts)\b|myths? (exposed|busted)|things not to do|\bmistakes to avoid/)) return "ALTBARS";
-  if (has(/the process|your path|step-by-step|step by step|road ?map|timeline|what happens (after|next)|from .* to the keys|how (it works|to buy)/)) return "STEPS";
+  if (has(/the process|your path|step-by-step|step by step|road ?map|timeline|what happens (after|next)|from .* to the keys|how (it works|to buy)/)) return "CHECKLIST"; // step-by-step → numbered cards OVER A PHOTO (client: IG needs photos)
 
   // Everything else: DEAL a distinct layout by position so the feed varies. Use
   // post_number when available (consecutive posts → consecutive, distinct layouts);
