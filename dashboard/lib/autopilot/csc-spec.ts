@@ -191,8 +191,13 @@ function hashStr(s: string): number {
 //   D          big-number stat              (text/photo)
 //   C          full-bleed command photo     (photo)
 //   G          parent review card           (text)
+// PHOTO layouts ONLY in the rotation (client rule: Instagram designs need
+// photos). Text-card layouts (A steps, QUAD, COMPARE, CHECK, STATEMENT, D, G)
+// are no longer dealt — G stays reachable via the testimonial lock (a photo
+// there would mean fabricating a parent's face) and COMPARE via the explicit
+// vs-lock. All photo scenes remain generic calm parent/child — never Clayton.
 const CSC_VARIETY_ORDER: CscArchetype[] = [
-  "A", "QUAD", "PHOTOSPLIT", "YHEADER", "COMPARE", "CHECK", "STATEMENT", "D", "C", "G",
+  "PHOTOSPLIT", "YHEADER", "C",
 ];
 
 // Only a few layouts are genuinely content-LOCKED (a real testimonial, the "1
@@ -212,7 +217,9 @@ export function pickArchetype(
   // YHEADER reference is itself a Bright Canary post.
   if (has(/\bthe (1|one)\b|one setting|single setting|spotlight|inside bright/)) return "YHEADER"; // single-setting spotlight
   if (has(/bright canary|how .{0,24}(protects?|works|keeps)|membership|partner|trusted by|the app that/)) return "PHOTOSPLIT"; // partner / Bright Canary explainer
-  if (has(/ vs\.?\b| versus |public.{0,12}private|private.{0,12}public|safe.{0,8}(vs|or).{0,8}risky|do this|not that|difference between/)) return "COMPARE"; // explicit compare / vs
+  // (COMPARE lock removed — it dealt a text-only card; per the client rule the
+  // only no-photo exception is a genuine testimonial. Comparison concepts now
+  // deal onto the photo layouts like everything else.)
 
   // Everything else: DEAL a distinct layout by position so the feed varies. Use
   // post_number when available (consecutive posts → consecutive, distinct
