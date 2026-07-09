@@ -53,15 +53,24 @@ export type BrandRow = {
   name: string;
   handle: string | null;
   color_primary: string | null;
+  color_secondary: string | null;
+  color_accent: string | null;
   cadence: string | null;
   compliance: string | null;
   platform: string | null;
+  // Tier 1 brand-health columns (synced from _brands/<slug>/brand.json
+  // via _ops/sync-brand-index.py).
+  voice_confidence: string | null;
+  color_confidence: string | null;
+  has_brand_doc: number | boolean | null;
+  has_kit_doc: boolean | null;
+  brand_json_synced_at: string | null;
 };
 
 export const getBrand = cache(async (slug: string): Promise<BrandRow | null> => {
   const { data } = await supabase
     .from("brands")
-    .select("id, name, handle, color_primary, cadence, compliance, platform")
+    .select("id, name, handle, color_primary, color_secondary, color_accent, cadence, compliance, platform, voice_confidence, color_confidence, has_brand_doc, has_kit_doc, brand_json_synced_at")
     .eq("id", slug)
     .single();
   return (data as BrandRow | null) ?? null;
