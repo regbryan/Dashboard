@@ -44,7 +44,10 @@ export type ScboardwalkRenderInput = {
   eyebrow: string; // e.g. "NOW HIRING"
   headline: string; // e.g. "ELECTRICIAN"
   detailLine: string; // short benefit / requirement line
-  photo: Buffer; // the no-people middle photo
+  // The no-people middle photo. OMIT for the "blue bands, no photo" hiring-draft
+  // variant — the middle renders a neutral placeholder and the operator drops in
+  // SC Boardwalk's OWN real photo at approval time.
+  photo?: Buffer | null;
   width?: number;
   height?: number;
 };
@@ -62,8 +65,9 @@ export async function renderScboardwalkDesign(input: ScboardwalkRenderInput): Pr
   const width = input.width ?? 1080;
   const height = input.height ?? 1350;
 
-  const jpeg = await sharp(input.photo).jpeg({ quality: 90 }).toBuffer();
-  const dataUri = `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+  const dataUri = input.photo
+    ? `data:image/jpeg;base64,${(await sharp(input.photo).jpeg({ quality: 90 }).toBuffer()).toString("base64")}`
+    : null;
 
   const eyebrow = input.eyebrow.toUpperCase();
   const headline = input.headline.toUpperCase();
@@ -112,9 +116,37 @@ export async function renderScboardwalkDesign(input: ScboardwalkRenderInput): Pr
     ]
   );
 
-  const photo = h("div", { display: "flex", flexGrow: 1, width: "100%" }, [
-    img(dataUri, { width: "100%", height: "100%", objectFit: "cover" }),
-  ]);
+  const photo = dataUri
+    ? h("div", { display: "flex", flexGrow: 1, width: "100%" }, [
+        img(dataUri, { width: "100%", height: "100%", objectFit: "cover" }),
+      ])
+    : // "Blue bands, no photo" hiring-draft variant — neutral placeholder the
+      // operator replaces with SC Boardwalk's own real photo at approval.
+      h(
+        "div",
+        {
+          display: "flex",
+          flexGrow: 1,
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#E9EEF2",
+        },
+        [
+          h(
+            "div",
+            {
+              display: "flex",
+              fontFamily: "Poppins",
+              fontWeight: 700,
+              fontSize: "30px",
+              letterSpacing: "3px",
+              color: "#8CA0AE",
+            },
+            "ADD PHOTO"
+          ),
+        ]
+      );
 
   const footer = h(
     "div",
